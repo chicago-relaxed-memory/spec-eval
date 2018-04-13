@@ -113,3 +113,13 @@ Let $(\aForm \mid \aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ when
 \begin{itemize}
 \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\aForm$ implies $\bForm$.
 \end{itemize}
+
+\subsection{Semantics of programs}
+
+Define:
+\begin{eqnarray*}
+  \sem{\SKIP} & = & \{ \emptyset \} \\
+  \sem{\aLoc\GETS\aExp\SEMI C} & = & \bigcup_\aVal (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{C}[\aExp/\aLoc] \\
+  \sem{\aReg\GETS\aLoc\SEMI C} & = & \bigcup_\aVal (\TRUE \mid \DR\aLoc\aVal) \prefix \sem{C}[\aLoc/\aReg] \\
+  \sem{\IF \aExp \THEN C \ELSE D} & = & (\aExp \neq 0 \mid \sem{C}) \sqcup (\aExp=0 \mid \sem{D})
+\end{eqnarray*}
