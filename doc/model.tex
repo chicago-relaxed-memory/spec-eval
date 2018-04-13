@@ -65,3 +65,40 @@ program:
 \begin{verbatim}
     r := x; if (r) { y := 1; } else { y := 0; }
 \end{verbatim}
+
+\subsection{Sets of pomsets}
+
+Let $\aPSS_1 \sqcup \aPSS_2$ be the set $\aPSS_0$ where $\aPS_0 \in \aPSS_0$
+whenever there are $\aPS_1 \in \aPSS_1$ and  $\aPS_2 \in \aPSS_2$ such that:
+\begin{itemize}
+\item $\Event_0 = \Event_1 \cup \Event_2$,
+\item if $\aEv \le_1 \bEv$ or $\aEv \le_2 \bEv$ then $\aEv \le_0 \bEv$,
+\item if $\labelling_0(\aEv) = (\aForm_0 \mid \aAct)$ then either:
+  \begin{itemize}
+  \item $\labelling_1(\aEv) = (\aForm_1 \mid \aAct)$ and $\labelling_2(\aEv) = (\aForm_2 \mid \aAct)$
+    and $\aForm_0$ implies $\aForm_1 \lor \aForm_2$,
+  \item $\labelling_1(\aEv) = (\aForm_1 \mid \aAct)$ and $\aEv \not\in \Event_2$
+    and $\aForm_0$ implies $\aForm_1$, or
+  \item $\labelling_2(\aEv) = (\aForm_2 \mid \aAct)$ and $\aEv \not\in \Event_1$
+    and $\aForm_0$ implies $\aForm_2$.
+  \end{itemize}
+\end{itemize}
+Let $(\phi \mid \DW\aLoc\aVal) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
+there is $\aPS\in\aPSS$ such that:
+\begin{itemize}
+\item $\Event' = \Event \cup \{0\}$,
+\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
+\item $\labelling'(0) = (\aForm, \DW\aLoc\aVal)$, where $\bForm$ implies $\aForm$, and
+\item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm \mid \aAct)$.
+\end{itemize}
+Let $(\phi \mid \DR\aLoc\aVal) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
+there is $\aPS\in\aPSS$ such that:
+\begin{itemize}
+\item $\Event' = \Event \cup \{0\}$,
+\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
+\item $\labelling'(0) = (\bForm, \DR\aLoc\aVal)$, where $\bForm$ implies $\aForm$, and
+\item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then
+  $\labelling'(\aEv) = (\bForm' \mid \aAct)$,
+  $\bForm'$ implies $\bForm[\aVal/\aLoc]$, and
+  $0 \le' \aEv$ or $\bForm'$ implies $\bForm$.
+\end{itemize}
