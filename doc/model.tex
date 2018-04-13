@@ -102,3 +102,14 @@ there is $\aPS\in\aPSS$ such that:
   $\bForm'$ implies $\bForm[\aVal/\aLoc]$, and
   $0 \le' \aEv$ or $\bForm'$ implies $\bForm$.
 \end{itemize}
+Let $\aPSS[\aExp/\aLV]$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
+there is $\aPS\in\aPSS$ such that:
+\begin{itemize}
+\item $\Event' = \Event$,
+\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$, and
+\item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm[\aExp/\aLV] \mid \aAct)$.
+\end{itemize}
+Let $(\aForm \mid \aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ whenever:
+\begin{itemize}
+\item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\aForm$ implies $\bForm$.
+\end{itemize}
