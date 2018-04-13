@@ -1,1 +1,67 @@
 \section{Model}
+
+\subsection{Preliminaries}
+
+We assume:
+\begin{itemize}
+\item a set of \emph{memory locations} $\Loc$, ranged over by
+  $\aLoc$ and $\bLoc$,
+\item a set of \emph{registers} $\Reg$, ranged over by
+  $\aReg$ and $\bReg$,
+\item a set of \emph{values} $\Val$, ranged over by
+  $\aVal$ and $\bVal$,
+\item a set of \emph{expressions} $\Exp$, ranged over by
+  $\aExp$ and $\bExp$,
+\item a set of \emph{logical formulae} $\Formulae$, ranged over by
+  $\aForm$ and $\bForm$, and
+\item a set of \emph{actions} $\Act$, ranged over by $\aAct$ and $\bAct$,
+\end{itemize}
+such that:
+\begin{itemize}
+\item values include at least the constants $0$ and $1$,
+\item expressions include at least registers and values,
+\item expressions are closed under substitution, written $\aExp[\bExp/\aReg]$,
+\item formulae include at least $\TRUE$, $\FALSE$, and equalities of the form $(\aExp=\bExp)$ and $(\aLoc=\bExp)$,
+\item formulae are closed under negation, conjunction, disjunction,
+\item formulae are closed under substitution, written $\aForm[\bExp/\aLV]$, and
+\item actions include at least \emph{reads} of the form $(\DR{\aLoc}{\aVal})$
+  and \emph{writes} of the form $(\DW{\aLoc}{\aVal})$.
+\end{itemize}
+Let the set of \emph{lvalues} be $\LVal=(\Loc\cup\Reg)$, ranged over by $\aLV$ and $\bLV$.
+
+\subsection{Pomsets}
+
+\begin{definition}
+  A \emph{pomset} $(\Event, {\le}, \labelling)$ with alphabet $\Alphabet$
+  is a partial order $(\Event, {\le})$ together with a function
+  $\labelling: \Event \fun \Alphabet$.
+\end{definition}
+Going forward, we fix the alphabet $\Alphabet=(\Formulae\times\Act)$.
+We will write $(\aForm \mid \aAct)$ for the pair $(\aForm,\aAct)$,
+$\aAct$ for $(\TRUE,\aAct)$ and $\NEVER\aAct$ for $(\FALSE,\aAct)$.
+
+We visualize a pomset as a graph where the nodes are drawn from
+$\Event$, each node $\aEv$ is labelled with $\labelling(\aEv)$,
+and an edge $\bEv \rightarrow \aEv$ corresponds to an ordering
+$\bEv\le\aEv$. For example:
+
+\[\begin{tikzpicture}[node distance=1em]
+  \event{x1}{\DR{\aLoc}{1}}{}
+  \nonevent{y0}{\DW{\bLoc}{0}}{below left=of x1}
+  \event{y1}{\DW{\bLoc}{1}}{below right=of x1}
+  \po{x1}{y0}
+  \po{x1}{y1}
+\end{tikzpicture}\]
+is a visualization of the pomset where:
+\[
+  0 \le 1 \quad
+  0 \le 2 \quad
+  \labelling(0) = (\TRUE, \DR{\aLoc}{1}) \quad
+  \labelling(1) = (\FALSE, \DW{\bLoc}{0}) \quad
+  \labelling(2) = (\TRUE, \DW{\bLoc}{1}) \quad
+\]
+As we shall see, this is a possible execution of the
+program:
+\begin{verbatim}
+    r := x; if (r) { y := 1; } else { y := 0; }
+\end{verbatim}

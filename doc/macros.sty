@@ -1,0 +1,79 @@
+\newcommand{\Reg}{\mathcal{R}}
+\newcommand{\aReg}{r}
+\newcommand{\bReg}{s}
+
+\newcommand{\Loc}{\mathcal{X}}
+\newcommand{\aLoc}{x}
+\newcommand{\bLoc}{y}
+
+\newcommand{\LVal}{\mathcal{L}}
+\newcommand{\aLV}{\ell}
+\newcommand{\bLV}{k}
+
+\newcommand{\Val}{\mathcal{V}}
+\newcommand{\aVal}{v}
+\newcommand{\bVal}{w}
+
+\newcommand{\Exp}{\mathcal{E}}
+\newcommand{\aExp}{M}
+\newcommand{\bExp}{N}
+
+\newcommand{\Formulae}{\Phi}
+\newcommand{\aForm}{\phi}
+\newcommand{\bForm}{\psi}
+\newcommand{\TRUE}{\mathsf{true}}
+\newcommand{\FALSE}{\mathsf{false}}
+
+\newcommand{\Act}{\mathcal{A}}
+\newcommand{\aAct}{a}
+\newcommand{\bAct}{b}
+\newcommand{\DR}[2]{\mathsf{R}\,#1\,#2}
+\newcommand{\DW}[2]{\mathsf{W}\,#1\,#2}
+
+\newcommand{\Event}{E}
+\newcommand{\aEv}{e}
+\newcommand{\bEv}{d}
+
+\newcommand{\Alphabet}{\Sigma}
+\newcommand{\labelling}{\lambda}
+
+\newcommand{\NEVER}[1]{\rlap{$\times$}#1}
+
+\newcommand{\fun}{\mathbin\rightarrow}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{shapes.geometric}
+\usetikzlibrary{topaths}
+\usetikzlibrary{arrows}
+\usetikzlibrary{positioning}
+\usetikzlibrary{matrix}
+\usetikzlibrary{fit}
+
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{foreground}
+
+\pgfsetlayers{background,main,foreground}
+
+\tikzstyle{event} = [draw=black, fill=blue!10, rectangle, rounded corners, minimum size=3ex]
+\tikzstyle{po} = [->]
+
+\tikzset{
+    nonevent/.style={
+        event, 
+        append after command={
+            node [
+                fit=(\tikzlastnode),
+                draw=red!50!black,
+                thick,
+                inner sep=-2\pgflinewidth,
+                cross out
+            ] {}
+        }
+    }
+}
+
+
+\newcommand{\event}[3]{\node[event](#1)[#3]{$#2$};}
+\newcommand{\nonevent}[3]{\node[nonevent](#1)[#3]{$#2$};}
+\newcommand{\po}[3][]{\draw[po,#1](#2)to(#3);}
