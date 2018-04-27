@@ -21,6 +21,7 @@
 \newcommand{\Formulae}{\Phi}
 \newcommand{\aForm}{\phi}
 \newcommand{\bForm}{\psi}
+\newcommand{\cForm}{\chi}
 \newcommand{\TRUE}{\mathsf{true}}
 \newcommand{\FALSE}{\mathsf{false}}
 
@@ -33,14 +34,18 @@
 \newcommand{\Event}{E}
 \newcommand{\aEv}{e}
 \newcommand{\bEv}{d}
+\newcommand{\cEv}{c}
 
 \newcommand{\Alphabet}{\Sigma}
 \newcommand{\labelling}{\lambda}
+
+\newcommand{\RF}{\mathsf{RF}}
 
 \newcommand{\NEVER}[1]{\rlap{$\times$}#1}
 
 \newcommand{\fun}{\mathbin\rightarrow}
 \newcommand{\prefix}{\mathbin\rightarrow}
+\newcommand{\st}{\mathbin.}
 
 \newcommand{\aPS}{P}
 \newcommand{\aPSS}{\mathcal{P}}
@@ -52,6 +57,8 @@
 \newcommand{\IF}{\texttt{if}\,}
 \newcommand{\THEN}{\,\texttt{then}\,}
 \newcommand{\ELSE}{\,\texttt{else}\,}
+\newcommand{\PAR}{\,\texttt{||}\,}
+\newcommand{\VAR}{\texttt{var}\,}
 
 \usepackage{tikz}
 \usetikzlibrary{shapes.misc}
@@ -69,6 +76,7 @@
 
 \tikzstyle{event} = [draw=black, fill=blue!10, rectangle, rounded corners, minimum size=3ex]
 \tikzstyle{po} = [->]
+\tikzstyle{rf} = [->,thick,dashed,draw=black!50!green]
 
 \tikzset{
     nonevent/.style={
@@ -89,3 +97,4 @@
 \newcommand{\event}[3]{\node[event](#1)[#3]{$#2$};}
 \newcommand{\nonevent}[3]{\node[nonevent](#1)[#3]{$#2$};}
 \newcommand{\po}[3][]{\draw[po,#1](#2)to(#3);}
+\newcommand{\rf}[3][]{\draw[rf,#1](#2)to(#3);}

@@ -66,12 +66,49 @@ program:
     r := x; if (r) { y := 1; } else { y := 0; }
 \end{verbatim}
 
+\begin{definition}
+  An \emph{rf-pomset} is a pomset together with a
+  $\RF \subseteq \Event\times\Event$ such that for any $(\bEv,\aEv) \in \RF$: 
+  \begin{itemize}
+  \item $\bEv < \aEv$,
+  \item $\labelling(\bEv) = (\aForm \mid \DW{\aLoc}{\aVal})$
+    and $\labelling(\aEv) = (\bForm \mid \DR{\aLoc}{\aVal})$, and
+  \item there is no $\bEv < \cEv < \aEv$ such that
+    $\labelling(\cEv) = (\cForm \mid \DW{\aLoc}{\bVal})$.
+  \end{itemize}
+\end{definition}
+We visualize rf-pomsets by drawing a dashed edge between edges in $\RF$,
+for example:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{\aLoc}{1}}{}
+  \event{x1}{\DR{\aLoc}{1}}{right=5em of wx1}
+  \nonevent{y0}{\DW{\bLoc}{0}}{below left=of x1}
+  \event{y1}{\DW{\bLoc}{1}}{below right=of x1}
+  \rf{wx1}{x1}
+  \po{x1}{y0}
+  \po{x1}{y1}
+\end{tikzpicture}\]
+As we shall see, this is a possible execution of the
+program:
+\begin{verbatim}
+    x := 1;  ||  r := x; if (r) { y := 1; } else { y := 0; }
+\end{verbatim}
+\begin{definition}
+  An rf-pomset is $\aLoc$-closed if
+  for $\aEv\in\Event$ with $\labelling(\aEv)=(\aForm \mid \aAct)$:
+  \begin{itemize}
+  \item $\aForm$ is independent of $\aLoc$, and
+  \item if $\aAct$ is an $\aLoc$ read action, then there is a $\bEv$ with $(\bEv,\aEv) \in \RF$.
+  \end{itemize}
+\end{definition}
+
 \subsection{Sets of pomsets}
 
 Let $\aPSS_1 \sqcup \aPSS_2$ be the set $\aPSS_0$ where $\aPS_0 \in \aPSS_0$
 whenever there are $\aPS_1 \in \aPSS_1$ and  $\aPS_2 \in \aPSS_2$ such that:
 \begin{itemize}
 \item $\Event_0 = \Event_1 \cup \Event_2$,
+\item $\RF_0 = \RF_1 \cup \RF_2$,
 \item if $\aEv \le_1 \bEv$ or $\aEv \le_2 \bEv$ then $\aEv \le_0 \bEv$,
 \item if $\labelling_0(\aEv) = (\aForm_0 \mid \aAct)$ then either:
   \begin{itemize}
@@ -83,10 +120,16 @@ whenever there are $\aPS_1 \in \aPSS_1$ and  $\aPS_2 \in \aPSS_2$ such that:
     and $\aForm_0$ implies $\aForm_2$.
   \end{itemize}
 \end{itemize}
+Let $\aPSS_1 \parallel \aPSS_2$ be defined the same as $\aPSS_1 \sqcup \aPSS_2$ except that:
+\begin{itemize}
+\item $\RF_0 \supseteq \RF_1 \cup \RF_2$, and
+ for any $\bEv, \aEv \in \Event_i$, if $(\bEv,\aEv)\in\RF_0$ then $(\bEv,\aEv)\in\RF_i$.
+\end{itemize}
 Let $(\phi \mid \DW\aLoc\aVal) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
 \item $\Event' = \Event \cup \{0\}$,
+\item $\RF' = \RF$,
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
 \item $\labelling'(0) = (\aForm, \DW\aLoc\aVal)$, where $\bForm$ implies $\aForm$, and
 \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm \mid \aAct)$.
@@ -95,6 +138,7 @@ Let $(\phi \mid \DR\aLoc\aVal) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\i
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
 \item $\Event' = \Event \cup \{0\}$,
+\item $\RF' = \RF$,
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
 \item $\labelling'(0) = (\bForm, \DR\aLoc\aVal)$, where $\bForm$ implies $\aForm$, and
 \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then
@@ -106,6 +150,7 @@ Let $\aPSS[\aExp/\aLV]$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
 \item $\Event' = \Event$,
+\item $\RF' = \RF$,
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$, and
 \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm[\aExp/\aLV] \mid \aAct)$.
 \end{itemize}
@@ -113,13 +158,17 @@ Let $(\aForm \mid \aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ when
 \begin{itemize}
 \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\aForm$ implies $\bForm$.
 \end{itemize}
+Let $(\nu\aLoc\st\aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ whenever
+$\aPS$ is $\aLoc$-closed.
 
 \subsection{Semantics of programs}
 
 Define:
 \begin{eqnarray*}
   \sem{\SKIP} & = & \{ \emptyset \} \\
-  \sem{\aLoc\GETS\aExp\SEMI C} & = & \bigcup_\aVal (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{C}[\aExp/\aLoc] \\
-  \sem{\aReg\GETS\aLoc\SEMI C} & = & \bigcup_\aVal (\TRUE \mid \DR\aLoc\aVal) \prefix \sem{C}[\aLoc/\aReg] \\
-  \sem{\IF \aExp \THEN C \ELSE D} & = & (\aExp \neq 0 \mid \sem{C}) \sqcup (\aExp=0 \mid \sem{D})
+  \sem{\aLoc\GETS\aExp\SEMI C} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{C}[\aExp/\aLoc] \\
+  \sem{\aReg\GETS\aLoc\SEMI C} & = & \bigcup_\aVal\; (\TRUE \mid \DR\aLoc\aVal) \prefix \sem{C}[\aLoc/\aReg] \\
+  \sem{\IF \aExp \THEN C \ELSE D} & = & (\aExp \neq 0 \mid \sem{C}) \sqcup (\aExp=0 \mid \sem{D}) \\
+  \sem{C \PAR D} & = & \sem{C} \parallel \sem{D} \\
+  \sem{\VAR\aLoc\SEMI C} & = & \nu \aLoc \st \sem{C}
 \end{eqnarray*}
