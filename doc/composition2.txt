@@ -14,7 +14,7 @@ Given a labelled rf-poset (E,lbl,<,rf), define satisfaction:
   e |= G(phi) if forall d < e, d |= phi
 
 Denote rf-poset by its carrier set E.
-The a set of rf-poset is denoted as Es.
+Then a set of rf-poset is denoted as Es.
 
   Es |= phi if forall E in Es: forall e in E: e |= phi
 
@@ -67,7 +67,7 @@ Goal: Es |= ~ F(Wa1)   [impossible to write a=1]
 
 Invariant:
 
-     F(Wy1) => F(Ry1)
+     F(Wy1) => F(Rx1)
   /\ F(Wa1) => F(Ry1) /\ G(Wx1 => F(Ry1))
 
 Closing y:
