@@ -1,0 +1,87 @@
+Syntax:
+
+  phi ::= Wxv | Rxv | G(phi) | true | phi1 /\ phi2 | ~ phi
+
+Abbreviations:
+
+  F(phi) = ~ G(~ phi)
+  etc
+
+Given a labelled rf-poset (E,lbl,<,rf), define satisfaction:
+
+  e |= Wxv if lbl(e) = (true,Wxv)
+  e |= Rxv if lbl(e) = (true,Rxv)
+  e |= G(phi) if forall d < e, d |= phi
+
+Denote rf-poset by its carrier set E.
+The a set of rf-poset is denoted as Es.
+
+  Es |= phi if forall E in Es: forall e in E: e |= phi
+
+Induction for G [sound proof rule]:  
+
+  G(phi) => phi
+  --------------
+   phi /\ G(phi)
+
+Coinduction for F [sound proof rule]:
+
+  phi => F(phi)
+  ------------
+     ~ phi
+
+Superset closed formula:
+
+  Define: phi is superset closed if (Es |= phi) and (Es' supseteq Es) imply (Es' |= phi)
+
+Parallel composition [sound proof rule]:
+
+  phi is superset closed
+  Es1 |= phi  
+  Es2 |= phi
+  ----------------
+  Es1 || Es2  |= phi
+
+Closed at x:
+
+  Define closed(x) = (Rxv => F(Wxv))
+
+Local declaration [sound proof rule]:
+
+  x notin phi
+  Es |= closed(x) => phi
+  ----------------------
+  var x; Es |= phi
+
+I think we need one more thing to express the examples.  Init is a "local" write that does not create an event.
+
+  Define ⟦init x=M;C⟧ = ⟦C⟧[M/x]
+
+A version of Alan's conditional TAR example:
+
+  var x,y,z;
+  init x=y=z=0;
+  y:=x  ||  if(~z){x:=1}else{x:=y;a:=y}  ||  z:=1
+
+Goal: Es |= ~ F(Wa1)   [impossible to write a=1]
+
+Invariant:
+
+     F(Wy1) => F(Ry1)
+  /\ F(Wa1) => F(Ry1) /\ G(Wx1 => F(Ry1))
+
+Closing y:
+
+  F(Wa1) => F(Rx1) /\ G(Wx1 => F(Rx1))
+
+Closing x:
+
+  F(Wa1) => F(Wx1) /\ G(Wx1 => F(Wx1))
+
+Using coinduction for F:  
+
+  F(Wa1) => F(Wx1) /\ G(~ Wx1)
+
+Simplifying:  
+
+  F(Wa1) => false
