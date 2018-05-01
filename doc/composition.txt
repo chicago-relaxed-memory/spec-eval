@@ -1,0 +1,177 @@
+Composition theorem. [Two approaches]
+======================================
+
+A. Pomsets labeled with processes.
+
+
+Ids: Set of Process Ids (PId)
+Writes(PIds): <W x j, PId>
+Reads(PIds) : <R x j, PId>
+Event(Ids)  : Writes(PIds) cup Reads(PIds)
+
+Viewing:
+     Controllable Actions: e in Writes(Wids) cup Reads(WIds)
+ Non-Controllable Actions: e in Reads(RIds)
+
+Idea: Non-Controllable actions can only be hypothesis, not guarantees.
+            
+Pom(RId,Wid): Pomsets with Reads  from Reads(PIds)
+                           Writes from Writes(PIds)
+						   						   
+
+SafetyLTL(RIds,WIds): Past LTL formulas over atoms
+         EXISTSPAST(e'),    e in  Reads (RIds) 
+	 e ,                e  in Writes(WIds) cup Reads(WIds)
+         Boolean, PAST OPERATORS .....
+
+Note: Shorthand: e < e' for e' ==> EXISTSPAST(e)
+
+			 
+Def: P, e' |= e, if e = e'
+     P, e' |= EXISTPAST(e), if there exists e<e'
+Boolean, other past formulas as usual
+
+Def:[Models] For phi in SafetyLTL(RIds,WIds), define:
+  Mod(phi) = {P | P in Pomset(RIds,WIds), P |= phi}
+
+Def[Generativity]: 
+  GSafetyLTL = {phi in SafetyLTL(RIds,WIds) | empty in Mod(phi)}
+
+Def: 
+1. Let SP be a set of rf-pomsets. SP |= phi, if:
+    for all closed P in SP, forall e' in P, 
+            P, e'| = phi
+2. SP1 |=SP2== phi, if SP1 || SP2 |== phi.
+
+Note: if psi in GSafetyLTL(..), write psi |=SP== phi
+if Mod(psi) |=SP== phi
+
+Thm:[Composition] 
+If Env cap {T1,T2} = empty,
+   phi  in GSafetyLTL({T1,T2} cup Env,Env)
+   phi1 in GSafetyLTL({T1,T2} cup Env,{T1})
+   phi2 in GSafetyLTL({T1,T2} cup Env,{T2})
+   SPi subseteq Pom({Ti},{Ti}) 
+such that:
+     (a) phi AND phi2 |=SP1== phi1     
+     (b) phi AND phi1 |=SP2== phi2
+Then: phi |=SP1||SP2== phi1 AND phi2
+   
+Examples.
+(a)  T1: r =x; y =r    T2: s =y; x =s
+Let phi =   not<W x 1,env> AND not<W y 1,env>
+    phi_1 = not<W y 1,T1> 
+    phi_2 = not<W x 1,T2>
+Then:
+   phi, phi_2 |=T1== phi_1
+   phi, phi_1 |=T2== phi_2
+So:
+ not<W x 1,env> AND not<W y 1,env> 
+      |=(T1||T2)==  not<W y 1,T1> and not<W x 1,T2>
+   
+   
+(b) T1: s =z; !s? x=1; : {s=y;x =s;a=1; }
+    T2: r=x;y =r;
+	
+Let phi:   not[<W y 1, env> OR <W x 1,env>]
+    phi_1:     <R z 0,T1> < <W x 1,T1> 
+           AND <R z 1,T1> < <W a 1,T1> 
+           AND NOT(<R z 1,T1> < <R z 0,T1>) 
+           AND NOT(<R z 0,T1> < <R z 1,T1>)
+    phi_2: <R z 0,T1> < <W y 1,T2> 
+Then:
+    phi, phi_2 |=T1== phi_1
+    phi, phi_1 |=T2== phi_2
+QED from composition:
+   not[<W y 1, env> OR <W x 1,env>] 
+	 |==     <R z 0,T1> < <W x 1,T1> 
+	     AND <R z 0,T1> < <W y 1,T2>
+             AND NOT(<R z 1,T1> < <R z 0,T1>) 
+             AND NOT(<R z 0,T1> < <R z 1,T1>)
+		 
+Proof of Composition.
+
+Lemma 1. Let P in Mod(phi), phi in SafetyLTL(RIds,WIds).
+If: 
+   P |= phi, and 
+   t not in WIds
+Then:
+   P'|= phi.
+
+Main proof. For each closed rf-pomset in Mod(phi) || SP1 || SP2,
+we project to SP1 || SP2 (ie. actions with labels in {T1,T2}) and
+induct on the order of the projected pomsets.
+   Base: Empty pomsets satisfy the properties (by generativity)
+   IH: [Tpt any execution that satisfies phi also 
+       satisfies phi1 AND phi2]
+   Cases in inductive steps correspond to extension by events
+   in T1, T2.
+
+   Extending by T1 event e. 
+	  phi2 holds by Lemma since phi2 in LTS-Safety(..,{T2}) 
+	  phi1 holds by hypothesis phi AND phi2 |=P1== phi1
+		 
+   Extending by T2 event e.  Symmetric to above.
+				
+
+POMSETS WITHOUT LABELS
+========================
+
+SafetyLTL: Past LTL formulas over atoms 
+	   e in Writes cup Reads
+
+Def: P, e' |= e, if e = e'
+Boolean, past formulas as usual
+
+Def:[Models] For phi in SafetyLTL, define:
+  Mod(phi) = {P |  P |= phi}
+  
+Def: 
+1. Let SP be a set of rf-pomsets. SP |= phi, if:
+    for all closed P in SP, forall e' in P:
+            P, e'| = phi
+
+2. SP1 |=SP2== phi, if SP1 || SP2 |== phi.
+
+Note: if psi in SafetyLTL, write psi |=SP== phi
+if Mod(psi) |=SP== phi
+
+Thm:[Composition] 
+If phi in SafetyLTLsuch that:
+     (a) Mod(phi) is not empty,
+     (b) ALWAYSPAST(phi)|=P1== phi     
+     (c) ALWAYSPAST(phi)|=P2== phi
+Then: ALWAYSPAST(phi) |=P1||P2== phi
+
+
+Examples.
+(a)  T1: r =x; y =r    T2: s =y; x =s
+Let phi =   not <W x 1> AND not<W y 1>
+Then:
+    ALWAYSPAST(phi)  |=T1== phi
+    ALWAYSPAST(phi)  |=T2== phi
+   
+(b) T1: s =z; !s? x=1 : {a=1; s=y;x =s; }
+    T2: r=x;y =r;
+	
+Let phi  :     <W x 1> ==> EXISTPAST(<R z 0>)
+           AND <W y 1> ==> EXISTPAST(<R z 0>)
+           AND <W a 1> ==> EXISTPAST(<R z 1>)
+           AND <R z 0> ==> ALWAYSPAST(NOT < R z 1>)
+           AND <R z 1> ==> ALWAYSPAST(NOT < R z 0>)
+Then:
+    ALWAYSPAST(phi)  |=T1== phi
+    ALWAYSPAST(phi)  |=T2== phi
+
+
+Proof of Composition.
+
+For each closed rf-pomset in Mod(phi) || SP1 || SP2,
+we project to SP1 || SP2 and induct on the projected pomsets.
+   Base: Empty pomsets satisfy the properties (Mod(phi) not empty)
+   IH:  Cases in inductive steps correspond to extension by events
+   in T1, T2.
+   
+   Extending by T1 event e. use hypothesis ALWAYSPAST(phi)  |=T1== phi
+   Extending by T2 event e.  Symmetric to above.
+		 
