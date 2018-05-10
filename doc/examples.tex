@@ -116,6 +116,138 @@ and:
 Thus, the semantics of \verb|(r := x; y := x+2-x;)|
 is the same as the semantics of \verb|(y := 2; r := x;)|.
 
+\subsection{Dependencies on conditionals}
+
+Conditionals introduce control dependencies, for example consider the program:
+\begin{verbatim}
+  r := z; if (r) { x := 1; } else { y := 2; }
+\end{verbatim}
+This has semantics:
+\[
+  \bigcup_\aVal\; (\TRUE \mid \DR z\aVal) \prefix
+    (z \neq 0 \mid \sem{\texttt{x := 1}}) \sqcup (z=0 \mid \sem{\texttt{y := 2}})
+\]
+Now $\sem{\texttt{x := 1}}$ contains any pomset of the form:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\aForm \mid \DW{x}{1}}{}
+\end{tikzpicture}\]
+in particular it contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
+\end{tikzpicture}\]
+and similarly $\sem{\texttt{y := 2}}$ contains any pomset of the form:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wy2}{r=0 \mid \DW{y}{2}}{}
+\end{tikzpicture}\]
+and so $\sem{\texttt{if (r) \{ x := 1; \} else \{ y := 2; \}}}$
+contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
+  \event{wy2}{r=0 \mid \DW{y}{2}}{right=of wx1}
+\end{tikzpicture}\]
+Now, prefixing with $(\DR z\aVal)$ performs substitutions, for example
+when $\aVal$ is $0$ we have:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz0}{\DR{z}{0}}{}
+  \nonevent{wx1}{\DW{x}{1}}{right=of rz0}
+  \event{wy2}{\DW{y}{2}}{right=of wx1}
+  \po{rz0}{wx1}
+  \po[out=30,in=150]{rz0}{wy2}
+\end{tikzpicture}\]
+and when $\aVal$ is $1$ we have:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{z}{1}}{}
+  \event{wx1}{\DW{x}{1}}{right=of rz1}
+  \nonevent{wy2}{\DW{y}{2}}{right=of wx1}
+  \po{rz1}{wx1}
+  \po[out=30,in=150]{rz1}{wy2}
+\end{tikzpicture}\]
+
+\subsection{Speculative evaluation}
+
+So far, the treatment of dependency has been fairly standard, we have included
+aborted events in the semantics of programs, but they have not had any impact.
+We shall now see that this is not always the case, that the execution of a conditional
+can depend on the branch not taken.
+
+Consider the program:
+\begin{verbatim}
+  r := z; if (r) { x := 1; } else { x := 1; }
+\end{verbatim}
+Many optimizers will consider it to be the same as:
+\begin{verbatim}
+  r := z; x := 1;
+\end{verbatim}
+and so there should not be a dependency between $(\DR z\aVal)$ and $(\DW x1)$.
+The semantics of this program is:
+\[
+  \bigcup_\aVal\; (\TRUE \mid \DR z\aVal) \prefix
+    (z \neq 0 \mid \sem{\texttt{x := 1}}) \sqcup (z=0 \mid \sem{\texttt{x := 1}})
+\]
+so, as in the previous section, we have executions such as:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{z}{1}}{}
+  \event{wx1a}{\DW{x}{1}}{right=of rz1}
+  \nonevent{wx1b}{\DW{x}{1}}{right=of wx1a}
+  \po{rz1}{wx1a}
+  \po[out=30,in=150]{rz1}{wx1b}
+\end{tikzpicture}\]
+but we also have the execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{z}{1}}{}
+  \event{wx1}{\DW{x}{1}}{right=of rz1}
+\end{tikzpicture}\]
+To see why, consider $\aPSS_1 \sqcup \aPSS_2$ where:
+\[
+  \aPSS_1 = (z \neq 0 \mid \sem{\texttt{x := 1}}) \quad
+  \aPSS_2 = (z=0 \mid \sem{\texttt{x := 1}})
+\]
+Now $\aPSS_1$ contains the pomset $\aPS_1$ where:
+\[
+  \Event_1 = \{0\} \qquad
+  0 \le_1 0 \qquad
+  \labelling_1(0) = (z \neq 0 \mid \DW x1)
+\]
+Similarly $\aPSS_2$ contains the pomset $\aPS_2$ where:
+\[
+  \Event_1 = \{0\} \qquad
+  0 \le_1 0 \qquad
+  \labelling_1(0) = (z = 0 \mid \DW x1)
+\]
+In particular, $\Event_1$ and $\Event_2$ overlap. One of the inhabitants
+of $\aPSS_1 \sqcup \aPSS_2$ is $\aPS_0$ where:
+\[
+  \Event_0 = \{0\} \qquad
+  0 \le_0 0 \qquad
+  \labelling_0(0) = (\TRUE \mid \DW x1)
+\]
+which is the execution we are interested in.
+
+We can now see the counterintutive behaviour of speculation,
+there are programs such as
+\verb|r := z; if (r) { x := 1; } else { x := 1; }| with
+executions in which  $(\DW x1)$ is independent of $(\DR z1)$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{z}{1}}{}
+  \event{wx1}{\DW{x}{1}}{right=of rz1}
+\end{tikzpicture}\]
+while programs such as
+\verb|r := z; if (r) { x := 1; } else { y := 2; }|
+only have executions in which $(\DW x1)$ is dependent on $(\DR z1)$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{z}{1}}{}
+  \event{wx1}{\DW{x}{1}}{right=of rz1}
+  \nonevent{wy2}{\DW{y}{2}}{right=of wx1}
+  \po{rz1}{wx1}
+  \po[out=30,in=150]{rz1}{wy2}
+\end{tikzpicture}\]
+so these programs have different dependency relations, depedning
+on conditional branches that were not taken. In \S\ref{sec:info-flow-attack}
+we shall see that this has security implications, since relaxed
+memory can observe dependency. The attack is similar to Spectre, so
+we shall take a detour to see how Spectre can be modelled in this
+setting.
+
 \subsection{Spectre}
 
 We give a simplified model of Spectre attacks, ignoring the details of
@@ -191,6 +323,7 @@ This shows how a (very abstract, untimed) model of Spectre attacks
 using speculative evaluation can be modelled.
 
 \subsection{Information flow attacks on relaxed memory}
+\label{sec:info-flow-attack}
 
 Consider an attacker program, again using security checks to
 try to learn a \verb|SECRET|. Whereas \verb|SPECTRE| uses
