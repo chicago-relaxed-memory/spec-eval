@@ -1,5 +1,121 @@
 \section{Examples}
 
+\subsection{Independent write reordering}
+
+Consider an example with two independent writes
+\verb|(x := 1; y := 2;)|.
+This has the semantics:
+\[
+  \bigcup_\aVal\; (1=\aVal \mid \DW x\aVal) \prefix \left(
+    \bigcup_\bVal\; (2=\bVal \mid \DW y\aVal) \prefix \left(
+      \{\emptyset\}
+    \right)[2/y]
+  \right)[1/x]
+\]
+which is the same as:
+\[
+  \bigcup_\aVal\; (1=\aVal \mid \DW x\aVal) \prefix
+    \bigcup_\bVal\; (2=\bVal \mid \DW y\aVal) \prefix
+      \{\emptyset\}
+\]
+which includes the case where $\aVal=1$ and $\bVal=2$:
+\[
+  (1=1 \mid \DW x1) \prefix
+    (2=2 \mid \DW y2) \prefix
+      \{\emptyset\}
+\]
+One of the executions this contains is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{wy2}{\DW{y}{2}}{right=of wx1}
+  \po{wx1}{wy2}
+\end{tikzpicture}\]
+but it also contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{wy2}{\DW{y}{2}}{right=of wx1}
+\end{tikzpicture}\]
+and:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{wy2}{\DW{y}{2}}{right=of wx1}
+  \po{wy2}{wx1}
+\end{tikzpicture}\]
+since there is no requirement that
+$(\DW{x}{1}) \le (\DW{y}{2})$.
+
+Thus, the semantics of \verb|(x := 1; y := 2;)|
+is the same as the semantics of \verb|(y := 2; x := 1;)|.
+
+\subsection{Dependencies on reads}
+
+Whereas write prefixing introduces no new dependencies,
+read prefixing can. For example the program
+\verb|(r := x; y := r+1;)| has semantics:
+\[
+  \bigcup_\aVal\; (\TRUE \mid \DR x\aVal) \prefix \left(
+    \bigcup_\bVal\; (r+1=\bVal \mid \DW y\aVal) \prefix \left(
+      \{\emptyset\}
+    \right)[r+1/y]
+  \right)[x/r]
+\]
+which is the same as:
+\[
+  \bigcup_\aVal\; (\TRUE \mid \DR x\aVal) \prefix
+    \bigcup_\bVal\; (x+1=\bVal \mid \DW y\aVal) \prefix
+      \{\emptyset\}
+\]
+which includes the case where $\aVal=1$ and $\bVal=2$:
+\[
+  (\TRUE \mid \DR x1) \prefix
+    (x+1=2 \mid \DW y2) \prefix
+      \{\emptyset\}
+\]
+Now, since $\TRUE$ implies $(x+1=2)[1/x]$, this contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+but since $\TRUE$ does not imply $(x+1=2)$,
+we have the requirement that $(\DR{x}{1}) \le (\DW{y}{2})$.
+
+This is in contrast to the program 
+\verb|(r := x; y := r+2-r;)|, which has
+semantics:
+\[
+  \bigcup_\aVal\; (\TRUE \mid \DR x\aVal) \prefix
+    \bigcup_\bVal\; (x+2-x=\bVal \mid \DW y\aVal) \prefix
+      \{\emptyset\}
+\]
+Again, we consider the case where $\aVal=1$ and $\bVal=2$:
+\[
+  (\TRUE \mid \DR x1) \prefix
+    (x+2-x=2 \mid \DW y2) \prefix
+      \{\emptyset\}
+\]
+Now, since $\TRUE$ implies $(x+2-x=2)[1/x]$, this contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+but also $\TRUE$ implies $(x+2-x=2)$
+(at least for arithmetic modulo $n$)
+and so this also contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+\end{tikzpicture}\]
+and:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+  \po{wy2}{rx1}
+\end{tikzpicture}\]
+Thus, the semantics of \verb|(r := x; y := x+2-x;)|
+is the same as the semantics of \verb|(y := 2; r := x;)|.
+
 \subsection{Spectre}
 
 We give a simplified model of Spectre attacks, ignoring the details of
