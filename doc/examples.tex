@@ -9,24 +9,25 @@ implemented using timing attacks on the cache). For example,
 we can write a \verb|SPECTRE| program as:
 \begin{verbatim}
     var a;
-    if (securityCheck) { a[sec] := 1; }
-    else if (touched a[0]) { pub := 0; }
-    else if (touched a[1]) { pub := 1; }
+    if (isCapability(0)) { a[SECRET] := 1; }
+    else if (touched a[0]) { x := 0; }
+    else if (touched a[1]) { x := 1; }
 \end{verbatim}
 This is a low-security program, which is attempting to discover the
-value of a high-security variable \verb|sec|. The low-security program
-is allowed to attempt to escalate its privileges:
+value of a high-security variable \verb|SECRET|. The low-security program
+is allowed to attempt to escalate its privileges by providing a capability
+which demonstrates that they are entitled to run high-security code:
 \begin{verbatim}
-    if (securityCheck) { ... escalated code ... }
+    if (isCapability(c)) { ... escalated code ... }
     else { ... fallback code ... }
 \end{verbatim}
-In this case, the \verb|securityCheck| will fail, so the fallback code
+In this case, the \verb|isCapability(0)| is false, so the fallback code
 is executed. Unfortunately, the escalated code is speculatively
 evaluated, which allows information to leak by testing for which
 memory locations have been touched.
 
 We model the \verb|touched| test by introducing a new read action
-$\DT{\aLoc}$ and defining:
+$(\DT{\aLoc})$ and defining:
 \begin{eqnarray*}
   \sem{\IF \TOUCHED\aLoc\THEN C \ELSE D} & = & ((\DT\aLoc) \prefix \sem{C}) \sqcup \sem{D}
 \end{eqnarray*}
@@ -45,7 +46,7 @@ For example, one execution of \verb|SPECTRE| is:
   \po{rs}{wa}
   \po{ta}{wx}
 \end{tikzpicture}\]
-Putting this in parallel with a high-security write to \verb|sec| gives:
+Putting this in parallel with a high-security write to \verb|SECRET| gives:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ws}{\DW{\SEC}{1}}{}
   \nonevent{rs}{\DR{\SEC}{1}}{right=2.5em of ws}
