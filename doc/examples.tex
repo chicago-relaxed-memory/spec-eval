@@ -163,6 +163,88 @@ and when $\aVal$ is $1$ we have:
   \po[out=30,in=150]{rz1}{wy2}
 \end{tikzpicture}\]
 
+\subsection{Relaxed memory}
+
+The model includes concurrent memory accesses, which can introduce concurrent
+reads-from. For example, the program:
+\begin{verbatim}
+  x := 1; || r := x;
+\end{verbatim}
+has an execution in which the write to $x$ does not justify the read from $x$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{rxv}{\DR{x}{v}}{right=2.5 em of wx1}
+\end{tikzpicture}\]
+but also has an execution in which the write to $x$ does justify the read from $x$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of wx1}
+  \rf{wx1}{rx1}
+\end{tikzpicture}\]
+Since we are allowing events to be partially ordered, this gives a simple
+model of relaxed memory, for example an independent read independent write
+(IRIW) example is:
+\begin{verbatim}
+  x := 0; x := x+1; || y := 0; y := y+1; || if (x) { r := y; } || if (y) { s := x; }
+\end{verbatim}
+which includes the execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wx1}{\DW{x}{1}}{right=of wx0}
+  \event{wy0}{\DW{y}{0}}{right=2.5em of wx1}
+  \event{wy1}{\DW{y}{1}}{right=of wy0}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of wy1}
+  \event{ry0}{\DR{y}{0}}{right=of rx1}
+  \event{ry1}{\DR{y}{1}}{right=2.5 em of ry0}
+  \event{rx0}{\DR{x}{0}}{right=of ry1}
+  \rf[out=30,in=150]{wx1}{rx1}
+  \rf[out=30,in=150]{wy0}{ry0}
+  \rf[out=340,in=200]{wy1}{ry1}
+  \rf[out=340,in=200]{wx0}{rx0}
+  \po{wx0}{wx1}
+  \po{wy0}{wy1}
+  \po{rx1}{ry0}
+  \po{ry1}{rx0}
+\end{tikzpicture}\]
+This model does not introduce thin-air reads (TAR),
+for example the TAR pit is:
+\begin{verbatim}
+  x := y; || y := x;
+\end{verbatim}
+but an attempt to produce a value from thin air fails,
+for the usual reason of producing a cycle in $\le$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry42}{\DR{y}{42}}{}
+  \event{wx42}{\DW{x}{42}}{below=of ry42}
+  \event{rx42}{\DR{x}{42}}{right=2.5em of ry42}
+  \event{wy42}{\DW{y}{42}}{below=of rx42}
+  \po{ry42}{wx42}
+  \po{rx42}{wy42}
+  \rf{wx42}{rx42}
+  \rf{wy42}{ry42}
+\end{tikzpicture}\]
+This cycle can be broken if one of the writes does not depend on the read, for ezample:
+\begin{verbatim}
+  x := y; || r := x; y := r+1-r;
+\end{verbatim}
+has execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{y}{1}}{}
+  \event{wx1}{\DW{x}{1}}{below=of ry1}
+  \event{rx1}{\DR{x}{1}}{right=2.5em of ry1}
+  \event{wy1}{\DW{y}{1}}{below=of rx1}
+  \po{ry1}{wx1}
+  \rf{wx1}{rx1}
+  \rf{wy1}{ry1}
+\end{tikzpicture}\]
+Note that $(\DR x1) \not\le (\DW y1)$, so this does not introduce a cycle.
+
+This model of relaxed memory is simple, and does not model many features
+such as coherence, non-release-acquire access, or memory fences, but it is
+good enough for the examples in this paper. In particular, we use the fact that
+relaxed memory is sensitive to data dependency to give a Spectre attack which
+does not depend on timing in \S\ref{sec:info-flow-attack}.
+
 \subsection{Speculative evaluation}
 
 So far, the treatment of dependency has been fairly standard, we have included
