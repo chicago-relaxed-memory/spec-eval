@@ -1,3 +1,8 @@
+--------------------------------
+- For code without spectr, if there is an information flow then there is a dependency
+- Spectr executions are not prefix closed.
+--------------------------------
+
 Syntax:
 
   phi ::= Wxv | Rxv | G(phi) | true | phi1 /\ phi2 | ~ phi
