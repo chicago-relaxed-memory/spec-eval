@@ -360,7 +360,7 @@ We model the \verb|touched| test by introducing a new read action
 \textcolor{red}{(Why a read?)}
 $(\DT{\aLoc})$ and defining:
 \begin{eqnarray*}
-  \sem{\IF \TOUCHED\aLoc\THEN C \ELSE D} & = & ((\DT\aLoc) \prefix \sem{C}) \sqcup \sem{D}
+  \sem{\IF \TOUCHED\aLoc\THEN \aCmd \ELSE \bCmd} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \sqcup \sem{\bCmd}
 \end{eqnarray*}
 The additional requirement we need to add for $\aLoc$-closure is:
 \begin{itemize}
@@ -514,45 +514,32 @@ exhibits $(\DW{z}{1})$.
 
 \subsection{Fences and release/acquire synchronization}
 
-Generalize the previous model a bit.
+We assume a subsets of release actions %$\Rel\subseteq\Act$
+and acquire actions. % $\Acq\subseteq\Act$.
+Reads, writes and touches in neither release nor acquire.
 
-First: We assume a subsets of release actions $\Rel\subseteq\Act$ and acquire
-actions $\Acq\subseteq\Act$.  Reads, writes and touches in neither $\Rel$ nor
-$\Acq$.
-
-
-Next, there is some annoying stuff to allow events to do multiple
-reads/writes... May not need this, depending on how we deal with transactions...
-
-For any action, let $\freads(\aAct)$ be the set of location/value pairs read
-by $\aAct$.  Similarly $\fwrites(\aAct)$.
-The touch action $(\DT\aLoc)$ reads and writes the empty set.
+We say that the action $(\DR\aLoc\aVal)$ reads $\aLoc$ from $\aVal$.
+Likewise, $(\DR\aLoc\aVal)$ writes $\aLoc$ to $\aVal$.  The touch action
+$(\DT\aLoc)$ neither reads nor writes.  These notions lift to events; for example, $\aEv$
+reads $\aLoc$ from $\aVal$ if $\labelling{\aEv}$ reads $\aLoc$ from $\aVal$.
 
 Define $\freads(\aEv) = \freads(\aAct)$ when $\labelling(\aEv) = (\aForm \mid \aAct)$.
 Likewise $\fwrites(\aEv)$.
 \begin{definition}
-  A pomset event $\aEv$ \emph{may read} $\aLoc$ from $\bEv$ if
-  \begin{itemize}
-  \item $\pair{\aLoc}{\aVal}\in\fwrites(\bEv)\cap\freads(\aEv)$, and
-  \item there is no $\bEv < \cEv < \aEv$ such that
-    $\pair{\aLoc}{\bVal}\in\fwrites(\cEv)$.
-  \end{itemize}
-\end{definition}
-\begin{definition}
-  An \emph{rf-pomset} is a pomset together with a
-  $\RF \subseteq \Event\times\Event$ such that for any $(\bEv,\aEv) \in \RF$: 
-  \begin{itemize}
-  \item $\bEv < \aEv$ and    
-  \item $\aEv$ may read $\aLoc$ from $\bEv$, for some $\aLoc$.
-  \end{itemize}
+  An \emph{rf-pomset} is a pomset together with a relation
+  $\mathord{\RF} \subseteq \mathord{<}$.
 \end{definition}
 \begin{definition}
   An rf-pomset is $\aLoc$-closed if
   for $\aEv\in\Event$ with $\labelling(\aEv)=(\aForm \mid \aAct)$:
   \begin{itemize}
   \item $\aForm$ is independent of $\aLoc$, and
-  \item for every $\pair{\aLoc}{\aVal}\in\freads(\aEv)$, there is some
-    $(\bEv,\aEv) \in \RF$ such that $\aEv$ may read $\aLoc$ from $\bEv$.
+  \item if $\aEv$ reads $\aLoc$ at $\aVal$, then there is some
+    $(\bEv,\aEv) \in \RF$ such that
+    \begin{itemize}
+    \item $\bEv$ writes $\aLoc$ at $\aVal$ and
+    \item there is no $\bEv < \cEv < \aEv$ such that $\cEv$ writes $\aLoc$.
+    \end{itemize}
   \end{itemize}
 \end{definition}
 
@@ -569,11 +556,12 @@ $\aPS'\in\aPSS'$ whenever there is $\aPS\in\aPSS$ such that:
 %   then $\labelling'(\aEv) = (\bForm' \mid \bAct)$ and $\bForm'$ implies $\bForm$, and
 \item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then
   $\labelling'(\aEv) = (\bForm' \mid \bAct)$ and either $\bForm'$ implies
-  $\bForm$ or $\aAct$ sees $\vec{\aLoc}$ at $\vec{\aVal}$,  
-  $\bForm'$ implies $\bForm[\vec{\aVal}/\vec{\aLoc}]$ and $0 \le' \aEv$,
-\item if $\labelling(\aEv) = (\bForm \mid \bAct)$ and $\bAct\in\Rel$ then $0
+  $\bForm$ or
+  $0 \le' \aEv$ and $\bForm'$ implies $\bForm[\vec{\aVal}/\vec{\aLoc}]$,
+  where $\aAct$ sees $\vec{\aLoc}$ at $\vec{\aVal}$,
+\item if $\labelling(\aEv) = (\bForm \mid \bAct)$ and $\bAct$ is a release then $0
   \le' \aEv$, and
-\item if $\aAct\in\Acq$ then $0 \le' \aEv$.  
+\item if $\aAct$ is an acquire then $0 \le' \aEv$.  
 \end{itemize}
 The last two conditions are new.  The rest are the same as before, combining
 read and write.   
@@ -589,9 +577,9 @@ We disallow the execution where \texttt{r==1} and \texttt{s!=1}
 We model fences and release/acquire synchronization by introducing the
 following actions:
 \begin{itemize}
-\item $(\DF)$ is both a release and an acquire action, which sees nothing
-\item $(\DWRel{\aLoc}{\aVal})$ is a release action, which sees nothing
-\item $(\DRAcq{\aLoc}{\aVal})$ is an acquire action, which sees $\aLoc$ at $\aVal$.
+\item $(\DF)$ is both a release and an acquire action
+\item $(\DWRel{\aLoc}{\aVal})$ is a release action, which writes $\aLoc$ at $\aVal$.
+\item $(\DRAcq{\aLoc}{\aVal})$ is an acquire action, which reads $\aLoc$ at $\aVal$.
 \end{itemize}
 % \begin{itemize}
 % \item Let $(\phi \mid \DWRel\aLoc\aVal) \prefix \aPSS$ be defined as
@@ -611,51 +599,48 @@ following actions:
 % \end{itemize}
 % \end{itemize}
 \begin{eqnarray*}
-  \sem{\FENCE\SEMI C} & = & (\TRUE \mid \DF) \prefix \sem{C} \\
-  \sem{\REL\aLoc\GETS\aExp\SEMI C} & = & \textstyle\bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{C}[\aExp/\aLoc] \\
-  \sem{\aReg\GETS\ACQ\aLoc\SEMI C} & = & \textstyle\bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{C}[\aLoc/\aReg] 
+  \sem{\FENCE\SEMI \aCmd} & = & (\TRUE \mid \DF) \prefix \sem{\aCmd} \\
+  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
+  \sem{\aReg\GETS\ACQ\aLoc\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] 
 \end{eqnarray*}
 There are no additional requirements for $\aLoc$-closure is.
 
 \subsection{Transactions}
 
-This section is sketchy and incomplete.
-
-Issues/possibilities:
-\begin{itemize}
-\item Aborted transactions: Must see writes inside transaction, but not
-  afterwards: \texttt{B; Wx1; Rx1; A; Rx0}
-\item Could give semantics of transactions using sequential composition of
-  transaction block.  Using postcondition at end of transaction.
-\item Could use Begin/End actions, and model abort as precondition false.
-\item Semantics of Begin can update the labels on all the actions that don't
-  have a preceding End (ie, the ones between the Begin and the End).
-\end{itemize}
+We present a model of weakly isolated transactions.  To get strong isolation,
+we need to make $\DB$ record the reads, symmetrically to $\DC{}{}$; we also need
+to require in parallel composition that any order in-to/out-of a
+transactional event be lifted to the corresponding $\DB$/$\DC{}{}$
 
 \begin{alltt}
   var x; var f; x:=0; f:=0; fence; 
      x:=1; (begin; f:=1; f:=2; end;) || (begin; r:=f; end; s:=x;)
 \end{alltt}
+$\END\SEMI \aCmd$ is sugar for $\IFCOMMITTHEN \aCmd \ELSE \aCmd$.
 
-We model fences and release/acquire synchronization by introducing the
-following release/acquire read/write actions:
 \begin{itemize}
-\item $(\DBn{\aLoc}{\aVal})$ begin
-\item $(\DCn{\aLoc}{\aVal})$ commit
-\item $(\DAn{\aLoc}{\aVal})$ abort
+\item $(\DB)$ is an acquire action
+\item %$(\DCn{\aLoc}{\aVal})$
+  $(\DC{\vec\aLoc}{\vec\aVal})$
+  is a release action which writes $\vec\aLoc$ at $\vec\aVal$
 \end{itemize}
 
 \begin{eqnarray*}
-  \sem{\BEGIN\SEMI C} & = & (\TRUE \mid \DB) \prefix \sem{C} \\
-  \sem{\END\SEMI C} & = & (\TRUE \mid \DC) \prefix \sem{C} \\
-                    &\cup& (\TRUE \mid \DA) \prefix \sem{C}
+  \sem{\BEGIN\SEMI \aCmd}
+  & = & (\TRUE \mid \DB) \prefix \sem{\aCmd}
+  \\
+  \sem{\IFCOMMITTHEN \aCmd \ELSE \bCmd}
+  & = & \textstyle\bigcup_{\aForm\,\text{implies}\,\vec\aLoc=\vec\aVal}\;
+        ((\aForm \mid \DC{\vec\aLoc}{\vec\aVal}) \prefix (\aForm \mid \sem{\aCmd}))
+        \sqcup  (\lnot\aForm \mid \sem{\bCmd})
 \end{eqnarray*}
 
 \begin{definition}
-  An rf-pomset is transaction-closed if there is a total order on $\DB$-$\DC$ pairs.
+  An rf-pomset is transaction-closed if there is a total order on all of the
+  $\DB$ and $\DC{}{}$ actions with satisfiable preconditions.
 \end{definition}
  
-We could also include a transaction factory, and close the factory.
+Note: we could also include a transaction factory, and close the factory.
 \begin{alltt}
   TransactionFactory T; var x; var f; x:=0; f:=0; fence; 
      x:=1; (begin T; f:=1; f:=2; end T;) || (begin T; r:=f; end T; s:=x;)

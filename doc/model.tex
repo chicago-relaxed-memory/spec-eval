@@ -166,9 +166,9 @@ $\aPS$ is $\aLoc$-closed.
 Define:
 \begin{eqnarray*}
   \sem{\SKIP} & = & \{ \emptyset \} \\
-  \sem{\aLoc\GETS\aExp\SEMI C} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{C}[\aExp/\aLoc] \\
-  \sem{\aReg\GETS\aLoc\SEMI C} & = & \bigcup_\aVal\; (\TRUE \mid \DR\aLoc\aVal) \prefix \sem{C}[\aLoc/\aReg] \\
-  \sem{\IF \aExp \THEN C \ELSE D} & = & (\aExp \neq 0 \mid \sem{C}) \sqcup (\aExp=0 \mid \sem{D}) \\
-  \sem{C \PAR D} & = & \sem{C} \parallel \sem{D} \\
-  \sem{\VAR\aLoc\SEMI C} & = & \nu \aLoc \st \sem{C}
+  \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
+  \sem{\aReg\GETS\aLoc\SEMI \aCmd} & = & \bigcup_\aVal\; (\TRUE \mid \DR\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
+  \sem{\IF \aExp \THEN \aCmd \ELSE \bCmd} & = & (\aExp \neq 0 \mid \sem{\aCmd}) \sqcup (\aExp=0 \mid \sem{\bCmd}) \\
+  \sem{\aCmd \PAR \bCmd} & = & \sem{\aCmd} \parallel \sem{\bCmd} \\
+  \sem{\VAR\aLoc\SEMI \aCmd} & = & \nu \aLoc \st \sem{\aCmd}
 \end{eqnarray*}
