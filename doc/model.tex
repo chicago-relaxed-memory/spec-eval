@@ -180,7 +180,7 @@ Define:
 \begin{eqnarray*}
   \sem{\SKIP} & = & \{ \emptyset \} \\
   \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
-  \sem{\aReg\GETS\aLoc\SEMI \aCmd} & = & \bigcup_\aVal\; (\TRUE \mid \DR\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
+  \sem{\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\TRUE \mid \DR\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
   \sem{\IF \aExp \THEN \aCmd \ELSE \bCmd} & = & (\aExp \neq 0 \mid \sem{\aCmd}) \sqcup (\aExp=0 \mid \sem{\bCmd}) \\
   \sem{\aCmd \PAR \bCmd} & = & \sem{\aCmd} \parallel \sem{\bCmd} \\
   \sem{\VAR\aLoc\SEMI \aCmd} & = & \nu \aLoc \st \sem{\aCmd}
