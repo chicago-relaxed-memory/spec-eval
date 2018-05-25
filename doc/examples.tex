@@ -1,5 +1,87 @@
 \section{Examples}
 
+\subsection{Sequential memory accesses}
+
+In the semantics of memory, there are two very different ways memory
+can be accessed: sequentially or concurrently. These are modelled
+differently, since hardware and compilers give very different
+guarantees about their behaviour.
+In this section, we discuss the sequential semantics, and leave
+the concurrent semantics to \S\ref{sec:concurrent-memory}.
+
+Consider the program \verb`(x := 0; y := x+1;)`.  One execution of
+this program is where the write to $y$ uses the sequential value of
+$x$, which is $0$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wy1}{\DW{y}{1}}{right=of wx0}
+\end{tikzpicture}\]
+To see how this execution is modelled, we first
+expand out the syntax sugar to get the program \verb`(x := 0; r := x; y := r+1; skip)`.
+Now $\sem{\SKIP}$ is just $\{\emptyset\}$, and
+$\sem{y \GETS r+1\SEMI \SKIP}$ is:
+\[
+   \bigcup_v\; (r+1=v \mid \DW yv) \prefix \sem{\SKIP}[v/y]
+\]
+which includes the case where $v$ is $1$:
+\[
+   (r+1=1 \mid \DW y1) \prefix \sem{\SKIP}[1/y]
+\]
+which contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wy1}{r+1=1 \mid \DW{y}{1}}{}
+\end{tikzpicture}\]
+Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ is:
+\[
+   \sem{y \GETS r+1\SEMI \SKIP}[x/r] \cup
+   \bigcup_v\; (\DR xv) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
+\]
+This has two cases, the sequential case
+(which does not introduce a read action)
+and the concurrent case (which does).
+For the moment, we are interested in the sequential case, which is:
+\[
+   \sem{y \GETS r+1\SEMI \SKIP}[x/r]
+\]
+which contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wy1}{x+1=1 \mid \DW{y}{1}}{}
+\end{tikzpicture}\]
+Finally $\sem{x \GETS 0\SEMI r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ is:
+\[
+   \bigcup_v\; (0=v \mid \DW xv) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[v/x]
+\]
+which includes the case where $v$ is $0$:
+\[
+   (0=0 \mid \DW x0) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[0/x]
+\]
+which contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{0=0 \mid \DW{x}{0}}{}
+  \event{wy1}{0+1=1 \mid \DW{y}{1}}{right=of wx0}
+\end{tikzpicture}\]
+all of whose preconditions are tautologies, so this has the expected behaviour:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wy1}{\DW{y}{1}}{right=of wx0}
+\end{tikzpicture}\]
+Note that $\DW x0$ does not read anything, and so there is no 
+requirement of order between $(\DW x0)$ and $(\DW y1)$.
+
+This example demonstrates how preconditions
+capture the sequential semantics of memory.
+In an execution containing an event with label
+$(\aForm \mid \aAct)$, one way the precondition $\aForm$
+can be discharged is by a write $\aLoc\GETS\aExp$,
+which performs a substitution $[\aExp/\aLoc]$.
+This is a variant of the usual Hoare semantics for
+assignment, where if $\aCmd$ has preconditon $\aForm$
+then $\aLoc\GETS\aExp\SEMI\aCmd$ has precondition
+$\aForm[\aExp/\aLoc]$.
+
+\subsection{Concurrent memory accesses}
+\label{sec:concurrent-memory}
+
 \subsection{No dependencies on writes}
 
 Consider an example with two independent writes
