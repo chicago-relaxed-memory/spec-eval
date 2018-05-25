@@ -145,26 +145,19 @@ Let $\aPSS_1 \parallel \aPSS_2$ be defined the same as $\aPSS_1 \sqcup \aPSS_2$ 
 \item $\RF_0 \supseteq \RF_1 \cup \RF_2$, and
  for any $\bEv, \aEv \in \Event_i$, if $(\bEv,\aEv)\in\RF_0$ then $(\bEv,\aEv)\in\RF_i$.
 \end{itemize}
-Let $(\phi \mid \DW\aLoc\aVal) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
+Let $(\phi \mid \aAct) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
 \item $\Event' = \Event \cup \{0\}$,
 \item $\RF' = \RF$,
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
-\item $\labelling'(0) = (\aForm, \DW\aLoc\aVal)$, where $\bForm$ implies $\aForm$, and
-\item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm \mid \aAct)$.
-\end{itemize}
-Let $(\phi \mid \DR\aLoc\aVal) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
-there is $\aPS\in\aPSS$ such that:
-\begin{itemize}
-\item $\Event' = \Event \cup \{0\}$,
-\item $\RF' = \RF$,
-\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
-\item $\labelling'(0) = (\bForm, \DR\aLoc\aVal)$, where $\bForm$ implies $\aForm$, and
-\item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then
-  $\labelling'(\aEv) = (\bForm' \mid \aAct)$,
-  $\bForm'$ implies $\bForm[\aVal/\aLoc]$, and
-  $0 \le' \aEv$ or $\bForm'$ implies $\bForm$.
+\item $\labelling'(0) = (\aForm, \aAct)$, where $\bForm$ implies $\aForm$, and
+\item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then:
+  \begin{itemize}
+  \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
+  \item $\bForm'$ implies $\bForm[\vec\aVal/\vec\aLoc]$, where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$, and
+  \item $0 \le' \aEv$ or $\bForm'$ implies $\bForm$.
+  \end{itemize}
 \end{itemize}
 Let $\aPSS[\aExp/\aLV]$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
