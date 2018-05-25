@@ -24,10 +24,18 @@ such that:
 \item formulae include at least $\TRUE$, $\FALSE$, and equalities of the form $(\aExp=\bExp)$ and $(\aLoc=\bExp)$,
 \item formulae are closed under negation, conjunction, disjunction,
 \item formulae are closed under substitution, written $\aForm[\bExp/\aLV]$, and
-\item actions include at least \emph{reads} of the form $(\DR{\aLoc}{\aVal})$
-  and \emph{writes} of the form $(\DW{\aLoc}{\aVal})$.
+\item there are relations $\rreads$ and $\rwrites \subseteq (\Act \times \Loc \times \Val)$,
 \end{itemize}
-Let the set of \emph{lvalues} be $\LVal=(\Loc\cup\Reg)$, ranged over by $\aLV$ and $\bLV$.
+where:
+\begin{itemize}
+\item the set of \emph{lvalues} is $\LVal=(\Loc\cup\Reg)$, ranged over by $\aLV$ and $\bLV$.
+\end{itemize}
+We shall say $\aAct$ \emph{reads} $\aVal$ \emph{from} $\aLoc$ whenever
+$(\aAct,\aLoc,\aVal) \in \rreads$, and
+$\aAct$ \emph{writes} $\aVal$ \emph{to} $\aLoc$ whenever
+$(\aAct,\aLoc,\aVal) \in \rwrites$.
+In examples, the actions are of the form $(\DR{\aLoc}{\aVal})$, which reads $\aVal$ from $\aLoc$,
+and $(\DW{\aLoc}{\aVal})$, which writes $\aVal$ to $\aLoc$.
 
 \subsection{Pomsets}
 
@@ -68,17 +76,29 @@ program:
 
 \begin{definition}
   An \emph{rf-pomset} is a pomset together with a
-  $\RF \subseteq \Event\times\Event$ such that for any $(\bEv,\aEv) \in \RF$: 
+  $\RF \subseteq (\Event\times\Loc\times\Event)$ such that for any $(\bEv,\aLoc,\aEv) \in \RF$: 
   \begin{itemize}
   \item $\bEv < \aEv$,
-  \item $\labelling(\bEv) = (\aForm \mid \DW{\aLoc}{\aVal})$
-    and $\labelling(\aEv) = (\bForm \mid \DR{\aLoc}{\aVal})$, and
+  \item $\labelling(\bEv)$ writes $\aVal$ to $\aLoc$,
+    and $\labelling(\aEv)$ reads $\aVal$ from $\aLoc$, and
   \item there is no $\bEv < \cEv < \aEv$ such that
-    $\labelling(\cEv) = (\cForm \mid \DW{\aLoc}{\bVal})$.
+    $\labelling(\cEv)$ writes $\bVal$ to $\aLoc$.
   \end{itemize}
 \end{definition}
-We visualize rf-pomsets by drawing a dashed edge between edges in $\RF$,
+We visualize rf-pomsets by drawing a dashed edge between nodes in $\RF$,
+labelled with the memory location,
 for example:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{\aLoc}{1}}{}
+  \event{x1}{\DR{\aLoc}{1}}{right=5em of wx1}
+  \nonevent{y0}{\DW{\bLoc}{0}}{below left=of x1}
+  \event{y1}{\DW{\bLoc}{1}}{below right=of x1}
+  \rfx{wx1}{x}{x1}
+  \po{x1}{y0}
+  \po{x1}{y1}
+\end{tikzpicture}\]
+In most cases, the memory location is obvious from context,
+so we elide it:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\DW{\aLoc}{1}}{}
   \event{x1}{\DR{\aLoc}{1}}{right=5em of wx1}
@@ -98,7 +118,7 @@ program:
   for $\aEv\in\Event$ with $\labelling(\aEv)=(\aForm \mid \aAct)$:
   \begin{itemize}
   \item $\aForm$ is independent of $\aLoc$, and
-  \item if $\aAct$ is an $\aLoc$ read action, then there is a $\bEv$ with $(\bEv,\aEv) \in \RF$.
+  \item if $\aAct$ reads $\aVal$ from $\aLoc$, then there is a $\bEv$ with $(\bEv,\aLoc,\aEv) \in \RF$.
   \end{itemize}
 \end{definition}
 

@@ -9,6 +9,8 @@
 \newcommand{\pair}[2]{\langle#1,\,#2\rangle}
 \newcommand{\freads}{\mathsf{reads}}
 \newcommand{\fwrites}{\mathsf{writes}}
+\newcommand{\rreads}{\mathsf{R}}
+\newcommand{\rwrites}{\mathsf{W}}
 
 \newcommand{\Reg}{\mathcal{R}}
 \newcommand{\aReg}{r}
@@ -129,3 +131,4 @@
 \newcommand{\nonevent}[3]{\node[nonevent](#1)[#3]{$\mathstrut#2$};}
 \newcommand{\po}[3][]{\draw[po,#1](#2)to(#3);}
 \newcommand{\rf}[3][]{\draw[rf,#1](#2)to(#3);}
+\newcommand{\rfx}[4][]{\draw[rf,#1](#2) edge node[above,text=black!50!green]{$#3$} (#4);}
