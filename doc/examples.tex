@@ -757,7 +757,7 @@ $\END\SEMI \aCmd$ is sugar for $\IFCOMMITTHEN \aCmd \ELSE \aCmd$.
   & = & (\TRUE \mid \DB) \prefix \sem{\aCmd}
   \\
   \sem{\IFCOMMITTHEN \aCmd \ELSE \bCmd}
-  & = & \textstyle\bigcup_{\aForm\,\text{implies}\,\vec\aLoc=\vec\aVal}\;
+  & = & \textstyle\bigcup_{\vec\aVal,\,\aForm\,\text{implies}\,\vec\aLoc=\vec\aVal}\;
         ((\aForm \mid \DC{\vec\aLoc}{\vec\aVal}) \prefix (\aForm \mid \sem{\aCmd}))
         \sqcup  (\lnot\aForm \mid \sem{\bCmd})
 \end{eqnarray*}
