@@ -490,6 +490,12 @@ using speculative evaluation can be modeled.
 
 \subsection{Relaxed memory}
 
+In \S\ref{sec:info-flow-attack} we present an information flow attack
+on relaxed memory, similar to Spectre in that it relies on speculative
+evalutation. Unlike Spectre it does not depend on timing attacks,
+but instead is based on the sensitivity of relaxed memory to data
+dependencies. For this reason, we present a simple model of relaxed
+memory, which is strong enough to capture this attack.
 The model includes concurrent memory accesses, which can introduce concurrent
 reads-from. For example, the program:
 \begin{verbatim}
@@ -526,8 +532,8 @@ which includes the execution:
   \rf[out=30,in=150]{wy0}{ry0}
   \rf[out=340,in=200]{wy1}{ry1}
   \rf[out=340,in=200]{wx0}{rx0}
-  \po{wx0}{wx1}
-  \po{wy0}{wy1}
+  % \po{wx0}{wx1}
+  % \po{wy0}{wy1}
   \po{rx1}{ry0}
   \po{ry1}{rx0}
 \end{tikzpicture}\]
@@ -564,12 +570,6 @@ has execution:
 \end{tikzpicture}\]
 Note that $(\DR x1) \not\le (\DW y1)$, so this does not introduce a cycle.
 
-This model of relaxed memory is simple, and does not model many features
-such as coherence, non-release-acquire access, or memory fences, but it is
-good enough for the examples in this paper. In particular, we use the fact that
-relaxed memory is sensitive to data dependency to give a Spectre attack which
-does not depend on timing in \S\ref{sec:info-flow-attack}.
-
 \subsection{Information flow attacks on relaxed memory}
 \label{sec:info-flow-attack}
 
@@ -580,13 +580,12 @@ extra capabilities to the language, this new attacker works
 by exploiting relaxed memory which can result in
 unexpected information flows. The attacker program is:
 \begin{verbatim}
-  var x := 0; var y := 0;
   (
-    y := x;
+    x := 0; y := x;
   ) || (
-    r := y;
-    if (isCapability(r)) { x := SECRET; }
-    else { x := 1; z := r; }
+    if (y == 0) { x := 1; }
+    else if (canRead(SECRET)) { x := SECRET; }
+    else { x := 1; z := 1; }
   )
 \end{verbatim}
 In the case where \verb|SECRET| is $2$, this has many executions,
@@ -594,43 +593,37 @@ one of which is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
   \event{wy0}{\DW{y}{0}}{right=of wx0}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of wy0}
-  \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry0}{\DR{y}{0}}{right=2.5 em of wy1}
+  \event{ry0}{\DR{y}{0}}{right=2.5 em of wy0}
   \event{wx1}{\DW{x}{1}}{right=of ry0}
-  \event{wz0}{\DW{z}{0}}{right=of wx1}
-  \nonevent{wx2}{\DW{x}{2}}{right=of wz0}
-  \po{rx1}{wy1}
+  \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
+  \nonevent{wz1}{\DW{z}{1}}{right=of wx2}
   \po{ry0}{wx1}
-  \po[out=25,in=150]{ry0}{wz0}
-  \po[out=30,in=150]{ry0}{wx2}
-  \rf[out=30,in=150]{wy0}{ry0}
-  \rf[out=210,in=330]{wx1}{rx1}
+  \po[out=30,in=150]{ry0}{wz1}
+  \po[out=25,in=150]{ry0}{wx2}
+  \rf{wy0}{ry0}
 \end{tikzpicture}\]
 but there are no executions which exhibit
 $(\DW{z}{1})$, since any attempt to do so
 produces a cycle:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
-  \event{wy0}{\DW{y}{0}}{right=of wx0}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of wy0}
+  \event{rx1}{\DR{x}{1}}{right=of wx0}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
   \event{ry1}{\DR{y}{1}}{right=2.5 em of wy1}
   \event{wx1}{\DW{x}{1}}{right=of ry1}
-  \event{wz1}{\DW{z}{1}}{right=of wx1}
-  \nonevent{wx2}{\DW{x}{2}}{right=of wz1}
+  \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
+  \event{wz1}{\DW{z}{1}}{right=of wx2}
   \po{rx1}{wy1}
   \po{ry1}{wx1}
-  \po[out=25,in=150]{ry1}{wz1}
-  \po[out=30,in=150]{ry1}{wx2}
+  \po[out=30,in=150]{ry1}{wz1}
+  \po[out=25,in=150]{ry1}{wx2}
   \rf{wy1}{ry1}
   \rf[out=210,in=330]{wx1}{rx1}
 \end{tikzpicture}\]
 In the case where \verb|SECRET| is $1$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
-  \event{wy0}{\DW{y}{0}}{right=of wx0}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of wy0}
+  \event{rx1}{\DR{x}{1}}{right=of wx0}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
   \event{ry1}{\DR{y}{1}}{right=2.5 em of wy1}
   \event{wx1}{\DW{x}{1}}{right=of ry1}
@@ -651,28 +644,23 @@ This attack is not just an artifact of the model,
 since the same behavior can be exhibited by
 compiler optimizations. Consider the program fragment:
 \begin{verbatim}
-  r := y;
-  if (isCapability(r)) { x := SECRET; }
-  else { x := 1; z := r; }
+  if (y == 0) { x := 1; }
+  else if (canRead(SECRET)) { x := SECRET; }
+  else { x := 1; z := 1; }
 \end{verbatim}
 Now, in the case where \verb|SECRET| is a constant \verb|1|,
 the compiler can inline it:
 \begin{verbatim}
-  r := y;
-  if (isCapability(r)) { x := 1; }
-  else { x := 1; z := r; }
+  if (y == 0) { x := 1; }
+  else if (canRead(SECRET)) { x := 1; }
+  else { x := 1; z := 1; }
 \end{verbatim}
-lift the assignment to \verb|x| out of the \verb|if| statement:
+and lift the assignment to \verb|x| out of the \verb|if| statement:
 \begin{verbatim}
-  r := y; x := 1;
-  if (isCapability(r)) { }
-  else { z := r; }
-\end{verbatim}
-and then perform independent read/write reordering:
-\begin{verbatim}
-  x := 1; r := y;
-  if (isCapability(r)) { }
-  else { z := r; }
+  x := 1;
+  if (y == 0) { }
+  else if (canRead(SECRET)) { }
+  else { z := 1; }
 \end{verbatim}
 After these optimizations, a sequentially consistent execution
 exhibits $(\DW{z}{1})$.
