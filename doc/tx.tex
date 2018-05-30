@@ -4,90 +4,28 @@ We assume a subsets of release actions %$\Rel\subseteq\Act$
 and acquire actions. % $\Acq\subseteq\Act$.
 Reads, writes and touches in neither release nor acquire.
 
-We say that the action $(\DR\aLoc\aVal)$ reads $\aLoc$ from $\aVal$.
-Likewise, $(\DR\aLoc\aVal)$ writes $\aLoc$ to $\aVal$.  The touch action
-$(\DT\aLoc)$ neither reads nor writes.  These notions lift to events; for example, $\aEv$
-reads $\aLoc$ from $\aVal$ if $\labelling{\aEv}$ reads $\aLoc$ from $\aVal$.
-
-Define $\freads(\aEv) = \freads(\aAct)$ when $\labelling(\aEv) = (\aForm \mid \aAct)$.
-Likewise $\fwrites(\aEv)$.
-\begin{definition}
-  An \emph{rf-pomset} is a pomset together with a relation
-  $\mathord{\RF} \subseteq \mathord{<}$.
-\end{definition}
-\begin{definition}
-  An rf-pomset is $\aLoc$-closed if
-  for $\aEv\in\Event$ with $\labelling(\aEv)=(\aForm \mid \aAct)$:
-  \begin{itemize}
-  \item $\aForm$ is independent of $\aLoc$, and
-  \item if $\aEv$ reads $\aLoc$ at $\aVal$, then there is some
-    $(\bEv,\aEv) \in \RF$ such that
-    \begin{itemize}
-    \item $\bEv$ writes $\aLoc$ at $\aVal$ and
-    \item there is no $\bEv < \cEv < \aEv$ such that $\cEv$ writes $\aLoc$.
-    \end{itemize}
-  \end{itemize}
-\end{definition}
-
-Now the general definition of prefixing:
-
-Let $(\phi \mid \aAct) \prefix \aPSS$ be the set $\aPSS'$ where
-$\aPS'\in\aPSS'$ whenever there is $\aPS\in\aPSS$ such that:
-\begin{itemize}
-\item $\Event' = \Event \cup \{0\}$,
-\item $\RF' = \RF$,
-\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
-\item $\labelling'(0) = (\bForm \mid \aAct)$, where $\bForm$ implies $\aForm$, 
-% \item if $\labelling(\aEv) = (\bForm \mid \bAct)$ and $\aAct$ sees nothing
-%   then $\labelling'(\aEv) = (\bForm' \mid \bAct)$ and $\bForm'$ implies $\bForm$, and
-\item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then
-  $\labelling'(\aEv) = (\bForm' \mid \bAct)$ and either $\bForm'$ implies
-  $\bForm$ or
-  $0 \le' \aEv$ and $\bForm'$ implies $\bForm[\vec{\aVal}/\vec{\aLoc}]$,
-  where $\aAct$ sees $\vec{\aLoc}$ at $\vec{\aVal}$,
-\item if $\labelling(\aEv) = (\bForm \mid \bAct)$ and $\bAct$ is a release then $0
-  \le' \aEv$, and
-\item if $\aAct$ is an acquire then $0 \le' \aEv$.  
-\end{itemize}
-The last two conditions are new.  The rest are the same as before, combining
-read and write.   
-
-
-
 Publication example:
 \begin{alltt}
-    var x; var f; x:=0; f:=0; fence; (x:=1; \REL{f}:=1;  ||  r:=\ACQ{f}; s:=x;)
+    var x; var f; x:=0; f:=0; (x:=1; \REL{f}:=1;  ||  r:=\ACQ{f}; s:=x;)
 \end{alltt}
 We disallow the execution where \texttt{r==1} and \texttt{s!=1}
 
-We model fences and release/acquire synchronization by introducing the
+% Note that RF is only augmented in the parallel rule, so neither thread can have an RF into an init action.
+
+We model release/acquire synchronization by introducing the
 following actions:
 \begin{itemize}
-\item $(\DF)$ is both a release and an acquire action
+%\item $(\DF)$ is both a release and an acquire action
 \item $(\DWRel{\aLoc}{\aVal})$ is a release action, which writes $\aLoc$ at $\aVal$.
 \item $(\DRAcq{\aLoc}{\aVal})$ is an acquire action, which reads $\aLoc$ at $\aVal$.
 \end{itemize}
-% \begin{itemize}
-% \item Let $(\phi \mid \DWRel\aLoc\aVal) \prefix \aPSS$ be defined as
-%   $(\phi \mid \DW\aLoc\aVal) \prefix \aPSS$.  
-% \item Let $(\phi \mid \DRAcq\aLoc\aVal) \prefix \aPSS$ be defined as
-%   $(\phi \mid \DR\aLoc\aVal) \prefix \aPSS$, requiring additionally that
-%   $0 \le' \aEv$.
-% Let $(\phi \mid \DF) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
-% there is $\aPS\in\aPSS$ such that:
-% \begin{itemize}
-% \item $\Event' = \Event \cup \{0\}$,
-% \item $\RF' = \RF$,
-% \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
-% \item $0 \le' \aEv$, and
-% \item $\labelling'(0) = (\aForm, \DF\aLoc\aVal)$, where $\bForm$ implies $\aForm$, and
-% \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm \mid \aAct)$.
-% \end{itemize}
-% \end{itemize}
 \begin{eqnarray*}
-  \sem{\FENCE\SEMI \aCmd} & = & (\TRUE \mid \DF) \prefix \sem{\aCmd} \\
-  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
-  \sem{\aReg\GETS\ACQ\aLoc\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] 
+  %\sem{\FENCE\SEMI \bCmd} & = & (\TRUE \mid \DF) \prefix \sem{\bCmd} \\
+  \sem{\REL\aLoc\GETS\aExp\SEMI \bCmd}
+  & = & \textstyle\bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{\bCmd}[\aExp/\aLoc]
+  \\
+  \sem{\aReg\GETS\ACQ\aLoc\SEMI \bCmd}
+  & = & \textstyle\bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\bCmd}[\aLoc/\aReg] 
 \end{eqnarray*}
 There are no additional requirements for $\aLoc$-closure is.
 
@@ -102,7 +40,7 @@ transactional event be lifted to the corresponding $\DB$/$\DC{}{}$
   var x; var f; x:=0; f:=0; fence; 
      x:=1; (begin; f:=1; f:=2; end;) || (begin; r:=f; end; s:=x;)
 \end{alltt}
-$\END\SEMI \aCmd$ is sugar for $\IFCOMMITTHEN \aCmd \ELSE \aCmd$.
+$\END\SEMI \bCmd$ is sugar for $\IFCOMMITTHEN \bCmd \ELSE \bCmd$.
 
 \begin{itemize}
 \item $(\DB)$ is an acquire action
@@ -112,19 +50,35 @@ $\END\SEMI \aCmd$ is sugar for $\IFCOMMITTHEN \aCmd \ELSE \aCmd$.
 \end{itemize}
 
 \begin{eqnarray*}
-  \sem{\BEGIN\SEMI \aCmd}
-  & = & (\TRUE \mid \DB) \prefix \sem{\aCmd}
+  \sem{\BEGIN\SEMI \bCmd}
+  & = & \mathit{atomic}((\TRUE \mid \DB) \prefix \sem{\bCmd})
   \\
-  \sem{\IFCOMMITTHEN \aCmd \ELSE \bCmd}
+  \sem{\IFCOMMITTHEN \bCmd_1 \ELSE \bCmd_2}
   & = & \textstyle\bigcup_{\vec\aVal,\,\aForm\,\text{implies}\,\vec\aLoc=\vec\aVal}\;
-        ((\aForm \mid \DC{\vec\aLoc}{\vec\aVal}) \prefix (\aForm \mid \sem{\aCmd}))
-        \sqcup  (\lnot\aForm \mid \sem{\bCmd})
+        ((\aForm \mid \DC{\vec\aLoc}{\vec\aVal}) \prefix (\aForm \mid \sem{\bCmd_1}))
+        \sqcup  (\lnot\aForm \mid \sem{\bCmd_2})
 \end{eqnarray*}
 
-\begin{definition}
-  An rf-pomset is transaction-closed if the $\DB$ and $\DC{}{}$ actions with
-  satisfiable preconditions are totally ordered by $<$.
-\end{definition}
+
+Pomset is \emph{atomic} if
+\begin{itemize}
+\item for every $\aEv$, where $\labelling(\aEv)=(\aForm\mid\dontcare)$, \\if
+  $\bEv<\aEv$ with $\labelling(\bEv)=(\dontcare\mid\DB)$ and there is no
+  $\bEv<\DC{}{}<\aEv$ \\then $\aForm$ implies
+  $\textstyle\bigcup_{(\bForm\mid\DC{}{})\,\text{ends}\,d}\bForm$
+\item if two reads of the same location see different values occur between
+  begin and commit, then the formula on the commit implies false
+\item STRONG ISO: order from $\aEv$ to transaction must be lifted to begin
+\item STRONG ISO: order from transaction to $\aEv$ must be lifted to commit
+\item WEAK ISO: order from transactional $\aEv$ to transaction must be lifted to begin 
+\item WEAK ISO: order from transaction to transactional $\aEv$ must be lifted to commit
+\end{itemize}
+Single threaded example: \texttt{B1 C1 B2 C2}, we have \texttt{C1<B2} since
+\texttt{C1<C2} and we must lift
+% \begin{definition}
+%   An rf-pomset is transaction-closed if the $\DB$ and $\DC{}{}$ actions with
+%   satisfiable preconditions are totally ordered by $<$.
+% \end{definition}
 
 For example, the semantics of
 \begin{alltt}
