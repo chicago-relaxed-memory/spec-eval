@@ -423,34 +423,33 @@ implemented using timing attacks on the cache). For example,
 we can write a \verb|SPECTRE| program as:
 \begin{verbatim}
     var a;
-    if (isCapability(0)) { a[SECRET] := 1; }
+    if (canRead(SECRET)) { a[SECRET] := 1; }
     else if (touched a[0]) { x := 0; }
     else if (touched a[1]) { x := 1; }
 \end{verbatim}
 This is a low-security program, which is attempting to discover the
 value of a high-security variable \verb|SECRET|. The low-security program
-is allowed to attempt to escalate its privileges by providing a capability
-which demonstrates that they are entitled to run high-security code:
+is allowed to attempt to escalate its privileges by checking that it is
+allowed to read a high-security variable:
 \begin{verbatim}
-    if (isCapability(c)) { ... escalated code ... }
+    if (canRead(x)) { ... code allowed to read x ... }
     else { ... fallback code ... }
 \end{verbatim}
-In this case, the \verb|isCapability(0)| is false, so the fallback code
+In this case, the \verb|canRead(SECRET)| is false, so the fallback code
 is executed. Unfortunately, the escalated code is speculatively
 evaluated, which allows information to leak by testing for which
 memory locations have been touched.
 
-We model the \verb|touched| test by introducing a new read action
-\textcolor{red}{(Why a read?)}
+We model the \verb|touched| test by introducing a new action
 $(\DT{\aLoc})$ and defining:
 \begin{eqnarray*}
-  \sem{\IF \TOUCHED\aLoc\THEN \aCmd \ELSE \bCmd} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \sqcup \sem{\bCmd}
+  \sem{\IF \TOUCHED\aLoc\THEN \aCmd \ELSE \bCmd} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
 \end{eqnarray*}
 The additional requirement we need to add for $\aLoc$-closure is:
 \begin{itemize}
 \item if $\labelling(\aEv)=(\aForm \mid \DT{\aLoc})$
-  then there is $\bEv\not>\aEv$ with $\labelling(\bEv)=(\bForm \mid \DR{\aLoc}{\aVal})$
-  or $\labelling(\bEv)=(\bForm \mid \DW{\aLoc}{\aVal})$.
+  then there is $\bEv\not>\aEv$ with $\labelling(\bEv)=(\bForm \mid \aAct)$
+  where $\aAct$ reads or writes $\aLoc$.
 \end{itemize}
 For example, one execution of \verb|SPECTRE| is:
 \[\begin{tikzpicture}[node distance=1em]
@@ -476,7 +475,7 @@ but due the requirement of \verb|a|-closure we do \emph{not} have:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ws}{\DW{\SEC}{0}}{}
   \nonevent{rs}{\DR{\SEC}{0}}{right=2.5em of ws}
-  \nonevent{wa}{\DW{a[1]}{0}}{right=of rs}
+  \nonevent{wa}{\DW{a[0]}{1}}{right=of rs}
   \event{ta}{\DT{a[1]}}{right=of wa}
   \event{wx}{\DW{x}{1}}{right=of ta}
   \rf{ws}{rs}
