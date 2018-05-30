@@ -244,36 +244,13 @@ In contrast, this model is based on logical implication,
 which can be interpreted semantically.
 
 \subsection{Control dependencies}
+\label{sec:control-dep}
 
 Conditionals introduce control dependencies, for example consider the program:
 \begin{verbatim}
   r := z; if (r) { x := 1; } else { y := 2; }
 \end{verbatim}
-This has semantics:
-\[
-  \bigcup_\aVal\; (\TRUE \mid \DR z\aVal) \prefix
-    (z \neq 0 \mid \sem{\texttt{x := 1}}) \sqcup (z=0 \mid \sem{\texttt{y := 2}})
-\]
-Now $\sem{\texttt{x := 1}}$ contains any pomset of the form:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\aForm \mid \DW{x}{1}}{}
-\end{tikzpicture}\]
-in particular it contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
-\end{tikzpicture}\]
-and similarly $\sem{\texttt{y := 2}}$ contains any pomset of the form:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wy2}{r=0 \mid \DW{y}{2}}{}
-\end{tikzpicture}\]
-and so $\sem{\texttt{if (r) \{ x := 1; \} else \{ y := 2; \}}}$
-contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
-  \event{wy2}{r=0 \mid \DW{y}{2}}{right=of wx1}
-\end{tikzpicture}\]
-Now, prefixing with $(\DR z\aVal)$ performs substitutions, for example
-when $\aVal$ is $0$ we have:
+This includes executions in which the false branch is taken:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz0}{\DR{z}{0}}{}
   \nonevent{wx1}{\DW{x}{1}}{right=of rz0}
@@ -281,7 +258,7 @@ when $\aVal$ is $0$ we have:
   \po{rz0}{wx1}
   \po[out=30,in=150]{rz0}{wy2}
 \end{tikzpicture}\]
-and when $\aVal$ is $1$ we have:
+and ones where the true branch is taken:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz1}{\DR{z}{1}}{}
   \event{wx1}{\DW{x}{1}}{right=of rz1}
@@ -289,6 +266,227 @@ and when $\aVal$ is $1$ we have:
   \po{rz1}{wx1}
   \po[out=30,in=150]{rz1}{wy2}
 \end{tikzpicture}\]
+In both cases, we record the actions in the branch that was
+not taken. This is a novel feature of this model, and is
+intended to capture speculative evaluation. In \S\ref{sec:spectre}
+we will show how this model captures Spectre-like information
+flow attacks, once the attacker is provided with the ability to
+observe such speculations.
+
+To see how these executions is modelled, consider the semantics of
+$\sem{x\GETS 1\SEMI\SKIP}$, which contains any pomset of the form:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\aForm \mid \DW{x}{1}}{}
+\end{tikzpicture}\]
+in particular it contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
+\end{tikzpicture}\]
+Similarly $\sem{y\GETS 2\SEMI\SKIP}$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wy2}{r=0 \mid \DW{y}{2}}{}
+\end{tikzpicture}\]
+and so $\sem{\IF(r)\{ x\GETS 1\SEMI\SKIP \} \ELSE \{ y\GETS 2\SEMI\SKIP \}}$
+contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
+  \event{wy2}{r=0 \mid \DW{y}{2}}{right=of wx1}
+\end{tikzpicture}\]
+Now, the semantics of concurrent read performs substitutions, for example
+a read of $0$ from $x$ results in:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz0}{\DR{z}{0}}{}
+  \event{wx1}{0\neq0 \mid \DW{x}{1}}{right=of rz0}
+  \event{wy2}{0=0 \mid \DW{y}{2}}{right=of wx1}
+  \po{rz0}{wx1}
+  \po[out=30,in=150]{rz0}{wy2}
+\end{tikzpicture}\]
+which gives the required pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz0}{\DR{z}{0}}{}
+  \nonevent{wx1}{\DW{x}{1}}{right=of rz0}
+  \event{wy2}{\DW{y}{2}}{right=of wx1}
+  \po{rz0}{wx1}
+  \po[out=30,in=150]{rz0}{wy2}
+\end{tikzpicture}\]
+Note that the precondition $r=0$ is dependent on $r$,
+and so there is a dependency $(\DR z0) < (\DW y2)$,
+modelling the control dependency introduced by the conditional.
+
+\subsection{Control independencies}
+
+In most models of control dependencies, the dependency relation
+is syntactic, based on whether the action occurs inside syntactically
+inside a conditional. In contrast, the notion in this model is
+semantic: if an action can occur on both sides of a conditional,
+there is no control dependency. Consider a variant of the example
+from \S\ref{sec:control-dep}:
+\begin{verbatim}
+  r := z; if (r) { x := 1; } else { x := 1; }
+\end{verbatim}
+This has the expected execution in which the control
+dependencies exist:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz0}{\DR{z}{0}}{}
+  \nonevent{nwx1}{\DW{x}{1}}{right=of rz0}
+  \event{wx1}{\DW{x}{1}}{right=of nwx1}
+  \po{rz0}{nwx1}
+  \po[out=30,in=150]{rz0}{wx1}
+\end{tikzpicture}\]
+but it also has an execution in which the two writes
+of $1$ to $x$ are merged, resulting in no dependency:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz0}{\DR{z}{0}}{}
+  \event{wx1}{\DW{x}{1}}{right=of rz0}
+\end{tikzpicture}\]
+To see how this arises in the model,
+consider the definition of $\sem{\IF(r)\{ x\GETS1\SEMI\SKIP \} \ELSE \{ x\GETS1\SEMI\SKIP \}}$:
+\[
+   \aPSS_1 \sqcup \aPSS_2 \quad\mbox{where}\quad
+   \aPSS_1 = (r\neq 0 \mid \sem{x\GETS1\SEMI\SKIP})  \quad\mbox{and}\quad
+   \aPSS_2 = (r=0 \mid \sem{x\GETS1\SEMI\SKIP})
+\]
+Now, one pomset in $\aPSS_1$ is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
+\end{tikzpicture}\]
+that is $\aPS_1$ where:
+\[
+  \Event_1 = \{\aEv\} \quad
+  \labelling_1(\aEv) = (r\neq 0, \DW x1)
+\]
+and similarly, one pomset in $\aPSS_2$ is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{r=0 \mid \DW{x}{1}}{}
+\end{tikzpicture}\]
+that is $\aPS_2$ where:
+\[
+  \Event_2 = \{\aEv\} \quad
+  \labelling_2(\aEv) = (r= 0, \DW x1)
+\]
+Crucuially, in the definition of $\aPSS_1 \sqcup \aPSS_2$
+there is \emph{no} requirement that $\Event_1$ and $\Event_2$ are disjoint,
+and in this case they overlap at $\aEv$. As a result, one pomset in
+$\aPSS_1\sqcup\aPSS_2$ is $\aPS_0$ where:
+\[
+  \Event_0 = \{\aEv\} \quad
+  \labelling_0(\aEv) = (r\neq0 \lor r=0, \DW x1)
+\]
+that is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+\end{tikzpicture}\]
+Note that this pomset has no precondition dependent on $r$,
+since $(r\neq0 \lor r=0)$ does not depend on $r$, which is why
+we end up with an execution without a control dependency:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz0}{\DR{z}{0}}{}
+  \event{wx1}{\DW{x}{1}}{right=of rz0}
+\end{tikzpicture}\]
+This semantics captures compiler optimizations which may, for example
+merge code executed on both branches of a conditional, or hoist
+constant assignments out of loops.
+
+We can now see the counterintuitive behavior of conditionals
+in the presence of control dependencies.
+There are programs such as
+\verb|r := z; if (r) { x := 1; } else { x := 1; }| with
+executions in which  $(\DW x1)$ is independent of $(\DR z1)$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{z}{1}}{}
+  \event{wx1}{\DW{x}{1}}{right=of rz1}
+\end{tikzpicture}\]
+while programs such as
+\verb|r := z; if (r) { x := 1; } else { y := 2; }|
+only have executions in which $(\DW x1)$ is dependent on $(\DR z1)$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{z}{1}}{}
+  \event{wx1}{\DW{x}{1}}{right=of rz1}
+  \nonevent{wy2}{\DW{y}{2}}{right=of wx1}
+  \po{rz1}{wx1}
+  \po[out=30,in=150]{rz1}{wy2}
+\end{tikzpicture}\]
+so these programs have different dependency relations, depending
+on conditional branches that were not taken. In \S\ref{sec:info-flow-attack}
+we shall see that this has security implications, since relaxed
+memory can observe dependency. The attack is similar to Spectre, so
+we shall take a detour to see how Spectre can be modeled in this
+setting.
+
+\subsection{Spectre}
+\label{sec:spectre}
+
+We give a simplified model of Spectre attacks, ignoring the details of
+timing.  In this model, we extend programs with the ability to tell
+whether a memory location has been touched (in practice this is
+implemented using timing attacks on the cache). For example,
+we can write a \verb|SPECTRE| program as:
+\begin{verbatim}
+    var a;
+    if (canRead(SECRET)) { a[SECRET] := 1; }
+    else if (touched a[0]) { x := 0; }
+    else if (touched a[1]) { x := 1; }
+\end{verbatim}
+This is a low-security program, which is attempting to discover the
+value of a high-security variable \verb|SECRET|. The low-security program
+is allowed to attempt to escalate its privileges by checking that it is
+allowed to read a high-security variable:
+\begin{verbatim}
+    if (canRead(x)) { ... code allowed to read x ... }
+    else { ... fallback code ... }
+\end{verbatim}
+In this case, the \verb|canRead(SECRET)| is false, so the fallback code
+is executed. Unfortunately, the escalated code is speculatively
+evaluated, which allows information to leak by testing for which
+memory locations have been touched.
+
+We model the \verb|touched| test by introducing a new action
+$(\DT{\aLoc})$ and defining:
+\begin{eqnarray*}
+  \sem{\IF \TOUCHED\aLoc\THEN \aCmd \ELSE \bCmd} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
+\end{eqnarray*}
+The additional requirement we need to add for $\aLoc$-closure is:
+\begin{itemize}
+\item if $\labelling(\aEv)=(\aForm \mid \DT{\aLoc})$
+  then there is $\bEv\not>\aEv$ with $\labelling(\bEv)=(\bForm \mid \aAct)$
+  where $\aAct$ reads or writes $\aLoc$.
+\end{itemize}
+For example, one execution of \verb|SPECTRE| is:
+\[\begin{tikzpicture}[node distance=1em]
+  \nonevent{rs}{\DR{\SEC}{1}}{}
+  \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
+  \event{ta}{\DT{a[1]}}{right=of wa}
+  \event{wx}{\DW{x}{1}}{right=of ta}
+  \po{rs}{wa}
+  \po{ta}{wx}
+\end{tikzpicture}\]
+Putting this in parallel with a high-security write to \verb|SECRET| gives:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ws}{\DW{\SEC}{1}}{}
+  \nonevent{rs}{\DR{\SEC}{1}}{right=2.5em of ws}
+  \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
+  \event{ta}{\DT{a[1]}}{right=of wa}
+  \event{wx}{\DW{x}{1}}{right=of ta}
+  \rf{ws}{rs}
+  \po{rs}{wa}
+  \po{ta}{wx}
+\end{tikzpicture}\]
+but due the requirement of \verb|a|-closure we do \emph{not} have:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ws}{\DW{\SEC}{0}}{}
+  \nonevent{rs}{\DR{\SEC}{0}}{right=2.5em of ws}
+  \nonevent{wa}{\DW{a[0]}{1}}{right=of rs}
+  \event{ta}{\DT{a[1]}}{right=of wa}
+  \event{wx}{\DW{x}{1}}{right=of ta}
+  \rf{ws}{rs}
+  \po{rs}{wa}
+  \po{ta}{wx}
+\end{tikzpicture}\]
+Thus, the attacker has managed to leak the value of a high-security
+location to a low-security one.
+
+This shows how a (very abstract, untimed) model of Spectre attacks
+using speculative evaluation can be modeled.
 
 \subsection{Relaxed memory}
 
@@ -371,166 +569,6 @@ such as coherence, non-release-acquire access, or memory fences, but it is
 good enough for the examples in this paper. In particular, we use the fact that
 relaxed memory is sensitive to data dependency to give a Spectre attack which
 does not depend on timing in \S\ref{sec:info-flow-attack}.
-
-\subsection{Speculative evaluation}
-
-So far, the treatment of dependency has been fairly standard, we have included
-aborted events in the semantics of programs, but they have not had any impact.
-We shall now see that this is not always the case, that the execution of a conditional
-can depend on the branch not taken.
-
-Consider the program:
-\begin{verbatim}
-  r := z; if (r) { x := 1; } else { x := 1; }
-\end{verbatim}
-Many optimizers will consider it to be the same as:
-\begin{verbatim}
-  r := z; x := 1;
-\end{verbatim}
-and so there should not be a dependency between $(\DR z\aVal)$ and $(\DW x1)$.
-The semantics of this program is:
-\[
-  \bigcup_\aVal\; (\TRUE \mid \DR z\aVal) \prefix
-    (z \neq 0 \mid \sem{\texttt{x := 1}}) \sqcup (z=0 \mid \sem{\texttt{x := 1}})
-\]
-so, as in the previous section, we have executions such as:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rz1}{\DR{z}{1}}{}
-  \event{wx1a}{\DW{x}{1}}{right=of rz1}
-  \nonevent{wx1b}{\DW{x}{1}}{right=of wx1a}
-  \po{rz1}{wx1a}
-  \po[out=30,in=150]{rz1}{wx1b}
-\end{tikzpicture}\]
-but we also have the execution:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rz1}{\DR{z}{1}}{}
-  \event{wx1}{\DW{x}{1}}{right=of rz1}
-\end{tikzpicture}\]
-To see why, consider $\aPSS_1 \sqcup \aPSS_2$ where:
-\[
-  \aPSS_1 = (z \neq 0 \mid \sem{\texttt{x := 1}}) \quad
-  \aPSS_2 = (z=0 \mid \sem{\texttt{x := 1}})
-\]
-Now $\aPSS_1$ contains the pomset $\aPS_1$ where:
-\[
-  \Event_1 = \{0\} \qquad
-  0 \le_1 0 \qquad
-  \labelling_1(0) = (z \neq 0 \mid \DW x1)
-\]
-Similarly $\aPSS_2$ contains the pomset $\aPS_2$ where:
-\[
-  \Event_1 = \{0\} \qquad
-  0 \le_1 0 \qquad
-  \labelling_1(0) = (z = 0 \mid \DW x1)
-\]
-In particular, $\Event_1$ and $\Event_2$ overlap. One of the inhabitants
-of $\aPSS_1 \sqcup \aPSS_2$ is $\aPS_0$ where:
-\[
-  \Event_0 = \{0\} \qquad
-  0 \le_0 0 \qquad
-  \labelling_0(0) = (\TRUE \mid \DW x1)
-\]
-which is the execution we are interested in.
-
-We can now see the counterintuitive behavior of speculation,
-there are programs such as
-\verb|r := z; if (r) { x := 1; } else { x := 1; }| with
-executions in which  $(\DW x1)$ is independent of $(\DR z1)$:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rz1}{\DR{z}{1}}{}
-  \event{wx1}{\DW{x}{1}}{right=of rz1}
-\end{tikzpicture}\]
-while programs such as
-\verb|r := z; if (r) { x := 1; } else { y := 2; }|
-only have executions in which $(\DW x1)$ is dependent on $(\DR z1)$:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rz1}{\DR{z}{1}}{}
-  \event{wx1}{\DW{x}{1}}{right=of rz1}
-  \nonevent{wy2}{\DW{y}{2}}{right=of wx1}
-  \po{rz1}{wx1}
-  \po[out=30,in=150]{rz1}{wy2}
-\end{tikzpicture}\]
-so these programs have different dependency relations, depending
-on conditional branches that were not taken. In \S\ref{sec:info-flow-attack}
-we shall see that this has security implications, since relaxed
-memory can observe dependency. The attack is similar to Spectre, so
-we shall take a detour to see how Spectre can be modeled in this
-setting.
-
-\subsection{Spectre}
-
-We give a simplified model of Spectre attacks, ignoring the details of
-timing.  In this model, we extend programs with the ability to tell
-whether a memory location has been touched (in practice this is
-implemented using timing attacks on the cache). For example,
-we can write a \verb|SPECTRE| program as:
-\begin{verbatim}
-    var a;
-    if (isCapability(0)) { a[SECRET] := 1; }
-    else if (touched a[0]) { x := 0; }
-    else if (touched a[1]) { x := 1; }
-\end{verbatim}
-This is a low-security program, which is attempting to discover the
-value of a high-security variable \verb|SECRET|. The low-security program
-is allowed to attempt to escalate its privileges by providing a capability
-which demonstrates that they are entitled to run high-security code:
-\begin{verbatim}
-    if (isCapability(c)) { ... escalated code ... }
-    else { ... fallback code ... }
-\end{verbatim}
-In this case, the \verb|isCapability(0)| is false, so the fallback code
-is executed. Unfortunately, the escalated code is speculatively
-evaluated, which allows information to leak by testing for which
-memory locations have been touched.
-
-We model the \verb|touched| test by introducing a new read action
-\textcolor{red}{(Why a read?)}
-$(\DT{\aLoc})$ and defining:
-\begin{eqnarray*}
-  \sem{\IF \TOUCHED\aLoc\THEN \aCmd \ELSE \bCmd} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \sqcup \sem{\bCmd}
-\end{eqnarray*}
-The additional requirement we need to add for $\aLoc$-closure is:
-\begin{itemize}
-\item if $\labelling(\aEv)=(\aForm \mid \DT{\aLoc})$
-  then there is $\bEv\not>\aEv$ with $\labelling(\bEv)=(\bForm \mid \DR{\aLoc}{\aVal})$
-  or $\labelling(\bEv)=(\bForm \mid \DW{\aLoc}{\aVal})$.
-\end{itemize}
-For example, one execution of \verb|SPECTRE| is:
-\[\begin{tikzpicture}[node distance=1em]
-  \nonevent{rs}{\DR{\SEC}{1}}{}
-  \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
-  \event{ta}{\DT{a[1]}}{right=of wa}
-  \event{wx}{\DW{x}{1}}{right=of ta}
-  \po{rs}{wa}
-  \po{ta}{wx}
-\end{tikzpicture}\]
-Putting this in parallel with a high-security write to \verb|SECRET| gives:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{ws}{\DW{\SEC}{1}}{}
-  \nonevent{rs}{\DR{\SEC}{1}}{right=2.5em of ws}
-  \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
-  \event{ta}{\DT{a[1]}}{right=of wa}
-  \event{wx}{\DW{x}{1}}{right=of ta}
-  \rf{ws}{rs}
-  \po{rs}{wa}
-  \po{ta}{wx}
-\end{tikzpicture}\]
-but due the requirement of \verb|a|-closure we do \emph{not} have:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{ws}{\DW{\SEC}{0}}{}
-  \nonevent{rs}{\DR{\SEC}{0}}{right=2.5em of ws}
-  \nonevent{wa}{\DW{a[1]}{0}}{right=of rs}
-  \event{ta}{\DT{a[1]}}{right=of wa}
-  \event{wx}{\DW{x}{1}}{right=of ta}
-  \rf{ws}{rs}
-  \po{rs}{wa}
-  \po{ta}{wx}
-\end{tikzpicture}\]
-Thus, the attacker has managed to leak the value of a high-security
-location to a low-security one.
-
-This shows how a (very abstract, untimed) model of Spectre attacks
-using speculative evaluation can be modeled.
 
 \subsection{Information flow attacks on relaxed memory}
 \label{sec:info-flow-attack}
