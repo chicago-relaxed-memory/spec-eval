@@ -1,1 +1,2 @@
+# Needs git config merge.ours.driver true
 paper.pdf merge=ours
