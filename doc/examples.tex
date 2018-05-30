@@ -65,7 +65,7 @@ all of whose preconditions are tautologies, so this has the expected behaviour:
   \event{wx0}{\DW{x}{0}}{}
   \event{wy1}{\DW{y}{1}}{right=of wx0}
 \end{tikzpicture}\]
-Note that $\DW x0$ does not read anything, and so there is no 
+Note that $(\DW x0)$ does not read anything, and so there is no
 requirement of order between $(\DW x0)$ and $(\DW y1)$.
 
 This example demonstrates how preconditions
@@ -82,7 +82,81 @@ $\aForm[\aExp/\aLoc]$.
 \subsection{Concurrent memory accesses}
 \label{sec:concurrent-memory}
 
-\subsection{No dependencies on writes}
+We now turn to the case of concurrent accesses to memory.
+Consider the program \verb`x := 1; || y := x+1;`.
+One execution of this program is where the write to $y$
+performs a concurrent read of $x$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{rx1}{\DR{x}{1}}{right=2.5em of wx1}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+  \rf{wx1}{rx1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+To see how this execution is modelled, we first
+expand out the syntax sugar to get the program \verb`(x := 0; skip || r := x; y := r+1; skip)`.
+As before, $\sem{y \GETS r+1\SEMI \SKIP}$ is:
+\[
+   \bigcup_v\; (r+1=v \mid \DW yv) \prefix \sem{\SKIP}[v/y]
+\]
+which includes the case where $v$ is $2$:
+\[
+   (r+1=2 \mid \DW y2) \prefix \sem{\SKIP}[2/y]
+\]
+which contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wy2}{r+1=2 \mid \DW{y}{2}}{}
+\end{tikzpicture}\]
+Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ is:
+\[
+   \sem{y \GETS r+1\SEMI \SKIP}[x/r] \cup
+   \bigcup_v\; (\DR xv) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
+\]
+This has two cases, the sequential case
+(which does not introduce a read action)
+and the concurrent case (which does).
+We are now interested in the concurrent case, which is:
+\[
+   \bigcup_v\; (\DR xv) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
+\]
+which includes the case where $v$ is $1$:
+\[
+   (\DR x1) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
+\]
+which contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+Note that $(\DR x1)$ reads $1$ from $x$, and while
+$\TRUE$ implies $(x+1=2)[1/2]$ it does \emph{not}
+imply $(x+1=2)$, and so there is an ordering
+$(\DR x1) < (\DW y2)$.
+
+Now, $\sem{x \GETS 1\SEMI \SKIP}$ includes the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+\end{tikzpicture}\]
+and so $\sem{x \GETS 1\SEMI \SKIP \PAR r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{rx1}{\DR{x}{1}}{right=2.5em of wx1}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+  \rf{wx1}{rx1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+as expected.
+
+This example demonstrates how read and write events
+capture the concurrent semantics of memory.
+In an execution containing an event with label
+$(\DR \aLoc\aVal)$, if the execution is
+$\aLoc$-closed, then there must be an event
+it reads from, for example one labelled
+$(\DW \aLoc\aVal)$.
+
+\subsection{Independent writes}
 
 Consider an example with two independent writes
 \verb|(x := 1; y := 2;)|.
@@ -129,31 +203,12 @@ $(\DW{x}{1}) \le (\DW{y}{2})$.
 Thus, the semantics of \verb|(x := 1; y := 2;)|
 is the same as the semantics of \verb|(y := 2; x := 1;)|.
 
-\subsection{Dependencies on reads}
+\subsection{Independent reads and writes}
 
 Whereas write prefixing introduces no new dependencies,
-read prefixing can. For example the program
-\verb|(r := x; y := r+1;)| has semantics:
-\[
-  \bigcup_\aVal\; (\TRUE \mid \DR x\aVal) \prefix \left(
-    \bigcup_\bVal\; (r+1=\bVal \mid \DW y\aVal) \prefix \left(
-      \{\emptyset\}
-    \right)[r+1/y]
-  \right)[x/r]
-\]
-which is the same as:
-\[
-  \bigcup_\aVal\; (\TRUE \mid \DR x\aVal) \prefix
-    \bigcup_\bVal\; (x+1=\bVal \mid \DW y\aVal) \prefix
-      \{\emptyset\}
-\]
-which includes the case where $\aVal=1$ and $\bVal=2$:
-\[
-  (\TRUE \mid \DR x1) \prefix
-    (x+1=2 \mid \DW y2) \prefix
-      \{\emptyset\}
-\]
-Now, since $\TRUE$ implies $(x+1=2)[1/x]$, this contains:
+read prefixing can. For example
+in \S\ref{sec:concurrent-memory} we saw that the program
+\verb|(r := x; y := r+1;)| includes the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
   \event{wy2}{\DW{y}{2}}{right=of rx1}
@@ -163,42 +218,32 @@ but since $\TRUE$ does not imply $(x+1=2)$,
 we have the requirement that $(\DR{x}{1}) \le (\DW{y}{2})$.
 
 This is in contrast to the program 
-\verb|(r := x; y := r+2-r;)|, which has
-semantics:
-\[
-  \bigcup_\aVal\; (\TRUE \mid \DR x\aVal) \prefix
-    \bigcup_\bVal\; (x+2-x=\bVal \mid \DW y\aVal) \prefix
-      \{\emptyset\}
-\]
-Again, we consider the case where $\aVal=1$ and $\bVal=2$:
-\[
-  (\TRUE \mid \DR x1) \prefix
-    (x+2-x=2 \mid \DW y2) \prefix
-      \{\emptyset\}
-\]
-Now, since $\TRUE$ implies $(x+2-x=2)[1/x]$, this contains:
+\verb|(r := x; y := r+2-r;)|.
+Since $\TRUE$ implies $(x+2-x=2)[1/x]$, this contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
   \event{wy2}{\DW{y}{2}}{right=of rx1}
   \po{rx1}{wy2}
 \end{tikzpicture}\]
 but also $\TRUE$ implies $(x+2-x=2)$
-(at least for arithmetic modulo $n$)
+(at least for integer arithmetic)
 and so this also contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
   \event{wy2}{\DW{y}{2}}{right=of rx1}
 \end{tikzpicture}\]
-and:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1}{\DR{x}{1}}{}
-  \event{wy2}{\DW{y}{2}}{right=of rx1}
-  \po{wy2}{rx1}
-\end{tikzpicture}\]
-Thus, the semantics of \verb|(r := x; y := x+2-x;)|
+Thus, the semantics of \verb|(r := x; y := r+2-r;)|
 is the same as the semantics of \verb|(y := 2; r := x;)|.
 
-\subsection{Dependencies on conditionals}
+Note this this example shows that we are not just dealing
+with a syntactic notion of dependency, which is common
+in hardware models of memory. In syntactic dependency,
+since $r$ occurs free in $(y\GETS r+2-r)$, there would be
+a dependency between $(r\GETS x)$ and $(y\GETS r+2-r)$.
+In contrast, this model is based on logical implication,
+which can be interpreted semantically.
+
+\subsection{Control dependencies}
 
 Conditionals introduce control dependencies, for example consider the program:
 \begin{verbatim}
