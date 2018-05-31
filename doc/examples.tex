@@ -293,7 +293,7 @@ contains:
   \event{wy2}{r=0 \mid \DW{y}{2}}{right=of wx1}
 \end{tikzpicture}\]
 Now, the semantics of concurrent read performs substitutions, for example
-a read of $0$ from $x$ results in:
+a read of $0$ from $z$ into $r$ results in:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz0}{\DR{z}{0}}{}
   \event{wx1}{0\neq0 \mid \DW{x}{1}}{right=of rz0}

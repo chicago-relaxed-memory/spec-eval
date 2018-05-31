@@ -110,8 +110,10 @@
 
 \pgfsetlayers{background,main,foreground}
 
+\tikzstyle{baselinecenter} = [baseline=(current bounding box.west)]
 \tikzstyle{event} = [draw=black, fill=blue!10, rectangle, rounded corners, minimum size=3ex]
 \tikzstyle{po} = [->]
+\tikzstyle{lift} = [->,double]
 \tikzstyle{rf} = [->,thick,dashed,draw=black!50!green]
 
 \tikzset{
@@ -133,5 +135,6 @@
 \newcommand{\event}[3]{\node[event](#1)[#3]{$\mathstrut#2$};}
 \newcommand{\nonevent}[3]{\node[nonevent](#1)[#3]{$\mathstrut#2$};}
 \newcommand{\po}[3][]{\draw[po,#1](#2)to(#3);}
+\newcommand{\lift}[3][]{\draw[lift,#1](#2)to(#3);}
 \newcommand{\rf}[3][]{\draw[rf,#1](#2)to(#3);}
 \newcommand{\rfx}[4][]{\draw[rf,#1](#2) edge node[above,text=black!50!green]{$#3$} (#4);}

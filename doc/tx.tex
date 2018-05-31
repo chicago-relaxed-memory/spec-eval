@@ -58,10 +58,10 @@ $\labelling(\aEv)=(\aForm\mid\DC{\vec\aLoc}{\vec\aVal})$.
 We write $\aForm_\aEv$ for the formula of $\aEv$; that is, when
 $\labelling(\aEv)=(\aForm_\aEv\mid\aAct)$.
 
-We say that $\aForm$ is \emph{compatible with} $\bForm$ when
-$\aForm\land\bForm$ is satisfiable.
+We say that $\aEv$ is \emph{compatible with} $\bEv$ when
+$\aForm_\aEv\land\aForm_\bEv$ is satisfiable.
 
-We say that  event $\aEv$ \emph{happens between} $\begEv$ and $\vec\comEv$ when
+We say that  event $\aEv$ \emph{belongs to} $(\begEv,\vec\comEv)$ when
 \begin{itemize}
 \item $\begEv$ is a begin event, $\begEv<\aEv$, and
   there is no commit event $\bEv$ such that $\begEv<\bEv<\aEv$,
@@ -70,39 +70,95 @@ We say that  event $\aEv$ \emph{happens between} $\begEv$ and $\vec\comEv$ when
 \end{itemize}
 
 \begin{definition}
-  A pomset is \emph{atomic} when for any $\aEv$ that happens between $\begEv$ and $\vec\comEv$:
+  A pomset is \emph{atomic} when for any $\aEv$ that belongs to $(\begEv,\vec\comEv)$:
   \begin{enumerate}
-  \item\label{xcommit} $\aForm_{\aEv}$ implies $\textstyle\bigcup_i\aForm_{\comEv_i}$,
+  \item\label{xcommitform} $\aForm_{\aEv}$ implies $\textstyle\bigvee_i\aForm_{\comEv_i}$,
   \item\label{xliftb} if $\bEv<\aEv$ then $\bEv<\begEv$, 
-  \item\label{xliftc} if $\aEv<\bEv$ and $\aForm_\bEv$ is compatible with
-    $\aForm_{\comEv_i}$ then $\comEv_i<\bEv$, 
-  \item\label{xrf} if $\aEv'\neq\aEv$ also happens between $\begEv$ and $\vec\comEv$ and
+  \item\label{xliftc} if $\aEv<\bEv$ and $\bEv$ is compatible with
+    $\comEv_i$ then $\comEv_i<\bEv$, 
+  \item\label{xtotal} if $\aEv'\neq\aEv$ belongs to $(\begEv',\vec\comEv')$ but not
+    $(\begEv,\dontcare)$ and
     \begin{itemize}
-    \item $\aEv$ reads from $\bEv'$ that happens between $\begEv'$ and $\vec\comEv'$,
-    \item $\aEv'$ reads from $\bEv''$ that happens between $\begEv''$ and $\vec\comEv''$,
-    \item $\comEv''_j$ is compatible with $\bEv'$, and 
-    \item $\comEv'_i$ is compatible with $\bEv''$ 
+    \item $\comEv'_j$ is compatible with $\aEv$, and 
+    \item $\comEv_i$ is compatible with $\aEv'$ 
     \end{itemize}
     then either
-    $\comEv''_j<\begEv'$ or
-    $\comEv'_i<\begEv''$ .
+    $\comEv'_j<\begEv$ or
+    $\comEv_i<\begEv'$,
+  % \item\label{xrf} if $\aEv'\neq\aEv$ belongs to $(\begEv,\dontcare)$ but not
+  %   $(\begEv,\dontcare)$ and
+  %   \begin{itemize}
+  %   \item $\aEv$ reads from $\bEv'$ that belongs to $(\begEv',\vec\comEv')$,
+  %   \item $\aEv'$ reads from $\bEv''\neq\beV'$ that belongs to $(\begEv'',\vec\comEv'')$,
+  %   \item $\comEv''_j$ is compatible with $\bEv'$, and 
+  %   \item $\comEv'_i$ is compatible with $\bEv''$ 
+  %   \end{itemize}
+  %   then either
+  %   $\comEv''_j<\begEv'$ or
+  %   $\comEv'_i<\begEv''$ .
+  \item\label{xcommitvars} if $\aEv$ writes $\aLoc$ and $\comEv_i$ writes
+    $\vec\aLoc$ then $\aLoc=\aLoc_i$, for some $i$, and
+  \item\label{xreadunique} if $\aEv$ reads $\aLoc$ and $\aEv'\neq\aEv$ reads
+    $\aLoc$, is compatible with $\aEv$, and belongs to $(\begEv,\dontcare)$
+    then $\aAct_{\aEv}=\aAct_{\aEv'}$.
   \end{enumerate}
 \end{definition}
-Clause \eqref{xcommit} requires that the precondition on $\aEv$ is false on an
+Clause \eqref{xcommitform} requires that the precondition on $\aEv$ is false on an
 aborted transaction.
 The \emph{lifting clauses}, \eqref{xliftb} and \eqref{xliftc}, require order
 come in or out of $\aEv$ is lifted to the corresponding begin or commit event.
-Clause \eqref{xrf} requires that whenever a transaction reads from two other
-transactions, the other transactions must be ordered.
+% Clause \eqref{xrf} requires that whenever a transaction reads from two other
+% transactions, the other transactions must be ordered.
+Clause \eqref{xtotal} requires that transactions be totally ordered.
+Clause \eqref{xcommitvars} requires that all writes be committed.
+Clause \eqref{xreadunique} requires that multiple reads of a location in a
+single transaction must see the same value.
+
 
 The definition of atomicity guarantees strong isolation.  For weak isolation,
-the \eqref{xliftb} only applies when $\bEv$ is a commit and \eqref{xliftc} only
+clauses \eqref{xcommitvars} and \eqref{xreadunique} are unnecessary,
+\eqref{xliftb} only applies when $\bEv$ is a commit, and \eqref{xliftc} only
 applies when $\bEv$ is a begin.
 
 The definition handles simple examples:
 \begin{itemize}
-\item Single threaded example: $\DB_1 \DC{}{}_1 \DB_2 \DC{}{}_2$.  By release semantics of
-  $\DC{}{}_2$, we know that $\DC{}{}_1<\DC{}{}_2$. By lifting, we now that $\DC{}{}_1<\DB_2$.
+\item Single threaded example: $\DB_1 \DC{}{}_1 \DB_2 \DC{}{}_2$.  Because
+  $\DC{}{}_2$ is a release, we know that $\DC{}{}_1<\DC{}{}_2$.  Because
+  $\DB_1$ is an acquire, we know that $\DB_1<\DB_2$ By lifting, either of
+  these is sufficient to require that $\DC{}{}_1<\DB_2$.
+\[\begin{tikzpicture}[node distance=1em,baselinecenter]
+  \event{b1}{\DB_1}{}
+  \event{c1}{\DC{}{}_1}{right=of b1}
+  \event{b2}{\DB_2}{below right=of b1}
+  \event{c2}{\DC{}{}_2}{right=of b2}
+  \po{b1}{c1}
+  \po{b1}{b2}
+  \po{b2}{c2}
+  \po{c1}{c2}
+\end{tikzpicture}
+\;\text{implies}\;
+\begin{tikzpicture}[node distance=1em,baselinecenter]
+  \event{b1}{\DB_1}{}
+  \event{c1}{\DC{}{}_1}{right=of b1}
+  \event{b2}{\DB_2}{below right=of b1}
+  \event{c2}{\DC{}{}_2}{right=of b2}
+  \po{b1}{c1}
+  \po{c1}{b2}
+  \po{b2}{c2}
+\end{tikzpicture}\]
+\item Abort example:
+\[\begin{tikzpicture}[node distance=1em,baselinecenter]
+  \event{b1}{\DB_1}{}
+  \event{wx1}{\DW{x}{1}}{right=of b1}
+  \event{c1}{\DC{}{}_1}{above right=of wx1}
+  \nonevent{c2}{\DC{}{}_2}{below right=of wx1}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of wx1}
+  \po{b1}{wx1}
+  \po{wx1}{c1}
+  \po{wx1}{c2}
+  \rf{wx1}{rx1}
+\end{tikzpicture}\]
+  
 \item Clause \eqref{xrf} stops transaction from reading two different values
   for the same variable from transactions (it is possible with no
   transactional writes).  
