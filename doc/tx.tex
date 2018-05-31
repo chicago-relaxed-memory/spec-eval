@@ -55,8 +55,8 @@ We say that $\aEv$ is a \emph{begin event} if
 $\labelling(\aEv)=(\aForm\mid\DB)$ and a \emph{commit event} if
 $\labelling(\aEv)=(\aForm\mid\DC{\vec\aLoc}{\vec\aVal})$.
 
-We write $\aForm_\aEv$ for the formula of $\aEv$; that is, when
-$\labelling(\aEv)=(\aForm_\aEv\mid\aAct)$.
+We write $\aForm_\aEv$ for the formula and $\aAct_\aEv$ for the
+action of $\aEv$; that is, when $\labelling(\aEv)=(\aForm_\aEv\mid\aAct_\aEv)$.
 
 We say that $\aEv$ is \emph{compatible with} $\bEv$ when
 $\aForm_\aEv\land\aForm_\bEv$ is satisfiable.
@@ -99,7 +99,7 @@ We say that  event $\aEv$ \emph{belongs to} $(\begEv,\vec\comEv)$ when
   \item\label{xcommitvars} if $\aEv$ writes $\aLoc$ and $\comEv_i$ writes
     $\vec\aLoc$ then $\aLoc=\aLoc_i$, for some $i$, and
   \item\label{xreadunique} if $\aEv$ reads $\aLoc$ and $\aEv'\neq\aEv$ reads
-    $\aLoc$, is compatible with $\aEv$, and belongs to $(\begEv,\dontcare)$
+    $\aLoc$, belongs to $(\begEv,\dontcare)$ and is compatible with $\aEv$
     then $\aAct_{\aEv}=\aAct_{\aEv'}$.
   \end{enumerate}
 \end{definition}
@@ -148,7 +148,7 @@ The definition handles simple examples:
 \end{tikzpicture}\]
 \item Abort example:
 \[\begin{tikzpicture}[node distance=1em,baselinecenter]
-  \event{b1}{\DB_1}{}
+  \event{b1}{\DB}{}
   \event{wx1}{\DW{x}{1}}{right=of b1}
   \event{c1}{\DC{}{}_1}{above right=of wx1}
   \nonevent{c2}{\DC{}{}_2}{below right=of wx1}
@@ -157,6 +157,19 @@ The definition handles simple examples:
   \po{wx1}{c1}
   \po{wx1}{c2}
   \rf{wx1}{rx1}
+\end{tikzpicture}
+\;\text{implies}\;
+\begin{tikzpicture}[node distance=1em,baselinecenter]
+  \event{b1}{\DB}{}
+  \event{wx1}{\DW{x}{1}}{right=of b1}
+  \event{c1}{\DC{}{}_1}{above right=of wx1}
+  \nonevent{c2}{\DC{}{}_2}{below right=of wx1}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of wx1}
+  \po{b1}{wx1}
+  \po{wx1}{c1}
+  \po{wx1}{c2}
+  \rf{wx1}{rx1}
+  \po{c1}{rx1}
 \end{tikzpicture}\]
   
 \item Clause \eqref{xrf} stops transaction from reading two different values
