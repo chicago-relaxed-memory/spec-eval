@@ -39,16 +39,16 @@
 \newcommand{\TRUE}{\mathsf{true}}
 \newcommand{\FALSE}{\mathsf{false}}
 
-% \newcommand{\Rel}{\mathcal{A}_{\mathsf{rel}}}
-% \newcommand{\Acq}{\mathcal{A}_{\mathsf{acq}}}
+\newcommand{\Rel}{\mathsf{Rel}}
+\newcommand{\Acq}{\mathsf{Acq}}
 \newcommand{\Act}{\mathcal{A}}
 \newcommand{\aAct}{a}
 \newcommand{\bAct}{b}
-\newcommand{\DRAcq}[2]{\mathsf{R_{acq}}\,#1\,#2}
-\newcommand{\DWRel}[2]{\mathsf{W_{rel}}\,#1\,#2}
-\newcommand{\DR}[2]{\mathsf{R}\,#1\,#2}
-\newcommand{\DW}[2]{\mathsf{W}\,#1\,#2}
-\newcommand{\DT}[1]{\mathsf{T}\,#1}
+\newcommand{\DRAcq}[2]{\mathsf{R_{acq}}\ifnotempty{#1}{\,#1\,#2}}
+\newcommand{\DWRel}[2]{\mathsf{W_{rel}}\ifnotempty{#1}{\,#1\,#2}}
+\newcommand{\DR}[2]{\mathsf{R}\ifnotempty{#1}{\,#1\,#2}}
+\newcommand{\DW}[2]{\mathsf{W}\ifnotempty{#1}{\,#1\,#2}}
+\newcommand{\DT}[1]{\mathsf{T}\ifnotempty{#1}{\,#1}}
 \newcommand{\DF}{\mathsf{F}}
 \newcommand{\DB}{\mathsf{B}}
 \newcommand{\DCn}[2]{\mathsf{C}\,#1_1\,#2_1,\,\ldots,\,#1_n\,#2_n}
@@ -58,6 +58,8 @@
 \newcommand{\aEv}{e}
 \newcommand{\bEv}{d}
 \newcommand{\cEv}{c}
+\newcommand{\begEv}{b}
+\newcommand{\comEv}{c}
 
 \newcommand{\Alphabet}{\Sigma}
 \newcommand{\labelling}{\lambda}
@@ -77,10 +79,9 @@
 \newcommand{\REL}[1]{#1\ensuremath{_{\mathsf{rel}}}}
 \newcommand{\ACQ}[1]{#1\ensuremath{_{\mathsf{acq}}}}
 \newcommand{\FENCE}{\texttt{fence}}
-\newcommand{\BEGIN}{\texttt{begin}\,}
-%\newcommand{\IFCOMMITTHEN}{\texttt{if\,commit\,then}\,}
-\newcommand{\IFCOMMITTHEN}{\texttt{if\,commit\,$\vec\aLoc$\,then}\,}
-\newcommand{\END}{\texttt{end}\,}
+\newcommand{\BEGIN}{\texttt{begin}}
+\newcommand{\COMMIT}{\texttt{commit}\,}
+\newcommand{\END}{\texttt{end}}
 \newcommand{\SKIP}{\texttt{skip}}
 \newcommand{\GETS}{\texttt{:=}\,}
 \newcommand{\SEMI}{\texttt{;}\,}
@@ -93,6 +94,7 @@
 
 \newcommand{\SEC}{\texttt{SECRET}}
 
+\usepackage{amsmath}
 \usepackage{alltt}
 \usepackage{tikz}
 \usetikzlibrary{shapes.misc}

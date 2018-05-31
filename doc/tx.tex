@@ -1,24 +1,16 @@
 \subsection{Fences and release/acquire synchronization}
 
-We assume a subsets of release actions %$\Rel\subseteq\Act$
-and acquire actions. % $\Acq\subseteq\Act$.
-Reads, writes and touches in neither release nor acquire.
+We assume there are sets $\Rel$ and $\Acq \subseteq\Act$.  We say that
+$\aAct$ is a \emph{release action} if $\aAct\in\Rel$ and $\aAct$ is an
+\emph{acquire action} if $\aAct\in\Rel$.  
 
-Publication example:
-\begin{alltt}
-    var x; var f; x:=0; f:=0; (x:=1; \REL{f}:=1;  ||  r:=\ACQ{f}; s:=x;)
-\end{alltt}
-We disallow the execution where \texttt{r==1} and \texttt{s!=1}
-
-% Note that RF is only augmented in the parallel rule, so neither thread can have an RF into an init action.
-
-We model release/acquire synchronization by introducing the
-following actions:
+We model release/acquire synchronization by introducing the actions:
 \begin{itemize}
 %\item $(\DF)$ is both a release and an acquire action
-\item $(\DWRel{\aLoc}{\aVal})$ is a release action, which writes $\aLoc$ at $\aVal$.
-\item $(\DRAcq{\aLoc}{\aVal})$ is an acquire action, which reads $\aLoc$ at $\aVal$.
+\item $(\DWRel{\aLoc}{\aVal})$, a release action that writes $\aVal$ to $\aLoc$, and
+\item $(\DRAcq{\aLoc}{\aVal})$, an acquire action that reads $\aVal$ from $\aLoc$,
 \end{itemize}
+with semantics:
 \begin{eqnarray*}
   %\sem{\FENCE\SEMI \bCmd} & = & (\TRUE \mid \DF) \prefix \sem{\bCmd} \\
   \sem{\REL\aLoc\GETS\aExp\SEMI \bCmd}
@@ -27,60 +19,105 @@ following actions:
   \sem{\aReg\GETS\ACQ\aLoc\SEMI \bCmd}
   & = & \textstyle\bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\bCmd}[\aLoc/\aReg] 
 \end{eqnarray*}
-There are no additional requirements for $\aLoc$-closure is.
+%There are no additional requirements for $\aLoc$-closure is.
+
+Publication example:
+\begin{alltt}
+    var x; var f; x:=0; f:=0; (x:=1; \REL{f}:=1;  ||  r:=\ACQ{f}; s:=x;)
+\end{alltt}
+We disallow the execution where \texttt{r==1} and \texttt{s!=1}
+Note that $\RF$ is only augmented in the parallel rule, so neither thread can have an $\RF$ from an init action.
 
 \subsection{Transactions}
 
-We present a model of weakly isolated transactions.  To get strong isolation,
-we need to make $\DB$ record the reads, symmetrically to $\DC{}{}$; we also need
-to require in parallel composition that any order in-to/out-of a
-transactional event be lifted to the corresponding $\DB$/$\DC{}{}$
-
-\begin{alltt}
-  var x; var f; x:=0; f:=0; fence; 
-     x:=1; (begin; f:=1; f:=2; end;) || (begin; r:=f; end; s:=x;)
-\end{alltt}
-$\END\SEMI \bCmd$ is sugar for $\IFCOMMITTHEN \bCmd \ELSE \bCmd$.
-
+We model transactions by introducing the actions:
 \begin{itemize}
-\item $(\DB)$ is an acquire action
-\item %$(\DCn{\aLoc}{\aVal})$
-  $(\DC{\vec\aLoc}{\vec\aVal})$
-  is a release action which writes $\vec\aLoc$ at $\vec\aVal$
+\item $(\DB)$, an acquire action, and
+\item $(\DC{\vec\aLoc}{\vec\aVal})$, a release action that writes $\vec\aVal$ to $\vec\aLoc$,
 \end{itemize}
-
+with semantics:
 \begin{eqnarray*}
   \sem{\BEGIN\SEMI \bCmd}
-  & = & \mathit{atomic}((\TRUE \mid \DB) \prefix \sem{\bCmd})
+  & = & %\mathit{atomic}(
+  (\TRUE \mid \DB) \prefix \sem{\bCmd}
   \\
-  \sem{\IFCOMMITTHEN \bCmd_1 \ELSE \bCmd_2}
+  \sem{\IF\COMMIT\vec\aLoc\THEN \bCmd_1 \ELSE \bCmd_2}
   & = & \textstyle\bigcup_{\vec\aVal,\,\aForm\,\text{implies}\,\vec\aLoc=\vec\aVal}\;
         ((\aForm \mid \DC{\vec\aLoc}{\vec\aVal}) \prefix (\aForm \mid \sem{\bCmd_1}))
         \sqcup  (\lnot\aForm \mid \sem{\bCmd_2})
 \end{eqnarray*}
+where we require that all pomsets in the semantics of programs be
+\emph{atomic}.
 
+Before defining atomicity, we provide some auxiliary notation.
 
-Pomset is \emph{atomic} if
+We say that $\aEv$ is a \emph{begin event} if
+$\labelling(\aEv)=(\aForm\mid\DB)$ and a \emph{commit event} if
+$\labelling(\aEv)=(\aForm\mid\DC{\vec\aLoc}{\vec\aVal})$.
+
+We write $\aForm_\aEv$ for the formula of $\aEv$; that is, when
+$\labelling(\aEv)=(\aForm_\aEv\mid\aAct)$.
+
+We say that $\aForm$ is \emph{compatible with} $\bForm$ when
+$\aForm\land\bForm$ is satisfiable.
+
+We say that  event $\aEv$ \emph{happens between} $\begEv$ and $\vec\comEv$ when
 \begin{itemize}
-\item for every $\aEv$, where $\labelling(\aEv)=(\aForm\mid\dontcare)$, \\if
-  $\bEv<\aEv$ with $\labelling(\bEv)=(\dontcare\mid\DB)$ and there is no
-  $\bEv<\DC{}{}<\aEv$ \\then $\aForm$ implies
-  $\textstyle\bigcup_{(\bForm\mid\DC{}{})\,\text{ends}\,d}\bForm$
-\item if two reads of the same location see different values occur between
-  begin and commit, then the formula on the commit implies false
-\item STRONG ISO: order from $\aEv$ to transaction must be lifted to begin
-\item STRONG ISO: order from transaction to $\aEv$ must be lifted to commit
-\item WEAK ISO: order from transactional $\aEv$ to transaction must be lifted to begin 
-\item WEAK ISO: order from transaction to transactional $\aEv$ must be lifted to commit
+\item $\begEv$ is a begin event, $\begEv<\aEv$, and
+  there is no commit event $\bEv$ such that $\begEv<\bEv<\aEv$,
+\item $\vec\comEv$ are the commit events $\comEv_i$ such that $\aEv<\comEv_i$ and
+  there is no begin event $\bEv$ such that $\aEv<\bEv<\comEv_i$.
 \end{itemize}
-Single threaded example: \texttt{B1 C1 B2 C2}, we have \texttt{C1<B2} since
-\texttt{C1<C2} and we must lift
+
+\begin{definition}
+  A pomset is \emph{atomic} when for any $\aEv$ that happens between $\begEv$ and $\vec\comEv$:
+  \begin{enumerate}
+  \item\label{xcommit} $\aForm_{\aEv}$ implies $\textstyle\bigcup_i\aForm_{\comEv_i}$,
+  \item\label{xliftb} if $\bEv<\aEv$ then $\bEv<\begEv$, 
+  \item\label{xliftc} if $\aEv<\bEv$ and $\aForm_\bEv$ is compatible with
+    $\aForm_{\comEv_i}$ then $\comEv_i<\bEv$, 
+  \item\label{xrf} if $\aEv'\neq\aEv$ also happens between $\begEv$ and $\vec\comEv$ and
+    \begin{itemize}
+    \item $\aEv$ reads from $\bEv'$ that happens between $\begEv'$ and $\vec\comEv'$,
+    \item $\aEv'$ reads from $\bEv''$ that happens between $\begEv''$ and $\vec\comEv''$,
+    \item $\comEv''_j$ is compatible with $\bEv'$, and 
+    \item $\comEv'_i$ is compatible with $\bEv''$ 
+    \end{itemize}
+    then either
+    $\comEv''_j<\begEv'$ or
+    $\comEv'_i<\begEv''$ .
+  \end{enumerate}
+\end{definition}
+Clause \eqref{xcommit} requires that the precondition on $\aEv$ is false on an
+aborted transaction.
+The \emph{lifting clauses}, \eqref{xliftb} and \eqref{xliftc}, require order
+come in or out of $\aEv$ is lifted to the corresponding begin or commit event.
+Clause \eqref{xrf} requires that whenever a transaction reads from two other
+transactions, the other transactions must be ordered.
+
+The definition of atomicity guarantees strong isolation.  For weak isolation,
+the \eqref{xliftb} only applies when $\bEv$ is a commit and \eqref{xliftc} only
+applies when $\bEv$ is a begin.
+
+The definition handles simple examples:
+\begin{itemize}
+\item Single threaded example: $\DB_1 \DC{}{}_1 \DB_2 \DC{}{}_2$.  By release semantics of
+  $\DC{}{}_2$, we know that $\DC{}{}_1<\DC{}{}_2$. By lifting, we now that $\DC{}{}_1<\DB_2$.
+\item Clause \eqref{xrf} stops transaction from reading two different values
+  for the same variable from transactions (it is possible with no
+  transactional writes).  
+\item Clause \eqref{xrf} also stops transactional IRIW.
+\end{itemize}
 % \begin{definition}
 %   An rf-pomset is transaction-closed if the $\DB$ and $\DC{}{}$ actions with
 %   satisfiable preconditions are totally ordered by $<$.
 % \end{definition}
 
-For example, the semantics of
+Let ``$\END\SEMI \bCmd$'' be syntax sugar for
+``$\IF\COMMIT\vec\aLoc\THEN\bCmd \ELSE \bCmd$'', where $\vec\aLoc$ are the
+free variables of $\bCmd$.
+
+The semantics of
 \begin{alltt}
   x:=1; begin; x:=2; end; y:=x;
 \end{alltt}
@@ -115,6 +152,19 @@ and
   %\po{rz0}{wy2}
 \end{tikzpicture}\]
 
+Publication example:
+\begin{alltt}
+  var x; var f; x:=0; f:=0; 
+     x:=1; (begin; f:=1; end;) || (begin; r:=f; end; s:=x;)
+\end{alltt}
+
+\subsection{Picky details}
+
+The relations $\rreads$ and $\rwrites$ and $\RF$ should be restricted
+to elements of $(\Act \times \Loc \times \Val)$ that are in
+$(\Act \times (\Loc \rightarrow \Val))$.
+
+$(\DT{\aLoc})$ neither reads nor writes $\aLoc$.
 
 % Note: we could also include a transaction factory, and close the factory.
 % \begin{alltt}
@@ -123,5 +173,5 @@ and
 % \end{alltt}
 
 % Local Variables:
-% TeX-master: "paper"
+% TeX-master: "x"
 % End:
