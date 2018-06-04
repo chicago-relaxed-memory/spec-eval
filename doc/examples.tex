@@ -94,7 +94,7 @@ performs a concurrent read of $x$:
   \po{rx1}{wy2}
 \end{tikzpicture}\]
 To see how this execution is modelled, we first
-expand out the syntax sugar to get the program \verb`(x := 0; skip || r := x; y := r+1; skip)`.
+expand out the syntax sugar to get the program \verb`(x := 1; skip || r := x; y := r+1; skip)`.
 As before, $\sem{y \GETS r+1\SEMI \SKIP}$ is:
 \[
    \bigcup_v\; (r+1=v \mid \DW yv) \prefix \sem{\SKIP}[v/y]
@@ -130,7 +130,7 @@ which contains the pomset:
   \po{rx1}{wy2}
 \end{tikzpicture}\]
 Note that $(\DR x1)$ reads $1$ from $x$, and while
-$\TRUE$ implies $(x+1=2)[1/2]$ it does \emph{not}
+$\TRUE$ implies $(x+1=2)[1/x]$ it does \emph{not}
 imply $(x+1=2)$, and so there is an ordering
 $(\DR x1) < (\DW y2)$.
 
