@@ -795,6 +795,43 @@ which simplifies to:
 as required. The rest of the example is straightforward, and shows that our semantics
 agrees with the JMM in not supporting thread inlining.
 
+\subsection{Word tearing}
+
+In \S\ref{sec:transactions}, we shall be considering transactional memory,
+and in \S\ref{sec:transactions} show that we can model a simplified version
+of an information flow attack on transactions. In order to model transactions,
+we need to consider actions that can write many memory locations at once,
+since this is part of the semantics of commitment. To lead up to this, we first
+consider a simpler scenario of many-location writes and reads, which is word
+tearing.
+
+In word tearing, a program contains a write instruction with data larger
+than the hardware word size, for example copying a byte array, or assigning
+a 64-bit float on a 32-bit architecture. For example, consider the program:
+\begin{verbatim}
+  (x := [0, 0];) || (x := [1, 1];) || (r := x;)
+\end{verbatim}
+This has executions in which the read of $x$ only reads from one of the writes,
+for example:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx00}{\DW{x}{[0,0]}}{}
+  \event{wx11}{\DW{x}{[1,1]}}{right=2.5em of wx00}
+  \event{rx00}{\DR{x}{[0,0]}}{right=2.5em of wx11}
+  \rf[out=20, in=160]{wx00}{rx00}
+\end{tikzpicture}\]
+but also has executions in which the read of $x$ reads from both writes,
+for example:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx00}{\DW{x}{[0,0]}}{}
+  \event{wx11}{\DW{x}{[1,1]}}{right=2.5em of wx00}
+  \event{rx01}{\DR{x}{[0,1]}}{right=2.5em of wx11}
+  \rfx[out=20, in=160]{wx00}{x[0]}{rx01}
+  \rfx[out=-20, in=-160]{wx11}{x[1]}{rx01}
+\end{tikzpicture}\]
+Word tearing can occur, for example, in Java extended floating point~\cite{jmm},
+LLVM 64-bit instructions on 32-bit hardware~\cite{llvm}, or in
+JavaScript SharedArrayBuffers~\cite{js-sab}.
+
 % Local Variables:
 % TeX-master: "paper"
 % End:
