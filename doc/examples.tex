@@ -661,6 +661,140 @@ After these optimizations, a sequentially consistent execution
 exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
 further in \S\ref{sec:experiments}.
 
+\subsection{Thread inlinling}
+
+One property one could ask of a model of shared memory is thread
+inlining: any execution of $\sem{P\SEMI Q}$ is an execution of $\sem{P
+  \PAR Q}$. This is \emph{not} a goal of our model, and indeed is not
+satisfied, due to the different semantics of concurrent and sequential
+memory accesses. We demonstrate this by considering an example from
+the Java Memory Model~\cite{jmm}, which shows that Java does not
+satisfy thread inlining either.
+
+The lack of thread inlining is related to the different dependency
+relations introduced by sequential and concurrent access.
+Recall from \S\ref{sec:sequential-memory} that the program
+\verb`(x := 0; y := x+1;)` has execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wy1}{\DW{y}{1}}{right=of wx0}
+\end{tikzpicture}\]
+\label{sec:concurrent-memory}
+but that \verb`(x := 1; || y := x+1;)` has:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{rx1}{\DR{x}{1}}{right=2.5em of wx1}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+  \rf{wx1}{rx1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+That is in the sequential case there is no depenency from the
+write of $x$ to the write of $y$, but in the concurrent case there
+is such a dependecy.
+
+This can be used to construct a counter-example to thread inlining, based on~\cite[Ex~11]{jmm}:
+\begin{verbatim}
+  x := 0; if (x == 1) { z := 1; } else { x := 1; } || y := x; || x := y;
+\end{verbatim}
+This has no execution containing $(\DW z1)$. Any attempt to build such an execution
+results in a cycle:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1a}{\DR{x}{1}}{}
+  \event{wz1}{\DW{z}{1}}{right=of rx1a}
+  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
+  \event{rx1b}{\DR{x}{1}}{right=2.5em of wx1a}
+  \event{wy1}{\DW{y}{1}}{right=of rx1b}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{wx1b}{\DW{x}{1}}{right=of ry1}
+  \po{rx1a}{wz1}
+  \po[out=25, in=150]{rx1a}{wx1a}
+  \po{rx1b}{wy1}
+  \po{ry1}{wx1b}
+  \rf{wy1}{ry1}
+  \rf[out=160, in=30]{wx1b}{rx1a}
+  \rf[out=160, in=30]{wx1b}{rx1b}
+\end{tikzpicture}\]
+Inlining the thread \verb|(y := x)| gives~\cite[Ex~12]{jmm}:
+\begin{verbatim}
+  x := 0; if (x == 1) { z := 1; } else { x := 1; } y := x; || x := y;
+\end{verbatim}
+with execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1a}{\DR{x}{1}}{}
+  \event{wz1}{\DW{z}{1}}{right=of rx1a}
+  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
+  \event{wy1}{\DW{y}{1}}{right=of wx1a}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{wx1b}{\DW{x}{1}}{right=of ry1}
+  \po{rx1a}{wz1}
+  \po[out=25, in=150]{rx1a}{wx1a}
+  \po{ry1}{wx1b}
+  \rf{wy1}{ry1}
+  \rf[out=160, in=30]{wx1b}{rx1a}
+\end{tikzpicture}\]
+To see why this execution exists, consider the program fragment:
+\begin{verbatim}
+  if (x == 1) { z := 1; } else { x := 1; } y := x;
+\end{verbatim}
+Removing the syntax sugar, this is:
+\begin{verbatim}
+  r1 := x; if (r1 == 1) {
+    z := 1; r2 := x; y := r2; skip
+  } else {
+    x := 1; r3 := x; y := r3; skip
+  }
+\end{verbatim}
+Now, $\sem{z := 1\SEMI r2 := x\SEMI y := r2\SEMI \SKIP}$
+includes pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
+  \event{wy1}{r_1=x=1 \mid \DW{y}{1}}{right=of wz1}
+\end{tikzpicture}\]
+and $\sem{x := 1\SEMI r3 := x\SEMI y := r3\SEMI \SKIP}$
+includes pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1a}{r_1\neq 1 \mid \DW{x}{1}}{}
+  \event{wy1}{r_1\neq 1 \mid \DW{y}{1}}{right=of wx1a}
+\end{tikzpicture}\]
+so  $\sem{\IF (r_1 = 1)\{ z := 1\SEMI r2 := x\SEMI y := r2\SEMI \SKIP \} \ELSE \{ x := 1\SEMI r3 := x\SEMI y := r3\SEMI \SKIP\}}$ includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
+  \event{wx1a}{r_1=0 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{(r_1=x=1) \lor (r_1=0) \mid \DW{y}{1}}{right=of wx1a}
+\end{tikzpicture}\]
+which means $\sem{\IF (r_1 = 1) \{ z := 1\SEMI r2 := x\SEMI y := r2\SEMI \SKIP \} \ELSE \{ x := 1\SEMI r3 := x\SEMI y := r3\SEMI \SKIP\}}[x/r_1]$ includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wz1}{x=1 \mid \DW{z}{1}}{}
+  \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{(x=x=1) \lor (x\neq1)) \mid \DW{y}{1}}{right=of wx1a}
+\end{tikzpicture}\]
+Now $(x=x=1) \lor (x\neq1)$ is a tautology, so this is just:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wz1}{x=1 \mid \DW{z}{1}}{}
+  \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{\DW{y}{1}}{right=of wx1a}
+\end{tikzpicture}\]
+and so $\sem{r_1 \GETS x\SEMI \IF (r_1 = 1) \{ z := 1\SEMI r2 := x\SEMI y := r2\SEMI \SKIP \} \ELSE \{ x := 1\SEMI r3 := x\SEMI y := r3\SEMI \SKIP\}}$ includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1a}{\DR{x}{1}}{}
+  \event{wz1}{1=1 \mid \DW{z}{1}}{right=of rx1a}
+  \event{wx1a}{1\neq1 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{\DW{y}{1}}{right=of wx1a}
+  \po{rx1a}{wz1}
+  \po[out=25, in=150]{rx1a}{wx1a}
+\end{tikzpicture}\]
+which simplifies to:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1a}{\DR{x}{1}}{}
+  \event{wz1}{\DW{z}{1}}{right=of rx1a}
+  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
+  \event{wy1}{\DW{y}{1}}{right=of wx1a}
+  \po{rx1a}{wz1}
+  \po[out=25, in=150]{rx1a}{wx1a}
+\end{tikzpicture}\]
+as required. The rest of the example is straightforward, and shows that our semantics
+agrees with the JMM in not supporting thread inlining.
+
 % Local Variables:
 % TeX-master: "paper"
 % End:
