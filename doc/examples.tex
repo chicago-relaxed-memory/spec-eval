@@ -1,6 +1,7 @@
 \section{Examples}
 
 \subsection{Sequential memory accesses}
+\label{sec:sequential-memory}
 
 In the semantics of memory, there are two very different ways memory
 can be accessed: sequentially or concurrently. These are modelled
@@ -31,6 +32,8 @@ which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wy1}{r+1=1 \mid \DW{y}{1}}{}
 \end{tikzpicture}\]
+expressing that this program can write $1$ to $y$,
+as long as the precondition $(r+1=1)$ is satisfied.
 Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ is:
 \[
    \sem{y \GETS r+1\SEMI \SKIP}[x/r] \cup
@@ -47,6 +50,8 @@ which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wy1}{x+1=1 \mid \DW{y}{1}}{}
 \end{tikzpicture}\]
+In this pomset, the precondition is $(x+1=1)$, which specifies a property
+of the thread-local value of $x$.
 Finally $\sem{x \GETS 0\SEMI r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ is:
 \[
    \bigcup_v\; (0=v \mid \DW xv) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[v/x]
@@ -83,7 +88,8 @@ $\aForm[\aExp/\aLoc]$.
 \label{sec:concurrent-memory}
 
 We now turn to the case of concurrent accesses to memory.
-Consider the program \verb`x := 1; || y := x+1;`.
+Consider a concurrent version of the program from \S\ref{sec:sequential-memory}:
+\verb`(x := 1; || y := x+1;)`.
 One execution of this program is where the write to $y$
 performs a concurrent read of $x$:
 \[\begin{tikzpicture}[node distance=1em]
@@ -130,9 +136,11 @@ which contains the pomset:
   \po{rx1}{wy2}
 \end{tikzpicture}\]
 Note that $(\DR x1)$ reads $1$ from $x$, and while
-$\TRUE$ implies $(x+1=2)[1/x]$ it does \emph{not}
-imply $(x+1=2)$, and so there is an ordering
-$(\DR x1) < (\DW y2)$.
+$\TRUE$ implies $(x+1=2)[1/x]$ (since $1+1=2$ is a tautology)
+it does \emph{not} imply $(x+1=2)$ (which is not true for every value of $x$),
+and so there is an ordering
+$(\DR x1) < (\DW y2)$
+modelling the data dependency of the write of $y$ on the read of $x$.
 
 Now, $\sem{x \GETS 1\SEMI \SKIP}$ includes the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -146,7 +154,8 @@ and so $\sem{x \GETS 1\SEMI \SKIP \PAR r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ i
   \rf{wx1}{rx1}
   \po{rx1}{wy2}
 \end{tikzpicture}\]
-as expected.
+as expected, including an rf-dependency between the concurrent write of $x$
+and the matching read.
 
 This example demonstrates how read and write events
 capture the concurrent semantics of memory.
@@ -273,7 +282,7 @@ we will show how this model captures Spectre-like information
 flow attacks, once the attacker is provided with the ability to
 observe such speculations.
 
-To see how these executions is modelled, consider the semantics of
+To see how these executions are modelled, consider the semantics of
 $\sem{x\GETS 1\SEMI\SKIP}$, which contains any pomset of the form:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\aForm \mid \DW{x}{1}}{}
@@ -390,14 +399,14 @@ constant assignments out of loops.
 We can now see the counterintuitive behavior of conditionals
 in the presence of control dependencies.
 There are programs such as
-\verb|r := z; if (r) { x := 1; } else { x := 1; }| with
+\verb|(r := z; if (r) { x := 1; } else { x := 1; })| with
 executions in which  $(\DW x1)$ is independent of $(\DR z1)$:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz1}{\DR{z}{1}}{}
   \event{wx1}{\DW{x}{1}}{right=of rz1}
 \end{tikzpicture}\]
 while programs such as
-\verb|r := z; if (r) { x := 1; } else { y := 2; }|
+\verb|(r := z; if (r) { x := 1; } else { y := 2; })|
 only have executions in which $(\DW x1)$ is dependent on $(\DR z1)$:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz1}{\DR{z}{1}}{}
@@ -497,21 +506,7 @@ but instead is based on the sensitivity of relaxed memory to data
 dependencies. For this reason, we present a simple model of relaxed
 memory, which is strong enough to capture this attack.
 The model includes concurrent memory accesses, which can introduce concurrent
-reads-from. For example, the program:
-\begin{verbatim}
-  x := 1; || r := x;
-\end{verbatim}
-has an execution in which the write to $x$ does not justify the read from $x$:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{x}{1}}{}
-  \event{rxv}{\DR{x}{v}}{right=2.5 em of wx1}
-\end{tikzpicture}\]
-but also has an execution in which the write to $x$ does justify the read from $x$:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{x}{1}}{}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of wx1}
-  \rf{wx1}{rx1}
-\end{tikzpicture}\]
+reads-from. 
 Since we are allowing events to be partially ordered, this gives a simple
 model of relaxed memory, for example an independent read independent write
 (IRIW) example is:
@@ -538,7 +533,7 @@ which includes the execution:
   \po{ry1}{rx0}
 \end{tikzpicture}\]
 This model does not introduce thin-air reads (TAR),
-for example the TAR pit is:
+for example the TAR pit program is:
 \begin{verbatim}
   x := y; || y := x;
 \end{verbatim}
@@ -663,7 +658,8 @@ and lift the assignment to \verb|x| out of the \verb|if| statement:
   else { z := 1; }
 \end{verbatim}
 After these optimizations, a sequentially consistent execution
-exhibits $(\DW{z}{1})$.
+exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
+further in \S\ref{sec:experiments}.
 
 % Local Variables:
 % TeX-master: "paper"
