@@ -1,32 +1,90 @@
 \subsection{Fences and release/acquire synchronization}
 
+Another feature that transactions have is that they act as memory
+fences, that is they are a barrier to reordering memory accesses.
+In this section, we present a simple model of fencing, and show
+in \S\ref{sec:transactions} that it can be scaled up to a model
+of transactional memory.
+
 We assume there are sets $\Rel$ and $\Acq \subseteq\Act$.  We say that
 $\aAct$ is a \emph{release action} if $\aAct\in\Rel$ and $\aAct$ is an
-\emph{acquire action} if $\aAct\in\Rel$.  
-
-We model release/acquire synchronization by introducing the actions:
+\emph{acquire action} if $\aAct\in\Rel$.
+In a pomset, a release event is one labelled with a release action,
+and an aquire event is one labelled by an aquire action.
+In examples, we will use
+releasing writes and aquiring reads:
 \begin{itemize}
-%\item $(\DF)$ is both a release and an acquire action
 \item $(\DWRel{\aLoc}{\aVal})$, a release action that writes $\aVal$ to $\aLoc$, and
-\item $(\DRAcq{\aLoc}{\aVal})$, an acquire action that reads $\aVal$ from $\aLoc$,
+\item $(\DRAcq{\aLoc}{\aVal})$, an acquire action that reads $\aVal$ from $\aLoc$.
 \end{itemize}
-with semantics:
+The semantics of fences are given by adding extra constraints
+to the definition of $(\aForm\mid\aAct)\prefix\aPSS$:
+\begin{itemize}
+\item $0 \le \aEv$ whenever $0$ is an aquire event or $\aEv$ is a release event.
+\end{itemize}
+The semantics of programs with acquiring read and releasing write 
+are the same as for regular read and write, but using the appropriate
+actions:
 \begin{eqnarray*}
-  %\sem{\FENCE\SEMI \bCmd} & = & (\TRUE \mid \DF) \prefix \sem{\bCmd} \\
-  \sem{\REL\aLoc\GETS\aExp\SEMI \bCmd}
-  & = & \textstyle\bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{\bCmd}[\aExp/\aLoc]
-  \\
-  \sem{\aReg\GETS\ACQ\aLoc\SEMI \bCmd}
-  & = & \textstyle\bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\bCmd}[\aLoc/\aReg] 
+  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
+  \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
 \end{eqnarray*}
-%There are no additional requirements for $\aLoc$-closure is.
-
-Publication example:
-\begin{alltt}
-    var x; var f; x:=0; f:=0; (x:=1; \REL{f}:=1;  ||  r:=\ACQ{f}; s:=x;)
-\end{alltt}
-We disallow the execution where \texttt{r==1} and \texttt{s!=1}
-Note that $\RF$ is only augmented in the parallel rule, so neither thread can have an $\RF$ from an init action.
+For example, consider the program:
+\begin{verbatim}
+  x := 0; rel f := 0; ||
+  acq r := f; if (r == 0) { x := x+1; rel f := 1; } ||
+  acq s := f; if (r == 1) { x := x+1; rel f := 2; }
+\end{verbatim}
+This has an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wf0}{\DWRel{f}{0}}{below=of wx0}
+  \event{rf0}{\DRAcq{f}{0}}{right=2.5 em of wx0}
+  \event{rx0}{\DR{x}{0}}{below=of rf0}
+  \event{wx1}{\DW{x}{1}}{below=of rx0}
+  \event{wf1}{\DWRel{f}{1}}{below=of wx1}
+  \event{rf1}{\DRAcq{f}{1}}{right=2.5 em of rf0}
+  \event{rx1}{\DR{x}{1}}{below=of rf1}
+  \event{wx2}{\DW{x}{2}}{below=of rx1}
+  \event{wf2}{\DWRel{f}{2}}{below=of wx2}
+  \po{wx0}{wf0}
+  \po{rf0}{rx0}
+  \po{rx0}{wx1}
+  \po{wx1}{wf1}
+  \po{rf1}{rx1}
+  \po{rx1}{wx2}
+  \po{wx2}{wf2}
+  \rf{wf0}{rf0}
+  \rf{wx0}{rx0}
+  \rf{wf1}{rf1}
+  \rf{wx1}{rx1}
+\end{tikzpicture}\]
+but \emph{not}:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wf0}{\DWRel{f}{0}}{below=of wx0}
+  \event{rf0}{\DRAcq{f}{0}}{right=2.5 em of wx0}
+  \event{rx0}{\DR{x}{0}}{below=of rf0}
+  \event{wx1}{\DW{x}{1}}{below=of rx0}
+  \event{wf1}{\DWRel{f}{1}}{below=of wx1}
+  \event{rf1}{\DRAcq{f}{1}}{right=2.5 em of rf0}
+  \event{rx0b}{\DR{x}{0}}{below=of rf1}
+  \event{wx1b}{\DW{x}{1}}{below=of rx0b}
+  \event{wf2}{\DWRel{f}{2}}{below=of wx1b}
+  \po{wx0}{wf0}
+  \po{rf0}{rx0}
+  \po{rx0}{wx1}
+  \po{wx1}{wf1}
+  \po{rf1}{rx0b}
+  \po{rx0b}{wx1b}
+  \po{wx1b}{wf2}
+  \rf{wf0}{rf0}
+  \rf{wx0}{rx0}
+  \rf{wf1}{rf1}
+  \rf{wx0}{rx0b}
+\end{tikzpicture}\]
+since $(\DW x0) < (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
+requirements to be an rf-pomset.
 
 \subsection{Transactions}
 
