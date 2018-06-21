@@ -27,8 +27,12 @@ static void* threadfunc(void* iters) {
 
   // waste some time, but don't use a syscall like usleep().
   // If we use a syscall, gcc wants to do the x=1 store first, regardless
+  // Must be a do-while loop so gcc knows it executes at least once
+  // (otherwise gcc inserts an extra conditional branch, and suddenly thinks
+  // the x=1 store is necessary again)
+  uint64_t iterscount = (uint64_t)iters;
   volatile int v = 0;
-  for(unsigned i = 0; i < (uint64_t)iters; i++) v++;
+  do { v++; } while(--iterscount > 0);
 
   x = 2;
   return (void*) (uintptr_t) y;  // keep gcc from removing the y=1 store entirely
