@@ -2,7 +2,7 @@ CC=gcc
 override CFLAGS += -O3
 LDFLAGS=-lpthread -lm
 
-EXECS=relaxedattack_false relaxedattack_true
+EXECS=relaxedattack_0 relaxedattack_1
 
 .PHONY : all
 all: $(EXECS) $(addsuffix .s, $(EXECS))
@@ -12,16 +12,16 @@ relaxedattack_%: relaxedattack.c
 
 %.s : override CFLAGS += -S
 
-.PHONY : runtrue
-runtrue: relaxedattack_true
+.PHONY : run0
+run0: relaxedattack_0
 	./$< 100 200000  # approximately tuned well on my (Craig's) machine
 
-.PHONY : runfalse
-runfalse: relaxedattack_false
+.PHONY : run1
+run1: relaxedattack_1
 	./$< 100 200000  # approximately tuned well on my (Craig's) machine
 
 .PHONY : runtune
-runtune: relaxedattack_false
+runtune: relaxedattack_0
 	./$< tune
 
 .PHONY : clean

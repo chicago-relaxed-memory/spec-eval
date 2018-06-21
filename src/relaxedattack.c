@@ -11,16 +11,16 @@ static volatile bool alwaysFalse = false;
 static unsigned x, y;
 
 #ifndef SECRET
-#error Please pass either -DSECRET=true or -DSECRET=false when compiling.
+#error Please pass -DSECRET=n (for some value of n) when compiling.
 #endif
 
-// in the SECRET=false case, gcc feels the need to keep the x=1 store intact.
-// in the SECRET=true case, gcc is fine skipping the dead x=1 store and doing just the x=2 store.
+// in the SECRET<=0 case, gcc feels the need to keep the x=1 store intact.
+// in the SECRET>0 case, gcc is fine skipping the dead x=1 store and doing just the x=2 store.
 // iters: a tuning parameter, see description on singleRun() below
 static void* threadfunc(void* iters) {
   x = 1;
   if(alwaysFalse) {
-    if(SECRET) y = 1;
+    if(SECRET > 0) y = 1;
   } else {
     y = 1;
   }
