@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
       printUsage(argv[0]);
       exit(1);
     }
-    if(!sscanf(argv[2], "%u", &iters)) {
+    if(!sscanf(argv[2], "%llu", &iters)) {
       fprintf(stderr, "\nError reading \"iters\" argument\n");
       printUsage(argv[0]);
       exit(1);
@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
     for(const uint64_t* cur_iters = &iters_vals[0];
         cur_iters < &iters_vals[7];
         cur_iters++) {
-      printf(" %8lu", *cur_iters);
+      printf(" %8llu", *cur_iters);
     }
     printf("\n\n");
 
