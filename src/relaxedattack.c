@@ -6,6 +6,7 @@
 #include <stdlib.h>  // exit()
 #include <math.h>
 #include <string.h>
+#include <x86intrin.h>  // __rdtsc()
 
 static volatile bool alwaysFalse = false;
 static unsigned x, y;
@@ -30,9 +31,15 @@ static void* threadfunc(void* iters) {
   // Must be a do-while loop so gcc knows it executes at least once
   // (otherwise gcc inserts an extra conditional branch, and suddenly thinks
   // the x=1 store is necessary again)
-  uint64_t iterscount = (uint64_t)iters;
+  //uint64_t iterscount = (uint64_t)iters & 8 + 8;
   volatile int v = 0;
-  do { v++; } while(--iterscount > 0);
+  //do { v++; } while(--iterscount > 0);
+  //for(uint64_t i = 0; i < iterscount; i++) v++;
+#define TWICE(op) op op
+#define EIGHT(op) TWICE(TWICE(TWICE(op)))
+#define KILO(op) TWICE(EIGHT(EIGHT(EIGHT(op))))
+#define MEGA(op) KILO(KILO(op))
+  EIGHT(EIGHT(__rdtsc();))
 
   x = 2;
   return (void*) (uintptr_t) y;  // keep gcc from removing the y=1 store entirely
@@ -164,7 +171,7 @@ int main(int argc, char* argv[]) {
     struct manyRuns_analysis analysis;
     // in C++: for(iters : iters_vals)
     for(const uint64_t* cur_iters = &iters_vals[0];
-        cur_iters < &iters_vals[15];
+        cur_iters < &iters_vals[1];
         cur_iters++) {
       printf("%6llu : ", *cur_iters);
       fflush(stdout);
