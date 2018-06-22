@@ -43,7 +43,6 @@ static void* threadfunc(void* iters) {
 static int singleRun(unsigned sleepNS, uint64_t iters) {
   x = 0;
   y = 0;
-  int a, b;
   void* dummy;
   pthread_t thread;
   pthread_create(&thread, NULL, &threadfunc, (void*) iters);
@@ -51,8 +50,8 @@ static int singleRun(unsigned sleepNS, uint64_t iters) {
   sleeptime.tv_sec = sleepNS / 1000000000;
   sleeptime.tv_nsec = sleepNS % 1000000000;
   nanosleep(&sleeptime, NULL);
-  a = x;
-  b = y;
+  int a = x;
+  int b = y;
   pthread_join(thread, &dummy);
   return a;
 }
