@@ -38,20 +38,18 @@ static void* threadfunc(void* iters) {
   return (void*) (uintptr_t) y;  // keep gcc from removing the y=1 store entirely
 }
 
-// sleepNS: a tuning parameter, how long main thread waits (in nanoseconds) before reading x
 // iters: a tuning parameter, how long other thread attempts to stall (in some arbitrary time unit) between x=1 and x=2
-static int singleRun(unsigned sleepNS, uint64_t iters) {
+static int singleRun(uint64_t iters) {
   x = 0;
   y = 0;
   void* dummy;
+  volatile unsigned* x_vol = &x;  // use a volatile pointer so it keeps reloading for real
+                                  // but we don't want x itself to be volatile, because then DSE isn't allowed
   pthread_t thread;
   pthread_create(&thread, NULL, &threadfunc, (void*) iters);
-  struct timespec sleeptime;
-  sleeptime.tv_sec = sleepNS / 1000000000;
-  sleeptime.tv_nsec = sleepNS % 1000000000;
-  nanosleep(&sleeptime, NULL);
-  int a = x;
-  int b = y;
+  int a, b;
+  do { a = *x_vol; } while(a == 0);  // wait until a is not 0
+  b = y;
   pthread_join(thread, &dummy);
   return a;
 }
@@ -71,12 +69,11 @@ struct manyRuns_res {
   uint64_t elapsedNanoseconds;  // total duration of manyRuns, in nanoseconds
 };
 
-// sleepNS: a tuning parameter, see notes on singleRun()
 // iters: a tuning parameter see notes on singleRun()
 // durationMS: how long to run the program for (approximately), in milliseconds
 // checkEvery: check the time every *this many* runs, to see if we're done
 // res: pointer to a manyRuns_res struct where results should be returned
-void manyRuns(unsigned sleepNS, uint64_t iters, unsigned durationMS, unsigned checkEvery, struct manyRuns_res* res) {
+void manyRuns(uint64_t iters, unsigned durationMS, unsigned checkEvery, struct manyRuns_res* res) {
   res->numZeroes = 0;
   res->numOnes = 0;
   res->numTwos = 0;
@@ -85,7 +82,7 @@ void manyRuns(unsigned sleepNS, uint64_t iters, unsigned durationMS, unsigned ch
   uint64_t targetEnd = start + durationMS*1e6;
   while(getTime() < targetEnd) {
     for(int i = 0; i < checkEvery; i++) {
-      switch(singleRun(sleepNS, iters)) {
+      switch(singleRun(iters)) {
         case 0: res->numZeroes++; break;
         case 1: res->numOnes++; break;
         case 2: res->numTwos++; break;
@@ -124,26 +121,24 @@ static void manyRuns_analyze(struct manyRuns_res* res, struct manyRuns_analysis*
 static void printUsage(char* progname) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Usage: %s tune\n", progname);
-  fprintf(stderr, "    or %s sleepNS iters\n\n", progname);
-  fprintf(stderr, "In the first case, print results for exploring the parameter space of the tuning parameters \"sleepNS\" and \"iters\"\n");
-  fprintf(stderr, "In the second case, print results for just the given parameters\n\n");
+  fprintf(stderr, "    or %s run iters\n\n", progname);
+  fprintf(stderr, "In the first case, print results a variety of values for the \"iters\" parameter\n");
+  fprintf(stderr, "In the second case, print results for just the given value of \"iters\"\n\n");
 }
 
 int main(int argc, char* argv[]) {
   bool tuning;
-  unsigned sleepNS;
   uint64_t iters;
   if(argc == 2) {
-    char tune[8];
-    if(!sscanf(argv[1], "%7s", tune) || strncmp(tune, "tune", 7)) {
+    if(strncmp(argv[1], "tune", 5)) {
       fprintf(stderr, "\nWith only one argument, expected \"tune\" but got %s\n", argv[1]);
       printUsage(argv[0]);
       exit(1);
     }
     tuning = true;
   } else if(argc == 3) {
-    if(!sscanf(argv[1], "%u", &sleepNS)) {
-      fprintf(stderr, "\nError reading \"sleepNS\" argument\n");
+    if(strncmp(argv[1], "run", 4)) {
+      fprintf(stderr, "\nWith two arguments, expected the first to be \"run\" but got %s\n", argv[1]);
       printUsage(argv[0]);
       exit(1);
     }
@@ -163,41 +158,24 @@ int main(int argc, char* argv[]) {
 
   if(tuning) {
 
-    const unsigned sleepNS_vals[] = {1, 10, 20, 50, 100, 200, 500, 1000, 2000};
-    const uint64_t iters_vals[] = {20e3, 50e3, 100e3, 200e3, 500e3, 1e6, 2e6};
-    printf("\nRows are sleepNS, columns are iters\n");
-    printf("\n    ");
-
-    // in C++: for(iters : iters_vals)
-    for(const uint64_t* cur_iters = &iters_vals[0];
-        cur_iters < &iters_vals[7];
-        cur_iters++) {
-      printf(" %8llu", *cur_iters);
-    }
-    printf("\n\n");
+    const uint64_t iters_vals[] = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1e3, 2e3, 5e3, 10e3, 20e3, 50e3};
+    printf("\n iters : leaked bits per second\n\n");
 
     struct manyRuns_analysis analysis;
-    // in C++: for(sleepNS : sleepNS_vals)
-    for(const unsigned* cur_sleepNS = &sleepNS_vals[0];
-        cur_sleepNS < &sleepNS_vals[9];
-        cur_sleepNS++) {
-      printf("%4u", *cur_sleepNS);
+    // in C++: for(iters : iters_vals)
+    for(const uint64_t* cur_iters = &iters_vals[0];
+        cur_iters < &iters_vals[15];
+        cur_iters++) {
+      printf("%6llu : ", *cur_iters);
       fflush(stdout);
-      // in C++: for(iters : iters_vals)
-      for(const uint64_t* cur_iters = &iters_vals[0];
-          cur_iters < &iters_vals[7];
-          cur_iters++) {
-        manyRuns(*cur_sleepNS, *cur_iters, 20000, 500, &res);
-        manyRuns_analyze(&res, &analysis);
-        printf(" %8.1f", analysis.leakedBitsPerSec);
-        fflush(stdout);
-      }
-      printf("\n");
+      manyRuns(*cur_iters, 10000, 200, &res);
+      manyRuns_analyze(&res, &analysis);
+      printf("%.1f\n", analysis.leakedBitsPerSec);
     }
 
   } else {  // not tuning
 
-    manyRuns(sleepNS, iters, 2000, 50, &res);
+    manyRuns(iters, 2000, 50, &res);
     struct manyRuns_analysis analysis;
     manyRuns_analyze(&res, &analysis);
     printf("0: %u  1: %u  2: %u\n", res.numZeroes, res.numOnes, res.numTwos);

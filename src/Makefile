@@ -14,11 +14,11 @@ relaxedattack_%: relaxedattack.c
 
 .PHONY : run0
 run0: relaxedattack_0
-	./$< 100 200000  # approximately tuned well on my (Craig's) machine
+	./$< run 500  # approximately tuned well on my (Craig's) machine
 
 .PHONY : run1
 run1: relaxedattack_1
-	./$< 100 200000  # approximately tuned well on my (Craig's) machine
+	./$< run 500  # approximately tuned well on my (Craig's) machine
 
 .PHONY : runtune
 runtune: relaxedattack_0
