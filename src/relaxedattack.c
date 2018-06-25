@@ -6,8 +6,19 @@
 #include <stdlib.h>  // exit()
 #include <math.h>
 #include <string.h>
+#include "for_0_to_2047.h"
 
-static const uint64_t SECRET = 0xf07b23a5461d8c9e;
+// 2048-bit secret is 32 uint64_t's
+static const uint64_t SECRET[32] = {
+  0xf07b23a5461d8c9e, 0x198ab650cd723fe4, 0x2f567e10d4a89cb3, 0x9999999999999999,
+  0xe67b23a54f1d8c90, 0x198cd650ab723ef4, 0x10567ef2d4a89cb3, 0x7777777777777777,
+  0xf08b23a5461d7c9e, 0x891ab650cd723fe4, 0x2f465e10d7a89cb3, 0x9898989898989898,
+  0xe76b23a5f41dc890, 0x098cd651ab723ef4, 0x10567efd24a89cb3, 0x7007007007007007,
+  0xf07b23a5461c8d9e, 0x189ab650cd237fe4, 0x2f567e10d4a89cb3, 0x9999999999999999,
+  0xe67b23a54f1d8c09, 0x198cd6a05b723ef4, 0x10567ef2d4a89cb3, 0x7777777777777777,
+  0xf08b23a5461d7c9e, 0x891ab650cd723fe4, 0x2f465e10d78a9cb3, 0x9098909898989098,
+  0xe76b23a5fcd41890, 0x098cd65ab1723ef4, 0x10567def24a89cb3, 0x7107107107107107,
+};
 
 static volatile bool alwaysFalse = false;
 static unsigned x, y;
@@ -24,7 +35,7 @@ static unsigned x, y;
 static void* threadfunc_##bitnum(void* iters) { \
   x = bitnum*2 + 1; \
   if(alwaysFalse) { \
-    if(SECRET & (1ULL<<bitnum)) y = 1; \
+    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) y = 1; \
   } else { \
     y = 1; \
   } \
@@ -44,73 +55,10 @@ static void* threadfunc_##bitnum(void* iters) { \
 }
 
 // declare all threadfuncs
-DECLARE_THREADFUNC(0)
-DECLARE_THREADFUNC(1)
-DECLARE_THREADFUNC(2)
-DECLARE_THREADFUNC(3)
-DECLARE_THREADFUNC(4)
-DECLARE_THREADFUNC(5)
-DECLARE_THREADFUNC(6)
-DECLARE_THREADFUNC(7)
-DECLARE_THREADFUNC(8)
-DECLARE_THREADFUNC(9)
-DECLARE_THREADFUNC(10)
-DECLARE_THREADFUNC(11)
-DECLARE_THREADFUNC(12)
-DECLARE_THREADFUNC(13)
-DECLARE_THREADFUNC(14)
-DECLARE_THREADFUNC(15)
-DECLARE_THREADFUNC(16)
-DECLARE_THREADFUNC(17)
-DECLARE_THREADFUNC(18)
-DECLARE_THREADFUNC(19)
-DECLARE_THREADFUNC(20)
-DECLARE_THREADFUNC(21)
-DECLARE_THREADFUNC(22)
-DECLARE_THREADFUNC(23)
-DECLARE_THREADFUNC(24)
-DECLARE_THREADFUNC(25)
-DECLARE_THREADFUNC(26)
-DECLARE_THREADFUNC(27)
-DECLARE_THREADFUNC(28)
-DECLARE_THREADFUNC(29)
-DECLARE_THREADFUNC(30)
-DECLARE_THREADFUNC(31)
-DECLARE_THREADFUNC(32)
-DECLARE_THREADFUNC(33)
-DECLARE_THREADFUNC(34)
-DECLARE_THREADFUNC(35)
-DECLARE_THREADFUNC(36)
-DECLARE_THREADFUNC(37)
-DECLARE_THREADFUNC(38)
-DECLARE_THREADFUNC(39)
-DECLARE_THREADFUNC(40)
-DECLARE_THREADFUNC(41)
-DECLARE_THREADFUNC(42)
-DECLARE_THREADFUNC(43)
-DECLARE_THREADFUNC(44)
-DECLARE_THREADFUNC(45)
-DECLARE_THREADFUNC(46)
-DECLARE_THREADFUNC(47)
-DECLARE_THREADFUNC(48)
-DECLARE_THREADFUNC(49)
-DECLARE_THREADFUNC(50)
-DECLARE_THREADFUNC(51)
-DECLARE_THREADFUNC(52)
-DECLARE_THREADFUNC(53)
-DECLARE_THREADFUNC(54)
-DECLARE_THREADFUNC(55)
-DECLARE_THREADFUNC(56)
-DECLARE_THREADFUNC(57)
-DECLARE_THREADFUNC(58)
-DECLARE_THREADFUNC(59)
-DECLARE_THREADFUNC(60)
-DECLARE_THREADFUNC(61)
-DECLARE_THREADFUNC(62)
-DECLARE_THREADFUNC(63)
+FOR_0_TO_2047(DECLARE_THREADFUNC)
 
 // array storing pointers to all 64 threadfuncs
-void* (*threadfunc_array[64])(void*);
+void* (*threadfunc_array[2048])(void*);
 
 // bitnum: which bit of the secret to leak
 // iters: a tuning parameter passed on to threadfunc()
@@ -136,20 +84,24 @@ static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
 // error_runs: how many redundant runs to do for error correction
 //   a value of '1' means do no error correction
 //   higher values indicate more error correction but will take longer
-// returns the guessed value of the 64-bit secret
-static uint64_t leak64bitSecret(uint64_t iters, unsigned error_runs) {
+// returns the guessed value of the 2048-bit secret
+//   as a heap-allocated array which caller is responsible for freeing
+static uint64_t* leak2048bitSecret(uint64_t iters, unsigned error_runs) {
   unsigned run = 0;
-  uint64_t finalLeakedSecret = 0xffffffffffffffff;
+  uint64_t* finalLeakedSecret = malloc(2048);  // 32 uint64_t's
+  for(unsigned i = 0; i < 32; i++) finalLeakedSecret[i] = 0xffffffffffffffff;
 
   do {
     x = 0;
-    uint64_t leakedSecret = 0;
-    for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
-      if(leakSingleBit(bitnum, iters)) leakedSecret |= 1ULL << bitnum;
+    for(unsigned which_64t = 0; which_64t < 32; which_64t++) {
+      uint64_t leakedSecret = 0;  // just the 64 bits we're operating on right now
+      for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
+        if(leakSingleBit(which_64t*64 + bitnum, iters)) leakedSecret |= 1ULL << bitnum;
+      }
+      // if we ever observe 0 in any position, that means we observed x=bit*2+1,
+      // which means the bit is *most definitely* actually 0
+      finalLeakedSecret[which_64t] &= leakedSecret;
     }
-    // if we ever observe 0 in any position, that means we observed x=bit*2+1,
-    // which means the bit is *most definitely* actually 0
-    finalLeakedSecret &= leakedSecret;
   } while(++run < error_runs);
 
   return finalLeakedSecret;
@@ -163,16 +115,16 @@ static uint64_t getTime() {
 }
 
 struct manyRuns_res {
-  unsigned numOffBy[65];  // Each index stores how many times leak64bitSecret()
-                          //   was incorrect in exactly that many bits
-                          // E.g. numOffBy[0] gives how many times
-                          //   was exactly correct
+  unsigned numOffBy[2049];  // Each index stores how many times leak2048bitSecret()
+                            //   was incorrect in exactly that many bits
+                            // E.g. numOffBy[0] gives how many times it
+                            //   was exactly correct
   unsigned numRuns;  // how many total runs were done (sum of the entries in numOffBy)
   uint64_t elapsedNanoseconds;  // total duration of manyRuns, in nanoseconds
 };
 
-// iters: a tuning parameter passed on to leak64bitSecret()
-// error_runs: a tuning parameter passed on to leak64bitSecret()
+// iters: a tuning parameter passed on to leak2048bitSecret()
+// error_runs: a tuning parameter passed on to leak2048bitSecret()
 // durationMS: how long to run the program for (approximately), in milliseconds
 // res: pointer to a manyRuns_res struct where results should be returned
 void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct manyRuns_res* res) {
@@ -181,11 +133,13 @@ void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct m
   uint64_t start = getTime();
   uint64_t targetEnd = start + durationMS*1000000;
   while(getTime() < targetEnd) {
-    uint64_t guessedSecret = leak64bitSecret(iters, error_runs);
+    uint64_t* guessedSecret = leak2048bitSecret(iters, error_runs);
     unsigned bitsWrong = 0;
-    for(int i = 0; i < 64; i++) if((SECRET & (1ULL << i)) ^ (guessedSecret & (1ULL << i))) bitsWrong++;
+    for(unsigned which_64t = 0; which_64t < 32; which_64t++)
+      for(int i = 0; i < 64; i++) if((SECRET[which_64t] & (1ULL << i)) ^ (guessedSecret[which_64t] & (1ULL << i))) bitsWrong++;
     res->numOffBy[bitsWrong]++;
     res->numRuns++;
+    free(guessedSecret);
   }
   uint64_t end = getTime();
   res->elapsedNanoseconds = end-start;
@@ -204,7 +158,7 @@ static void manyRuns_analyze(struct manyRuns_res* res, struct manyRuns_analysis*
   analysis->ns_per_run = res->elapsedNanoseconds / (double)res->numRuns;
   double sec_per_run = analysis->ns_per_run / 1e9;
   analysis->completelyCorrectRate = res->numOffBy[0] / (double)res->numRuns;
-  analysis->leakedBitsPerSec = 64 * (1 / sec_per_run);
+  analysis->leakedBitsPerSec = 2048 * (1 / sec_per_run);
 }
 
 static void printUsage(char* progname) {
@@ -254,71 +208,8 @@ int main(int argc, char* argv[]) {
   }
 
   // initialize threadfunc array
-#define INITIALIZE_THREADFUNC(i) threadfunc_array[i] = threadfunc_##i
-  INITIALIZE_THREADFUNC(0);
-  INITIALIZE_THREADFUNC(1);
-  INITIALIZE_THREADFUNC(2);
-  INITIALIZE_THREADFUNC(3);
-  INITIALIZE_THREADFUNC(4);
-  INITIALIZE_THREADFUNC(5);
-  INITIALIZE_THREADFUNC(6);
-  INITIALIZE_THREADFUNC(7);
-  INITIALIZE_THREADFUNC(8);
-  INITIALIZE_THREADFUNC(9);
-  INITIALIZE_THREADFUNC(10);
-  INITIALIZE_THREADFUNC(11);
-  INITIALIZE_THREADFUNC(12);
-  INITIALIZE_THREADFUNC(13);
-  INITIALIZE_THREADFUNC(14);
-  INITIALIZE_THREADFUNC(15);
-  INITIALIZE_THREADFUNC(16);
-  INITIALIZE_THREADFUNC(17);
-  INITIALIZE_THREADFUNC(18);
-  INITIALIZE_THREADFUNC(19);
-  INITIALIZE_THREADFUNC(20);
-  INITIALIZE_THREADFUNC(21);
-  INITIALIZE_THREADFUNC(22);
-  INITIALIZE_THREADFUNC(23);
-  INITIALIZE_THREADFUNC(24);
-  INITIALIZE_THREADFUNC(25);
-  INITIALIZE_THREADFUNC(26);
-  INITIALIZE_THREADFUNC(27);
-  INITIALIZE_THREADFUNC(28);
-  INITIALIZE_THREADFUNC(29);
-  INITIALIZE_THREADFUNC(30);
-  INITIALIZE_THREADFUNC(31);
-  INITIALIZE_THREADFUNC(32);
-  INITIALIZE_THREADFUNC(33);
-  INITIALIZE_THREADFUNC(34);
-  INITIALIZE_THREADFUNC(35);
-  INITIALIZE_THREADFUNC(36);
-  INITIALIZE_THREADFUNC(37);
-  INITIALIZE_THREADFUNC(38);
-  INITIALIZE_THREADFUNC(39);
-  INITIALIZE_THREADFUNC(40);
-  INITIALIZE_THREADFUNC(41);
-  INITIALIZE_THREADFUNC(42);
-  INITIALIZE_THREADFUNC(43);
-  INITIALIZE_THREADFUNC(44);
-  INITIALIZE_THREADFUNC(45);
-  INITIALIZE_THREADFUNC(46);
-  INITIALIZE_THREADFUNC(47);
-  INITIALIZE_THREADFUNC(48);
-  INITIALIZE_THREADFUNC(49);
-  INITIALIZE_THREADFUNC(50);
-  INITIALIZE_THREADFUNC(51);
-  INITIALIZE_THREADFUNC(52);
-  INITIALIZE_THREADFUNC(53);
-  INITIALIZE_THREADFUNC(54);
-  INITIALIZE_THREADFUNC(55);
-  INITIALIZE_THREADFUNC(56);
-  INITIALIZE_THREADFUNC(57);
-  INITIALIZE_THREADFUNC(58);
-  INITIALIZE_THREADFUNC(59);
-  INITIALIZE_THREADFUNC(60);
-  INITIALIZE_THREADFUNC(61);
-  INITIALIZE_THREADFUNC(62);
-  INITIALIZE_THREADFUNC(63);
+#define INITIALIZE_THREADFUNC(i) threadfunc_array[i] = threadfunc_##i;
+  FOR_0_TO_2047(INITIALIZE_THREADFUNC)
 
   struct manyRuns_res res;
 
@@ -356,8 +247,8 @@ int main(int argc, char* argv[]) {
     struct manyRuns_analysis analysis;
     manyRuns_analyze(&res, &analysis);
     unsigned total = 0;
-    for(unsigned i = 0; i < 65 && total != res.numRuns; i++) {
-      printf("%u: %u\n", i, res.numOffBy[i]);
+    for(unsigned i = 0; i < 2049 && total != res.numRuns; i++) {
+      if(i == 0 || res.numOffBy[i] > 0) printf("%u: %u\n", i, res.numOffBy[i]);
       total += res.numOffBy[i];
     }
     if(total != res.numRuns) printf("more: %u\n", res.numRuns - total);
