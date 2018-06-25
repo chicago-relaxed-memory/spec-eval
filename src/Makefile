@@ -1,5 +1,4 @@
 CC=gcc
-CXX=g++
 override CFLAGS += -O3
 LDFLAGS=-lpthread -lm
 
@@ -8,11 +7,11 @@ EXECS=relaxedattack
 .PHONY : all
 all: $(EXECS) $(addsuffix .s, $(EXECS))
 
-relaxedattack: relaxedattack.cpp
-	$(CXX) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+relaxedattack: relaxedattack.c
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-relaxedattack.s : relaxedattack.cpp
-	$(CXX) $(CFLAGS) -S $^ -o $@ $(LDFLAGS)
+relaxedattack.s : relaxedattack.c
+	$(CC) $(CFLAGS) -S $^ -o $@ $(LDFLAGS)
 
 .PHONY : run
 run: relaxedattack

