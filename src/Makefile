@@ -1,27 +1,25 @@
 CC=gcc
+CXX=g++
 override CFLAGS += -O3
 LDFLAGS=-lpthread -lm
 
-EXECS=relaxedattack_0 relaxedattack_1
+EXECS=relaxedattack
 
 .PHONY : all
 all: $(EXECS) $(addsuffix .s, $(EXECS))
 
-relaxedattack_%: relaxedattack.c
-	$(CC) $(CFLAGS) -DSECRET=$(basename $*) $^ -o $@ $(LDFLAGS)
+relaxedattack: relaxedattack.cpp
+	$(CXX) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
-%.s : override CFLAGS += -S
+relaxedattack.s : relaxedattack.cpp
+	$(CXX) $(CFLAGS) -S $^ -o $@ $(LDFLAGS)
 
-.PHONY : run0
-run0: relaxedattack_0
-	./$< run 500  # approximately tuned well on my (Craig's) machine
-
-.PHONY : run1
-run1: relaxedattack_1
+.PHONY : run
+run: relaxedattack
 	./$< run 500  # approximately tuned well on my (Craig's) machine
 
 .PHONY : runtune
-runtune: relaxedattack_0
+runtune: relaxedattack
 	./$< tune
 
 .PHONY : clean
