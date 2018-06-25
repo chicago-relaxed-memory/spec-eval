@@ -16,7 +16,7 @@ relaxedattack.s : relaxedattack.cpp
 
 .PHONY : run
 run: relaxedattack
-	./$< run 500  # approximately tuned well on my (Craig's) machine
+	./$< run 500 2  # approximately tuned well on my (Craig's) machine
 
 .PHONY : runtune
 runtune: relaxedattack

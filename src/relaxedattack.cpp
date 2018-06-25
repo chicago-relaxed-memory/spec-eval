@@ -68,22 +68,29 @@ static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
 }
 
 // iters: a tuning parameter passed on to leakSingleBit()
+// error_runs: how many redundant runs to do for error correction
+//   a value of '1' means do no error correction
+//   higher values indicate more error correction but will take longer
 // returns the guessed value of the 64-bit secret
-static uint64_t leak64bitSecret(uint64_t iters) {
-  x = 0;
-  uint64_t leakedSecret = 0;
-  for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
-    if(leakSingleBit(bitnum, iters)) leakedSecret |= 1ULL << bitnum;
-  }
-  // do twice for error correction
-  x = 0;
-  uint64_t leakedSecret2 = 0;
-  for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
-    if(leakSingleBit(bitnum, iters)) leakedSecret2 |= 1ULL << bitnum;
-  }
+static uint64_t leak64bitSecret(uint64_t iters, unsigned error_runs) {
+  unsigned run = 0;
+  std::vector<uint64_t> leakedSecrets;
+  leakedSecrets.reserve(error_runs);
+
+  do {
+    x = 0;
+    uint64_t leakedSecret = 0;
+    for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
+      if(leakSingleBit(bitnum, iters)) leakedSecret |= 1ULL << bitnum;
+    }
+    leakedSecrets.push_back(leakedSecret);
+  } while(++run < error_runs);
+
   // if we ever observe 0 in any position, that means we observed x=bit*2+1,
   // which means the bit is *most definitely* actually 0
-  return leakedSecret & leakedSecret2;
+  uint64_t finalLeakedSecret = 0xffffffffffffffff;
+  for(uint64_t secret : leakedSecrets) finalLeakedSecret &= secret;
+  return finalLeakedSecret;
 }
 
 // returns a timestamp in nanoseconds
@@ -103,16 +110,17 @@ struct manyRuns_res {
 };
 
 // iters: a tuning parameter passed on to leak64bitSecret()
+// error_runs: a tuning parameter passed on to leak64bitSecret()
 // durationMS: how long to run the program for (approximately), in milliseconds
 // res: pointer to a manyRuns_res struct where results should be returned
-void manyRuns(uint64_t iters, uint64_t durationMS, struct manyRuns_res* res) {
+void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct manyRuns_res* res) {
   for(int i = 0; i < 65; i++) res->numOffBy[i] = 0;
   res->numRuns = 0;
   std::vector<uint64_t> guessedSecrets;
   uint64_t start = getTime();
   uint64_t targetEnd = start + durationMS*1000000;
   while(getTime() < targetEnd) {
-    uint64_t guessedSecret = leak64bitSecret(iters);
+    uint64_t guessedSecret = leak64bitSecret(iters, error_runs);
     unsigned bitsWrong = 0;
     for(int i = 0; i < 64; i++) if((SECRET & (1ULL << i)) ^ (guessedSecret & (1ULL << i))) bitsWrong++;
     res->numOffBy[bitsWrong]++;
@@ -140,16 +148,21 @@ static void manyRuns_analyze(struct manyRuns_res* res, struct manyRuns_analysis*
 }
 
 static void printUsage(char* progname) {
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Usage: %s tune\n", progname);
-  fprintf(stderr, "    or %s run iters\n\n", progname);
-  fprintf(stderr, "In the first case, print results a variety of values for the \"iters\" parameter\n");
-  fprintf(stderr, "In the second case, print results for just the given value of \"iters\"\n\n");
+  fprintf(stderr, "\n"
+                  "Usage: %s tune\n"
+                  "    or %s run iters error_runs\n\n"
+                  "In the first case, print results for a variety of values for the \"iters\" and \"error_runs\" tuning parameters\n"
+                  "In the second case, print results for just the given values of the tuning parameters\n\n"
+                  "  \"iters\" tuning parameter: how long the signalling thread waits between its two assignments to x\n"
+                  "  \"error_runs\" tuning parameter: how many redundant runs to do for error correction\n"
+                  "    (a value of 1 means do no error correction)\n\n"
+                  , progname, progname);
 }
 
 int main(int argc, char* argv[]) {
   bool tuning;
   uint64_t iters;
+  unsigned error_runs;
   if(argc == 2) {
     if(strncmp(argv[1], "tune", 5)) {
       fprintf(stderr, "\nWith only one argument, expected \"tune\" but got %s\n", argv[1]);
@@ -157,9 +170,9 @@ int main(int argc, char* argv[]) {
       exit(1);
     }
     tuning = true;
-  } else if(argc == 3) {
+  } else if(argc == 4) {
     if(strncmp(argv[1], "run", 4)) {
-      fprintf(stderr, "\nWith two arguments, expected the first to be \"run\" but got %s\n", argv[1]);
+      fprintf(stderr, "\nWith three arguments, expected the first to be \"run\" but got %s\n", argv[1]);
       printUsage(argv[0]);
       exit(1);
     }
@@ -168,9 +181,14 @@ int main(int argc, char* argv[]) {
       printUsage(argv[0]);
       exit(1);
     }
+    if(!sscanf(argv[3], "%u", &error_runs)) {
+      fprintf(stderr, "\nError reading \"error_runs\" argument\n");
+      printUsage(argv[0]);
+      exit(1);
+    }
     tuning = false;
   } else {
-    fprintf(stderr, "\nExpected 1 or 2 arguments, got %i\n", argc-1);
+    fprintf(stderr, "\nExpected 1 or 3 arguments, got %i\n", argc-1);
     printUsage(argv[0]);
     exit(1);
   }
@@ -247,20 +265,31 @@ int main(int argc, char* argv[]) {
   if(tuning) {
 
     const uint64_t iters_vals[] = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
-    printf("\n iters : leaked bits per second : %% of runs completely correct\n\n");
+    const unsigned error_runs_vals[] = {1, 2, 3, 4, 5, 7, 10, 20, 50};
+    printf("\n rows are iters, columns are # of redundant runs\n"
+           " each cell is leaked bits per second : %% of runs completely correct\n\n");
+
+    // column headings
+    printf("       ");
+    for(unsigned error_runs : error_runs_vals) printf("      %-3u       ", error_runs);
+    printf("\n\n");
 
     struct manyRuns_analysis analysis;
     for(uint64_t iters : iters_vals) {
-      printf("%6llu : ", iters);
+      printf("%6llu ", iters);  // row heading
       fflush(stdout);
-      manyRuns(iters, 10000, &res);
-      manyRuns_analyze(&res, &analysis);
-      printf("%8.1f : %.1f%%\n", analysis.leakedBitsPerSec, 100*analysis.completelyCorrectRate);
+      for(unsigned error_runs : error_runs_vals) {
+        manyRuns(iters, error_runs, 10000, &res);
+        manyRuns_analyze(&res, &analysis);
+        printf("%8.1f : %-5.1f", analysis.leakedBitsPerSec, 100*analysis.completelyCorrectRate);
+        fflush(stdout);
+      }
+      printf("\n");
     }
 
   } else {  // not tuning
 
-    manyRuns(iters, 2000, &res);
+    manyRuns(iters, error_runs, 2000, &res);
     struct manyRuns_analysis analysis;
     manyRuns_analyze(&res, &analysis);
     unsigned total = 0;
