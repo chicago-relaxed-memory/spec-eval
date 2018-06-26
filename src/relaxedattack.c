@@ -22,39 +22,42 @@ static const uint64_t SECRET[32] = {
 };
 
 static volatile bool alwaysFalse = false;
-static unsigned x, y;
+static unsigned x[2048];  // use a different 'x' for each bit, so we don't have
+                          // to worry about resetting it properly with fencing,
+                          // or about running multiple threadfuncs in parallel
+static unsigned y;
 
 // thread function for gcc (i.e. not clang/llvm)
 #if !defined(__clang__) && !defined(__llvm__)
 
 // if the SECRET-based condition evaluates to false (i.e. the appropriate bit
-//   of SECRET was 0), gcc feels the need to keep the x=bit*2+1 store intact,
-//   and the main thread will probably observe x==bit*2+1.
+//   of SECRET was 0), gcc feels the need to keep the x=1 store intact,
+//   and the main thread will probably observe x==1.
 // if the SECRET-based condition evaluates to true (i.e. the appropriate bit
-//   of SECRET was 1), gcc is fine skipping the dead x=bit*2+1 store and doing
-//   just the x=bit*2+2 store, and the main thread cannot observe x==bit*2+1.
+//   of SECRET was 1), gcc is fine skipping the dead x=1 store and doing
+//   just the x=2 store, and the main thread cannot observe x==1.
 // iters: a tuning parameter, how long we attempt to stall (in some arbitrary
 //   time unit) between the two stores to x
 #define DECLARE_THREADFUNC(bitnum) \
 static void* threadfunc_##bitnum(void* iters) { \
-  x = bitnum*2 + 1; \
+  x[bitnum] = 1; \
   if(alwaysFalse) { \
     if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) y = 1; \
   } else { \
     y = 1; \
   } \
  \
-  /* waste some time, but don't use a syscall like usleep().                    */ \
-  /* If we use a syscall, gcc wants to do the x=bit*2+1 store first, regardless */ \
-  /* Must be a do-while loop so gcc knows it executes at least once             */ \
-  /* (otherwise gcc inserts an extra conditional branch, and suddenly thinks    */ \
-  /* the x=bit*2+1 store is necessary again)                                    */ \
+  /* waste some time, but don't use a syscall like usleep().                 */ \
+  /* If we use a syscall, gcc wants to do the x=1 store first, regardless.   */ \
+  /* Must be a do-while loop so gcc knows it executes at least once          */ \
+  /* (otherwise gcc inserts an extra conditional branch, and suddenly thinks */ \
+  /* the x=1 store is necessary again)                                       */ \
  \
   uint64_t iterscount = (uint64_t)iters; \
   volatile int v = 0; \
   do { v++; } while(--iterscount > 0); \
  \
-  x = bitnum*2 + 2; \
+  x[bitnum] = 2; \
   return (void*) (uintptr_t) y;  /* keep gcc from removing the y=1 store entirely */ \
 }
 
@@ -66,15 +69,15 @@ static void* threadfunc_##bitnum(void* iters) { \
 #define MEGA(op) KILO(KILO(op))
 
 // if the SECRET-based condition evaluates to false (i.e. the appropriate bit
-//   of SECRET was 0), clang feels the need to keep the x=bit*2+1 store intact,
-//   and the main thread will probably observe x==bit*2+1.
+//   of SECRET was 0), clang feels the need to keep the x=1 store intact,
+//   and the main thread will probably observe x==1.
 // if the SECRET-based condition evaluates to true (i.e. the appropriate bit
-//   of SECRET was 1), clang is fine skipping the dead x=bit*2+1 store and doing
-//   just the x=bit*2+2 store, and the main thread cannot observe x==bit*2+1.
+//   of SECRET was 1), clang is fine skipping the dead x=1 store and doing
+//   just the x=2 store, and the main thread cannot observe x==1.
 // note that for clang we ignore the 'iters' parameter; see notes below
 #define DECLARE_THREADFUNC(bitnum) \
 static void* threadfunc_##bitnum(void* junk) { \
-  x = bitnum*2 + 1; \
+  x[bitnum] = 1; \
   if(alwaysFalse) { \
     if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) y = 1; \
   } else { \
@@ -87,7 +90,7 @@ static void* threadfunc_##bitnum(void* junk) { \
   /* Otherwise, clang won't eliminate the first store to x, regardless.         */ \
   EIGHT(EIGHT(__rdtsc();)) \
  \
-  x = bitnum*2 + 2; \
+  x[bitnum] = 2; \
   return (void*) (uintptr_t) y;  /* keep clang from removing the y=1 store entirely */ \
 }
 
@@ -104,18 +107,17 @@ void* (*threadfunc_array[2048])(void*);
 // returns the guessed value of the bit
 static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
   y = 0;
-  volatile unsigned* x_vol = &x;  // use a volatile pointer so it keeps reloading for real
-                                  // but we don't want x itself to be volatile, because then DSE isn't allowed
+  volatile unsigned* x_vol = &x[bitnum];  // use a volatile pointer so it keeps reloading for real
+                                          // but we don't want x itself to be volatile, because then DSE isn't allowed
   pthread_t thread;
   void* (*threadfuncToUse)(void*) = threadfunc_array[bitnum];
   pthread_create(&thread, NULL, threadfuncToUse, (void*) iters);
   unsigned a;
-  do { a = *x_vol; } while(a < bitnum*2+1);  // wait until we observe one of the
-                                             // values written by this threadfunc
+  do { a = *x_vol; } while(a == 0);  // wait until we observe either x==1 or x==2
   unsigned b = y;
   void* dummy;
   pthread_join(thread, &dummy);
-  return a==bitnum*2+2;  // if we observe x==bit*2+2, then the x=bit*2+1 store
+  return a==2;  // if we observe x==2, then the x=1 store
                          // was (probably) eliminated; see notes on threadfunc()
 }
 
@@ -131,13 +133,14 @@ static uint64_t* leak2048bitSecret(uint64_t iters, unsigned error_runs) {
   for(unsigned i = 0; i < 32; i++) finalLeakedSecret[i] = 0xffffffffffffffff;
 
   do {
-    x = 0;
     for(unsigned which_64t = 0; which_64t < 32; which_64t++) {
       uint64_t leakedSecret = 0;  // just the 64 bits we're operating on right now
       for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
-        if(leakSingleBit(which_64t*64 + bitnum, iters)) leakedSecret |= 1ULL << bitnum;
+        unsigned bigbitnum = which_64t*64 + bitnum;
+        x[bigbitnum] = 0;
+        if(leakSingleBit(bigbitnum, iters)) leakedSecret |= 1ULL << bitnum;
       }
-      // if we ever observe 0 in any position, that means we observed x=bit*2+1,
+      // if we ever observe 0 in any position, that means we observed x=1,
       // which means the bit is *most definitely* actually 0
       finalLeakedSecret[which_64t] &= leakedSecret;
     }
