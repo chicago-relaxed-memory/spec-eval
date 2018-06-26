@@ -25,7 +25,6 @@ static volatile bool alwaysFalse = false;
 static unsigned x[2048];  // use a different 'x' for each bit, so we don't have
                           // to worry about resetting it properly with fencing,
                           // or about running multiple threadfuncs in parallel
-static unsigned y;
 
 // thread function for gcc (i.e. not clang/llvm)
 #if !defined(__clang__) && !defined(__llvm__)
@@ -41,24 +40,23 @@ static unsigned y;
 #define DECLARE_THREADFUNC(bitnum) \
 static void* threadfunc_##bitnum(void* iters) { \
   x[bitnum] = 1; \
-  if(alwaysFalse) { \
-    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) y = 1; \
-  } else { \
-    y = 1; \
-  } \
  \
   /* waste some time, but don't use a syscall like usleep().                 */ \
   /* If we use a syscall, gcc wants to do the x=1 store first, regardless.   */ \
   /* Must be a do-while loop so gcc knows it executes at least once          */ \
   /* (otherwise gcc inserts an extra conditional branch, and suddenly thinks */ \
   /* the x=1 store is necessary again)                                       */ \
- \
   uint64_t iterscount = (uint64_t)iters; \
   volatile int v = 0; \
   do { v++; } while(--iterscount > 0); \
  \
-  x[bitnum] = 2; \
-  return (void*) (uintptr_t) y;  /* keep gcc from removing the y=1 store entirely */ \
+  if(alwaysFalse) { \
+    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x[bitnum] = 2; \
+  } else { \
+    x[bitnum] = 2; \
+  } \
+  \
+  return 0; \
 }
 
 #else  // thread function for clang/llvm
@@ -78,11 +76,6 @@ static void* threadfunc_##bitnum(void* iters) { \
 #define DECLARE_THREADFUNC(bitnum) \
 static void* threadfunc_##bitnum(void* junk) { \
   x[bitnum] = 1; \
-  if(alwaysFalse) { \
-    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) y = 1; \
-  } else { \
-    y = 1; \
-  } \
  \
   /* waste some time, but don't use a syscall like usleep().                    */ \
   /* For clang, we also can't use a loop; the two stores to x must remain in    */ \
@@ -90,8 +83,13 @@ static void* threadfunc_##bitnum(void* junk) { \
   /* Otherwise, clang won't eliminate the first store to x, regardless.         */ \
   EIGHT(EIGHT(__rdtsc();)) \
  \
-  x[bitnum] = 2; \
-  return (void*) (uintptr_t) y;  /* keep clang from removing the y=1 store entirely */ \
+  if(alwaysFalse) { \
+    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x[bitnum] = 2; \
+  } else { \
+    x[bitnum] = 2; \
+  } \
+ \
+  return 0; \
 }
 
 #endif  // gcc vs. clang/llvm
@@ -106,7 +104,6 @@ void* (*threadfunc_array[2048])(void*);
 // iters: a tuning parameter passed on to threadfunc()
 // returns the guessed value of the bit
 static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
-  y = 0;
   volatile unsigned* x_vol = &x[bitnum];  // use a volatile pointer so it keeps reloading for real
                                           // but we don't want x itself to be volatile, because then DSE isn't allowed
   pthread_t thread;
@@ -114,7 +111,6 @@ static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
   pthread_create(&thread, NULL, threadfuncToUse, (void*) iters);
   unsigned a;
   do { a = *x_vol; } while(a == 0);  // wait until we observe either x==1 or x==2
-  unsigned b = y;
   void* dummy;
   pthread_join(thread, &dummy);
   return a==2;  // if we observe x==2, then the x=1 store
