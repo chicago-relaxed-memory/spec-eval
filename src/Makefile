@@ -1,3 +1,4 @@
+# to compile with clang, change this to 'clang' or use 'make CC=clang [...]'
 CC=gcc
 override CFLAGS += -O3
 LDFLAGS=-lpthread -lm

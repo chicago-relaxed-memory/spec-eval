@@ -6,6 +6,7 @@
 #include <stdlib.h>  // exit()
 #include <math.h>
 #include <string.h>
+#include <x86intrin.h>  // rdtsc()
 #include "for_0_to_2047.h"
 
 // 2048-bit secret is 32 uint64_t's
@@ -22,6 +23,9 @@ static const uint64_t SECRET[32] = {
 
 static volatile bool alwaysFalse = false;
 static unsigned x, y;
+
+// thread function for gcc (i.e. not clang/llvm)
+#if !defined(__clang__) && !defined(__llvm__)
 
 // if the SECRET-based condition evaluates to false (i.e. the appropriate bit
 //   of SECRET was 0), gcc feels the need to keep the x=bit*2+1 store intact,
@@ -53,6 +57,41 @@ static void* threadfunc_##bitnum(void* iters) { \
   x = bitnum*2 + 2; \
   return (void*) (uintptr_t) y;  /* keep gcc from removing the y=1 store entirely */ \
 }
+
+#else  // thread function for clang/llvm
+
+#define TWICE(op) op op
+#define EIGHT(op) TWICE(TWICE(TWICE(op)))
+#define KILO(op) TWICE(EIGHT(EIGHT(EIGHT(op))))
+#define MEGA(op) KILO(KILO(op))
+
+// if the SECRET-based condition evaluates to false (i.e. the appropriate bit
+//   of SECRET was 0), clang feels the need to keep the x=bit*2+1 store intact,
+//   and the main thread will probably observe x==bit*2+1.
+// if the SECRET-based condition evaluates to true (i.e. the appropriate bit
+//   of SECRET was 1), clang is fine skipping the dead x=bit*2+1 store and doing
+//   just the x=bit*2+2 store, and the main thread cannot observe x==bit*2+1.
+// note that for clang we ignore the 'iters' parameter; see notes below
+#define DECLARE_THREADFUNC(bitnum) \
+static void* threadfunc_##bitnum(void* junk) { \
+  x = bitnum*2 + 1; \
+  if(alwaysFalse) { \
+    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) y = 1; \
+  } else { \
+    y = 1; \
+  } \
+ \
+  /* waste some time, but don't use a syscall like usleep().                    */ \
+  /* For clang, we also can't use a loop; the two stores to x must remain in    */ \
+  /* the same basic block.                                                      */ \
+  /* Otherwise, clang won't eliminate the first store to x, regardless.         */ \
+  EIGHT(EIGHT(__rdtsc();)) \
+ \
+  x = bitnum*2 + 2; \
+  return (void*) (uintptr_t) y;  /* keep clang from removing the y=1 store entirely */ \
+}
+
+#endif  // gcc vs. clang/llvm
 
 // declare all threadfuncs
 FOR_0_TO_2047(DECLARE_THREADFUNC)
@@ -167,7 +206,12 @@ static void printUsage(char* progname) {
                   "    or %s run iters error_runs\n\n"
                   "In the first case, print results for a variety of values for the \"iters\" and \"error_runs\" tuning parameters\n"
                   "In the second case, print results for just the given values of the tuning parameters\n\n"
+#if !defined(__clang__) && !defined(__llvm__)
                   "  \"iters\" tuning parameter: how long the signalling thread waits between its two assignments to x\n"
+#else
+                  "  \"iters\" tuning parameter: Since this executable was compiled with clang/llvm, this\n"
+                  "    parameter is meaningless and ignored\n"
+#endif
                   "  \"error_runs\" tuning parameter: how many redundant runs to do for error correction\n"
                   "    (a value of 1 means do no error correction)\n\n"
                   , progname, progname);
@@ -215,24 +259,39 @@ int main(int argc, char* argv[]) {
 
   if(tuning) {
 
+#if !defined(__clang__) && !defined(__llvm__)
+    // gcc respects the 'iters' parameter
     const uint64_t iters_vals[] = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+    const unsigned length_iters_vals = 15;
+#else
+    // clang does not respect the 'iters' parameter
+    const uint64_t iters_vals[] = {1};
+    const unsigned length_iters_vals = 1;
+#endif
     const unsigned error_runs_vals[] = {1, 2, 3, 4, 5, 7, 10, 20, 50};
+    const unsigned length_error_runs_vals = 9;
     printf("\n rows are iters, columns are # of redundant runs\n"
            " each cell is leaked bits per second : %% of runs completely correct\n\n");
 
     // column headings
     printf("       ");
     // C++: for(const unsigned error_runs : error_runs_vals)
-    for(const unsigned* error_runs = &error_runs_vals[0]; error_runs < &error_runs_vals[9]; error_runs++)
+    for(const unsigned* error_runs = &error_runs_vals[0];
+        error_runs < &error_runs_vals[length_error_runs_vals];
+        error_runs++)
       printf("      %-3u       ", *error_runs);
     printf("\n\n");
 
     struct manyRuns_analysis analysis;
     // C++: for(const uint64_t iters : iters_vals)
-    for(const uint64_t* iters = &iters_vals[0]; iters < &iters_vals[15]; iters++) {
+    for(const uint64_t* iters = &iters_vals[0];
+        iters < &iters_vals[length_iters_vals];
+        iters++) {
       printf("%6llu ", *iters);  // row heading
       fflush(stdout);
-      for(const unsigned* error_runs = &error_runs_vals[0]; error_runs < &error_runs_vals[9]; error_runs++) {
+      for(const unsigned* error_runs = &error_runs_vals[0];
+          error_runs < &error_runs_vals[length_error_runs_vals];
+          error_runs++) {
         manyRuns(*iters, *error_runs, 10000, &res);
         manyRuns_analyze(&res, &analysis);
         printf("%8.1f : %-5.1f", analysis.leakedBitsPerSec, 100*analysis.completelyCorrectRate);
@@ -240,6 +299,10 @@ int main(int argc, char* argv[]) {
       }
       printf("\n");
     }
+#if defined(__clang__) || defined(__llvm__)
+    printf("(Since this executable was compiled with clang/llvm, the 'iters' parameter is meaningless\n"
+           "  so no need to test multiple values for it)\n");
+#endif
 
   } else {  // not tuning
 
