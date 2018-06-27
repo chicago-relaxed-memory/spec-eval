@@ -3,5 +3,4 @@
 **/*.ll
 **/*.swp
 **/*~
-src/relaxedattack_*
-src/relaxedattack
+src/dseattack
