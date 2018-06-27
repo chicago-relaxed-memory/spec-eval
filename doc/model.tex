@@ -1,5 +1,62 @@
 \section{Model}
 
+The model used in this paper is one of pomsets with event labels of the form
+$(\aForm \mid \aAct)$, where $\aForm$ is the event's precondition
+(such as $\aExp=\aVal$) and $\aAct$ is the event's action (such as $\DW\aLoc\aVal$).
+For example the semantics of the program $(\aLoc\GETS\aExp)$ includes the case
+where $\aExp$ is $\aVal$, which is written to $\aLoc$, and is captured
+by the one-event pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wxv}{\aExp=\aVal \mid \DW{\aLoc}{\aVal}}{}
+\end{tikzpicture}\]
+For this reason, the model is parameterized by a logic, used to express the
+preconditions of actions. We make few requirements of this logic, save that it
+has includes equalities between expressions, is closed under substitution,
+and supports a notion of implication (and in particular a notion of when
+a formula is a tautology).
+
+The semantics is defined compositionally. For example, the program $(\aLoc\GETS\bLoc+1)$
+is shorthand for $(\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1)$, which contains
+the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{\bLoc}{1}}{}
+  \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
+  \po{ry1}{wx2}
+\end{tikzpicture}\]
+This pomset is build compositonally. First, $\sem{\aLoc\GETS\aReg+1}$
+contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx2}{\aReg=1 \mid \DW{\aLoc}{2}}{right=of ry1}
+\end{tikzpicture}\]
+Next, we perform the substitution of $\aReg$ with $1$ to get that
+$\sem{\aLoc\GETS\aReg+1}[1/\aReg]$
+contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx2}{1=1 \mid \DW{\aLoc}{2}}{right=of ry1}
+\end{tikzpicture}\]
+and since $1=1$ is a tautology, we elide it:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
+\end{tikzpicture}\]
+This substitution is performed in defining
+$\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1}$, which contains
+the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{\bLoc}{1}}{}
+  \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
+  \po{ry1}{wx2}
+\end{tikzpicture}\]
+as required. There is an ordering $(\DR{\bLoc}{1}) < (\DR{\aLoc}{2})$
+because the precondition $(\aReg=1)$ depends on $\aReg$. If the preconditon
+was independent of $\aReg$ then there would be no ordering, for example
+$\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1-\aReg}$, contains
+the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{\bLoc}{1}}{}
+  \event{wx1}{\DW{\aLoc}{1}}{right=of ry1}
+\end{tikzpicture}\]
+since the precondition $(\aReg+1-\aReg=1)$ is independent of $\aReg$.
+
 \subsection{Preliminaries}
 
 We assume:
