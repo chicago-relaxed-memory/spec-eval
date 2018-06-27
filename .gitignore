@@ -3,5 +3,8 @@
 **/*.ll
 **/*.swp
 **/*~
-src/relaxedattack_*
-src/relaxedattack
+**/.DS_Store
+**/*.synctex.*
+src/dse/dseattack
+src/relaxedmem/matchguess
+src/relaxedmem/wrongguess
