@@ -1,6 +1,6 @@
 \section{Model}
 
-The model used in this paper is one of pomsets with event labels of the form
+The model used in this paper is one of sets of pomsets with event labels of the form
 $(\aForm \mid \aAct)$, where $\aForm$ is the event's precondition
 (such as $\aExp=\aVal$) and $\aAct$ is the event's action (such as $\DW\aLoc\aVal$).
 For example the semantics of the program $(\aLoc\GETS\aExp)$ includes the case
@@ -24,13 +24,13 @@ the pomset:
   \po{ry1}{wx2}
 \end{tikzpicture}\]
 This pomset is build compositonally. First, $\sem{\aLoc\GETS\aReg+1}$
-contains:
+contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx2}{\aReg=1 \mid \DW{\aLoc}{2}}{right=of ry1}
 \end{tikzpicture}\]
-Next, we perform the substitution of $\aReg$ with $1$ to get that
-$\sem{\aLoc\GETS\aReg+1}[1/\aReg]$
-contains:
+Next, we perform the substitution of $\aReg$ with $1$ in every precondition,
+to get that $\sem{\aLoc\GETS\aReg+1}[1/\aReg]$
+contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx2}{1=1 \mid \DW{\aLoc}{2}}{right=of ry1}
 \end{tikzpicture}\]
@@ -57,7 +57,89 @@ the pomset:
 \end{tikzpicture}\]
 since the precondition $(\aReg+1-\aReg=1)$ is independent of $\aReg$.
 
+The main novelty of our semantics, since it is designed to model
+speculative evaluation, is in modelling conditionals. In most
+sets-of-pomsets semantics, a pomset in
+$\sem{\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI}$ would either be
+given by a pomset in $\sem{\aCmd}$ or a pomset in $\sem{\bCmd}$.
+To model speculative evaluation, we need to allow a pomset
+in $\sem{\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI}$ to be given by
+both a pomset in $\sem{\aCmd}$ \emph{and} a pomset in $\sem{\bCmd}$.
+For example, $\sem{\IF(\aExp)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI}$
+contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\aExp\neq0 \mid \DW{\aLoc}{1}}{}
+  \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
+\end{tikzpicture}\]
+that is we have recorded behaviour from both branches of execution.
+Moreover, an action which is performed on both sides of the
+conditional can be merged, producing only one event in the resulting pomset.
+The precondition of the merged event is the disjunction of the preconditions
+of the original events.
+For example
+$\sem{\IF(\aExp)\THEN \aLoc\GETS1\SEMI \bLoc\GETS3 \ELSE \aLoc\GETS2\SEMI \bLoc\GETS3 \FI}$
+contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\aExp\neq0 \mid \DW{\aLoc}{1}}{}
+  \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
+  \event{wy3}{(\aExp\neq0) \lor (\aExp=0) \mid \DW{\bLoc}{3}}{right=of wx2}
+\end{tikzpicture}\]
+and since $(\aExp\neq0) \lor (\aExp=0)$ is a tautology, this is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\aExp\neq0 \mid \DW{\aLoc}{1}}{}
+  \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
+  \event{wy3}{\DW{\bLoc}{3}}{right=of wx2}
+\end{tikzpicture}\]
+Combining this model of conditionals with the model of memory using substitutions
+gives that
+$\sem{\IF(\cLoc)\THEN \aLoc\GETS1\SEMI \bLoc\GETS3 \ELSE \aLoc\GETS2\SEMI \bLoc\GETS3 \FI}$
+contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{\cLoc}{1}}{}
+  \event{wx1}{1\neq0 \mid \DW{\aLoc}{1}}{right=of rz1}
+  \event{wx2}{1=0    \mid \DW{\aLoc}{2}}{right=of wx1}
+  \event{wy3}{\DW{\bLoc}{3}}{right=of wx2}
+  \po{rz1}{wx1}
+  \po[out=25,in=155]{rz1}{wx2}
+\end{tikzpicture}\]
+and since $(1\neq0)$ is a tautology and $(1=0)$ is unsatisfiable, this is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz1}{\DR{\cLoc}{1}}{}
+  \event{wx1}{\DW{\aLoc}{1}}{right=of rz1}
+  \nonevent{wx2}{\DW{\aLoc}{2}}{right=of wx1}
+  \event{wy3}{\DW{\bLoc}{3}}{right=of wx2}
+  \po{rz1}{wx1}
+  \po[out=25,in=155]{rz1}{wx2}
+\end{tikzpicture}\]
+Similarly,
+$\sem{\IF(\cLoc)\THEN \aLoc\GETS1\SEMI \bLoc\GETS3 \ELSE \aLoc\GETS2\SEMI \bLoc\GETS3 \FI}$
+contains the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rz0}{\DR{\cLoc}{0}}{}
+  \nonevent{wx1}{\DW{\aLoc}{1}}{right=of rz0}
+  \event{wx2}{\DW{\aLoc}{2}}{right=of wx1}
+  \event{wy3}{\DW{\bLoc}{3}}{right=of wx2}
+  \po{rz0}{wx1}
+  \po[out=25,in=155]{rz0}{wx2}
+\end{tikzpicture}\]
+Note that this semantics captures control dependencies
+such as $(\DR\cLoc0)<(\DW\aLoc1)$, independencies
+such as $(\DR\cLoc0)\not<(\DW\bLoc3)$, and failed
+speculations such as the crossed out $(\DW\aLoc1)$.
+
+In summary, the features we need of the underlying data model is:
+\begin{itemize}
+\item \emph{actions}, which may read or write to memory locations, and
+\item \emph{preconditions}, which form a logic closed under substitution.
+\end{itemize}
+We make this precise in \S\ref{sec:preliminaries},
+define pomsets in \S\ref{sec:pomsets},
+show how a data model can be used to build sets of pomsets in \S\ref{sec:sets-of-pomsets},
+and finally show how a simple imperative concurrent language can be given
+a compositional semantics in \S\ref{sec:semantics}.
+
 \subsection{Preliminaries}
+\label{sec:preliminaries}
 
 We assume:
 \begin{itemize}
@@ -95,6 +177,7 @@ In examples, the actions are of the form $(\DR{\aLoc}{\aVal})$, which reads $\aV
 and $(\DW{\aLoc}{\aVal})$, which writes $\aVal$ to $\aLoc$.
 
 \subsection{Pomsets}
+\label{sec:pomsets},
 
 \begin{definition}
   A \emph{pomset} $(\Event, {\le}, \labelling)$ with alphabet $\Alphabet$
@@ -133,7 +216,7 @@ program:
 
 \begin{definition}
   An \emph{rf-pomset} is a pomset together with a
-  $\RF \subseteq (\Event\times\Loc\times\Event)$ such that for any $(\bEv,\aLoc,\aEv) \in \RF$: 
+  $\RF \subseteq (\Event\times\Loc\times\Event)$ such that for any $(\bEv,\aLoc,\aEv) \in \RF$:
   \begin{itemize}
   \item $\bEv < \aEv$,
   \item $\labelling(\bEv)$ writes $\aVal$ to $\aLoc$,
@@ -180,6 +263,7 @@ program:
 \end{definition}
 
 \subsection{Sets of pomsets}
+\label{sec:sets-of-pomsets}
 
 Let $\aPSS_1 \sqcup \aPSS_2$ be the set $\aPSS_0$ where $\aPS_0 \in \aPSS_0$
 whenever there are $\aPS_1 \in \aPSS_1$ and  $\aPS_2 \in \aPSS_2$ such that:
@@ -232,6 +316,7 @@ Let $(\nu\aLoc\st\aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ whene
 $\aPS$ is $\aLoc$-closed.
 
 \subsection{Semantics of programs}
+\label{sec:semantics}
 
 Define:
 \begin{eqnarray*}
