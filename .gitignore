@@ -3,4 +3,6 @@
 **/*.ll
 **/*.swp
 **/*~
+**/.DS_Store
+**/*.synctex.*
 src/dse/dseattack
