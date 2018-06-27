@@ -10,7 +10,7 @@ along this same theme, which leverage relaxed memory models and dead store
 elimination respectively.
 In particular, the latter attack (and, to a degree, the former attack), result
 not from hardware optimizations, but from common \emph{compiler} optimizations.
-These attacks also, unlke Spectre, do not rely on timing side channels, or
+These attacks also, unlike Spectre, do not rely on timing side channels, or
 indeed timers of any kind, bypassing many common Spectre mitigations
 \cite{TODO}.
 Here we demonstrate the efficacy of each of these attacks against modern
@@ -30,6 +30,8 @@ dead store elimination.
 
 As in Section \ref{subsec:exp-rel-mem}, we assume that there is a
 \verb|SECRET| which an attacker wishes to learn.
+For instance, \verb|SECRET| may be a cryptographic key hardcoded into the
+application.
 This \verb|SECRET| is known to the compiler at compile time, but may not be
 accessed except behind a security check.
 We assume that the security check always evaluates to \verb|false| at runtime
@@ -60,8 +62,9 @@ First, we start from the simple form of the attack presented in Section
 \ref{sec:dse}, and extend it to leak a secret consisting of an arbitrary
 number \verb|N| of bits.
 To do this, we simply compile \verb|N| copies of the function above, each
-performing a boolean test on the \verb|N|th secret bit.
-The function used for reading the \verb|k|th bit is as follows:
+performing a boolean test on a single bit of the secret.
+The function used for reading the \verb|k|th bit is as follows (for
+\verb|N <= 64|):
 \begin{verbatim}
     (
       r := x;
@@ -76,6 +79,10 @@ The function used for reading the \verb|k|th bit is as follows:
 \end{verbatim}
 Then, we test each function in turn, each time noting the value of \verb|r|
 observed by the second thread.
+The extension to the general case (with truly arbitrary \verb|N|) is
+straightforward; \verb|SECRET| becomes an array of 64-bit values, and we use
+\verb|k / 64| and \verb|1 << (k & 63)| as the array index and bitmask
+respectively.
 
 We make three additional tweaks to improve the reliability so that the attacker
 can confidently infer the value of \verb|SECRET| based on the observed values
@@ -132,13 +139,17 @@ Increased reliability can be achieved by adjusting either of these knobs,
 and they each have (different) effects on the overall performance of the
 attack.
 After exploring the parameter space, we found that $3$ redundant runs is
-sufficient to provide near-100\% accuracy while still achieving speeds of
-over $10,000$ bits leaked per second (over $30,000$ `raw' bits leaked, that
-is, before error correction) with both \verb|gcc| and \verb|clang|.
-Specifically, our attack on \verb|gcc| reaches \todo{exact speed numbers} with
-\todo{exact accuracy numbers}, while our attack on \verb|clang| reaches
-\todo{exact speed numbers} with \todo{exact accuracy numbers}.
-
-We demonstrate an attack in which SECRET is a 2048-bit cryptographic key; the
-attacker is able to learn this key in under 200 ms with high (\todo{quantify})
-probability.
+sufficient to provide near-100\% accuracy while allowing us to maximize the
+speed of the attack.
+Specifically, on our machine, our attack on \verb|gcc| reaches speeds of
+\todo{exact gcc leak speed} bits leaked per second
+(\todo{exact gcc raw leak speed} `raw' bits leaked per second, that is, before
+error correction) with \todo{exact gcc accuracy}, while our attack on
+\verb|clang| reaches speeds of \todo{exact clang leak speed} bits leaked per
+second (\todo{exact clang raw leak speed} `raw' bits leaked per second) with
+\todo{exact clang accuracy}.
+In particular, this means our attack can leak a 2048-bit cryptographic key in
+under \todo{exact speed} ms, on either \verb|gcc| or \verb|clang|, with
+probability \todo{exact probability} that there are exactly zero bit errors in
+the leaked key, or probability \todo{exact probability} that there is at most
+one bit error in the leaked key.
