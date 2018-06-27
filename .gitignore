@@ -3,5 +3,5 @@
 **/*.ll
 **/*.swp
 **/*~
-src/matchguess
-src/wrongguess
+src/relaxedmem/matchguess
+src/relaxedmem/wrongguess
