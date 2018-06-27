@@ -3,4 +3,4 @@
 **/*.ll
 **/*.swp
 **/*~
-src/dseattack
+src/dse/dseattack
