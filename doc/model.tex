@@ -132,16 +132,26 @@ In summary, the features we need of the underlying data model is:
 \item \emph{actions}, which may read or write to memory locations, and
 \item \emph{preconditions}, which form a logic closed under substitution.
 \end{itemize}
-We make this precise in \S\ref{sec:preliminaries},
+from which we can define the operations used in defining the semantics of programs,
+which include:
+\begin{itemize}
+\item \emph{prefixing} $(\aForm\mid\aAct)\prefix\aPSS$, which adds an event
+  with precondition $\aForm$ and action $\aAct$ to pomsets in $\aPSS$,
+\item \emph{substitution} $\aPSS[\aExp/\aLoc]$, which performs a substitution
+  on evrey precondition in $\aPSS$, and
+\item \emph{join} $\aPSS_1\sqcup\aPSS_2$, which unions pomsets from
+  $\aPSS_1$ and $\aPSS_2$, allowing events to be merged.
+\end{itemize}
+We make data models precise in \S\ref{sec:preliminaries},
 define pomsets in \S\ref{sec:pomsets},
-show how a data model can be used to build sets of pomsets in \S\ref{sec:sets-of-pomsets},
-and finally show how a simple imperative concurrent language can be given
-a compositional semantics in \S\ref{sec:semantics}.
+and operations on sets of pomsets in \S\ref{sec:sets-of-pomsets},
+which are used to give a compositional semantics for
+a simple imperative concurrent language in \S\ref{sec:semantics}.
 
-\subsection{Preliminaries}
+\subsection{Data models}
 \label{sec:preliminaries}
 
-We assume:
+A \emph{data model} consists of:
 \begin{itemize}
 \item a set of \emph{memory locations} $\Loc$, ranged over by
   $\aLoc$ and $\bLoc$,
@@ -159,15 +169,11 @@ such that:
 \begin{itemize}
 \item values include at least the constants $0$ and $1$,
 \item expressions include at least registers and values,
-\item expressions are closed under substitution, written $\aExp[\bExp/\aReg]$,
+\item expressions are closed under substitution for registers, written $\aExp[\bExp/\aReg]$,
+\item formulae are closed under substitution for registers or locations, written $\aForm[\bExp/\aReg]$ or $\aForm[\bExp/\aLoc]$,
 \item formulae include at least $\TRUE$, $\FALSE$, and equalities of the form $(\aExp=\bExp)$ and $(\aLoc=\bExp)$,
-\item formulae are closed under negation, conjunction, disjunction,
-\item formulae are closed under substitution, written $\aForm[\bExp/\aLV]$, and
+\item formulae are closed under negation, conjunction, disjunction, and
 \item there are relations $\rreads$ and $\rwrites \subseteq (\Act \times \Loc \times \Val)$,
-\end{itemize}
-where:
-\begin{itemize}
-\item the set of \emph{lvalues} is $\LVal=(\Loc\cup\Reg)$, ranged over by $\aLV$ and $\bLV$.
 \end{itemize}
 We shall say $\aAct$ \emph{reads} $\aVal$ \emph{from} $\aLoc$ whenever
 $(\aAct,\aLoc,\aVal) \in \rreads$, and
@@ -175,9 +181,11 @@ $\aAct$ \emph{writes} $\aVal$ \emph{to} $\aLoc$ whenever
 $(\aAct,\aLoc,\aVal) \in \rwrites$.
 In examples, the actions are of the form $(\DR{\aLoc}{\aVal})$, which reads $\aVal$ from $\aLoc$,
 and $(\DW{\aLoc}{\aVal})$, which writes $\aVal$ to $\aLoc$.
+Going forward, we assume a given data model, though some of our examples in
+\S\ref{sec:examples} make use of particular data models.
 
 \subsection{Pomsets}
-\label{sec:pomsets},
+\label{sec:pomsets}
 
 \begin{definition}
   A \emph{pomset} $(\Event, {\le}, \labelling)$ with alphabet $\Alphabet$
