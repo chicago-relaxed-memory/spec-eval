@@ -170,15 +170,20 @@ such that:
 \item values include at least the constants $0$ and $1$,
 \item expressions include at least registers and values,
 \item expressions are closed under substitution for registers, written $\aExp[\bExp/\aReg]$,
-\item formulae are closed under substitution for registers or locations, written $\aForm[\bExp/\aReg]$ or $\aForm[\bExp/\aLoc]$,
 \item formulae include at least $\TRUE$, $\FALSE$, and equalities of the form $(\aExp=\bExp)$ and $(\aLoc=\bExp)$,
-\item formulae are closed under negation, conjunction, disjunction, and
+\item formulae are closed under negation, conjunction, disjunction,
+\item formulae are closed under substitution for registers or locations, written $\aForm[\bExp/\aReg]$ or $\aForm[\bExp/\aLoc]$,
+\item there is a relation $\vDash$ between formulae, and
 \item there are relations $\rreads$ and $\rwrites \subseteq (\Act \times \Loc \times \Val)$,
 \end{itemize}
 We shall say $\aAct$ \emph{reads} $\aVal$ \emph{from} $\aLoc$ whenever
 $(\aAct,\aLoc,\aVal) \in \rreads$, and
 $\aAct$ \emph{writes} $\aVal$ \emph{to} $\aLoc$ whenever
 $(\aAct,\aLoc,\aVal) \in \rwrites$.
+We shall say $\aForm$ \emph{implies} $\bForm$ whenever $\aForm\vDash\bForm$,
+$\aForm$ is a \emph{tautology} whenever $\TRUE\vDash\aForm$,
+$\aForm$ is \emph{unsatisfiable} whenever $\aForm\vDash\FALSE$, and
+$\aForm$ is \emph{independent of $\aLoc$} whenever $\aForm \vDash \aForm[\aVal/\aLoc] \vDash \aForm$ for every $\aVal$.
 In examples, the actions are of the form $(\DR{\aLoc}{\aVal})$, which reads $\aVal$ from $\aLoc$,
 and $(\DW{\aLoc}{\aVal})$, which writes $\aVal$ to $\aLoc$.
 Going forward, we assume a given data model, though some of our examples in
@@ -187,6 +192,7 @@ Going forward, we assume a given data model, though some of our examples in
 \subsection{Pomsets}
 \label{sec:pomsets}
 
+Recall the definition of a pomset from~\cite{pomsets}:
 \begin{definition}
   A \emph{pomset} $(\Event, {\le}, \labelling)$ with alphabet $\Alphabet$
   is a partial order $(\Event, {\le})$ together with a function
@@ -194,19 +200,30 @@ Going forward, we assume a given data model, though some of our examples in
 \end{definition}
 Going forward, we fix the alphabet $\Alphabet=(\Formulae\times\Act)$.
 We will write $(\aForm \mid \aAct)$ for the pair $(\aForm,\aAct)$,
-$\aAct$ for $(\TRUE,\aAct)$ and $\NEVER\aAct$ for $(\FALSE,\aAct)$.
+elide $\aForm$ when $\aForm$ is a tautology, and write $\NEVER\aAct$ 
+when $\aForm$ is unsatisfiable.
 
+We lift terminology from logical formulae and actions to events,
+for example if $\labelling(\aEv)=(\aForm\mid\aAct)$ and
+$\labelling(\bEv)=(\bForm\mid\bAct)$ then we say:
+\begin{itemize}
+\item $\aEv$ implies $\bEv$ whenever $\aForm$ implies $\bForm$,
+\item $\aEv$ is a tautology whenever $\aForm$ is a tautlogy,
+\item $\aEv$ is unsatisfiable whenever $\aForm$ is unsatisfiable,
+\item $\aEv$ is independent of $\aLoc$ whenever $\aForm$ is independent of $\aLoc$,
+\item $\aEv$ writes $\aVal$ to $\aLoc$ whenever $\aAct$ writes $\aVal$ to $\aLoc$, and
+\item $\aEv$ reads $\aVal$ from $\aLoc$ whenever $\aAct$ reads $\aVal$ from $\aLoc$.
+\end{itemize}
 We visualize a pomset as a graph where the nodes are drawn from
 $\Event$, each node $\aEv$ is labelled with $\labelling(\aEv)$,
 and an edge $\bEv \rightarrow \aEv$ corresponds to an ordering
 $\bEv\le\aEv$. For example:
-
 \[\begin{tikzpicture}[node distance=1em]
-  \event{x1}{\DR{\aLoc}{1}}{}
-  \nonevent{y0}{\DW{\bLoc}{0}}{below left=of x1}
-  \event{y1}{\DW{\bLoc}{1}}{below right=of x1}
-  \po{x1}{y0}
-  \po{x1}{y1}
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \nonevent{wy0}{\DW{\bLoc}{0}}{below left=of rx1}
+  \event{wy1}{\DW{\bLoc}{1}}{below right=of rx1}
+  \po{rx1}{wy0}
+  \po{rx1}{wy1}
 \end{tikzpicture}\]
 is a visualization of the pomset where:
 \[
@@ -216,21 +233,34 @@ is a visualization of the pomset where:
   \labelling(1) = (\FALSE, \DW{\bLoc}{0}) \quad
   \labelling(2) = (\TRUE, \DW{\bLoc}{1}) \quad
 \]
-As we shall see, this is a possible execution of the
-program:
-\begin{verbatim}
-    r := x; if (r) { y := 1; } else { y := 0; }
-\end{verbatim}
-
+Pomsets by themselves do not capture which
+read events have a matching write. This is necessary for
+a compositional concurrent semantics, for example a program
+whose semantics includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{\aLoc}{1}}{}
+  \event{rx0}{\DR{\aLoc}{0}}{right=5em of wx1}
+  \event{wy0}{\DW{\bLoc}{0}}{below left=of rx0}
+  \nonevent{wy1}{\DW{\bLoc}{1}}{below right=of rx0}
+  \po{rx0}{wy0}
+  \po{rx0}{wy1}
+\end{tikzpicture}\]
+may be put in parallel
+with another program which writes $0$ to $\aLoc$.
+If $\aLoc$ is scoped, though, such a program cannot exist,
+so we need each read of $\aLoc$ to have a matching write.
+This is captured by the \emph{reads-from} relation~\cite{???}, which we adapt to our setting.
 \begin{definition}
   An \emph{rf-pomset} is a pomset together with a
   $\RF \subseteq (\Event\times\Loc\times\Event)$ such that for any $(\bEv,\aLoc,\aEv) \in \RF$:
   \begin{itemize}
   \item $\bEv < \aEv$,
-  \item $\labelling(\bEv)$ writes $\aVal$ to $\aLoc$,
-    and $\labelling(\aEv)$ reads $\aVal$ from $\aLoc$, and
+  \item $\aEv$ implies $\bEv$,
+  \item $\bEv$ writes $\aVal$ to $\aLoc$,
+    and $\aEv$ reads $\aVal$ from $\aLoc$, and
   \item there is no $\bEv < \cEv < \aEv$ such that
-    $\labelling(\cEv)$ writes $\bVal$ to $\aLoc$.
+    $\aEv$ implies $\cEv$ and
+    $\cEv$ writes $\bVal$ to $\aLoc$.
   \end{itemize}
 \end{definition}
 We visualize rf-pomsets by drawing a dashed edge between nodes in $\RF$,
@@ -256,17 +286,14 @@ so we elide it:
   \po{x1}{y0}
   \po{x1}{y1}
 \end{tikzpicture}\]
-As we shall see, this is a possible execution of the
-program:
-\begin{verbatim}
-    x := 1;  ||  r := x; if (r) { y := 1; } else { y := 0; }
-\end{verbatim}
+In the case where $\aLoc$ is scoped, every read of $\aLoc$, must have a matching write,
+and there can be no preconditions dependent on $\aLoc$:
 \begin{definition}
   An rf-pomset is $\aLoc$-closed if
-  for $\aEv\in\Event$ with $\labelling(\aEv)=(\aForm \mid \aAct)$:
+  for every $\aEv\in\Event$:
   \begin{itemize}
-  \item $\aForm$ is independent of $\aLoc$, and
-  \item if $\aAct$ reads $\aVal$ from $\aLoc$, then there is a $\bEv$ with $(\bEv,\aLoc,\aEv) \in \RF$.
+  \item $\aEv$ is independent of $\aLoc$, and
+  \item if $\aEv$ reads $\aVal$ from $\aLoc$, then there is a $\bEv$ with $(\bEv,\aLoc,\aEv) \in \RF$.
   \end{itemize}
 \end{definition}
 
