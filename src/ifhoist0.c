@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SECRET 243987
+#ifndef SECRET
+#error Please define SECRET when compiling (e.g. pass -DSECRET=123 to the compiler)
+#endif
 
 int main() {
 	srand(time(NULL));
@@ -10,7 +12,7 @@ int main() {
 	int y;
 	int z = 1;
 	if(x) {
-		y = 243987;
+		y = 1;
 		z = rand();
 	} else {
 		y = SECRET;

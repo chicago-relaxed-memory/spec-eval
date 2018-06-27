@@ -10,7 +10,9 @@ static int z;
 // 'volatile' ensures compiler keeps the check
 volatile bool alwaysFalse = false;
 
-#define SECRET 1
+#ifndef SECRET
+#error Please define SECRET when compiling (e.g. pass -DSECRET=123 to the compiler)
+#endif
 
 static void* threadfunc(void* dummy) {
 	intptr_t c = 0;

@@ -10,7 +10,9 @@ static int z;
 static unsigned alwaysTrue = 0;
 static int b = 1;
 
-#define SECRET 1
+#ifndef SECRET
+#error Please define SECRET when compiling (e.g. pass -DSECRET=123 to the compiler)
+#endif
 
 // create a bunch of register pressure, and make sure to depend on the passed
 // value

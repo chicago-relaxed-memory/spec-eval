@@ -3,3 +3,5 @@
 **/*.ll
 **/*.swp
 **/*~
+src/matchguess
+src/wrongguess
