@@ -1,0 +1,100 @@
+ifhoist0.c : gets hoisted at -O1 or higher, not at -O0
+	This hoisting happens before codegen, is visible in LLVM output
+
+--- below, each version is described using the previous as a baseline, unless otherwise stated ---
+--- compiled results are using:
+  clang: clang 7.0.0 (trunk 334301)
+  appleclang: Apple LLVM 9.1.0
+  gcc: 6.3.0-18+deb9u1 (on Debian)
+--- all results use -O3 unless otherwise stated
+
+relaxedmem.c : erroneously has the y check below the read of secret
+  clang: the x=1 gets hoisted out of the if, but not above the compare itself.
+  We need it above the y==0 compare so that the other thread can run between
+  it and the compare.
+
+relaxedmem2.c : made y volatile, added 'c', and erroneously added a 1000-iteration loop
+
+relaxedmem3.c : pass x by pointer; erroneously moved y check down like
+  relaxedmem1
+
+relaxedmem4.c : vs 2, y isn't volatile but volatile add inside the loop; also
+  has the erroneous move y check down like relaxedmem1
+
+relaxedmem5.c : manually hoisted over the compare on y, so...
+
+relaxedmem6.c : first version that is not erroneous in some way. A fixed
+  relaxedmem1, plus the add of 'c'
+  clang: bottom two were combined/hoisted, but not across the alwaysFalse load
+  gcc: same
+
+relaxedmem7.c : made z volatile, and assigned 111 instead of 1 so the
+  assignment couldn't be shared (theoretically)
+  clang: more readable assembly than relaxedmem6 but same result
+  gcc: relaxedmem6 was already readable. No difference here
+
+relaxedmem8.c : z no longer volatile, reordered z and x assignments in else
+  branch
+  clang: two of the x=1's are combined "below" (via fallthrough), the other is not
+  gcc: same
+
+relaxedmem9.c : added a single-iteration for loop, with volatile index
+  clang: fails to hoist any of the x=1's at all, even on -O3
+  gcc: each x=1 is dropped out of the loop (below), but no combining; there are
+  three copies of the loop
+
+relaxedmem10.c : index no longer volatile, just the end check
+  clang: slightly more readable assembly than relaxedmem9 but same result AFAICT
+  gcc: same
+
+relaxedmem11.c : change to do-while; remove c++; add a bunch of code below if
+  so that all cases must merge
+  clang: nothing was hoisted/combined despite plainly visible optimization combining
+  two basic blocks (just change a jump target)
+  appleclang: performed the obvious optimization combining two of the
+  assignments; still didn't combine/hoist the third
+  gcc: unlike either of the clangs, it again dropped all the x=1's out of the
+  loop.  It also combined two of them but not the third.
+
+relaxedmem12.c : an effort for trying to hoist the x=1 downwards across the
+  compare on y, instead of upwards?
+  appleclang: of course, it actually gets hoisted upwards
+  gcc: Hoisted downwards across the y compare! However, it's hoisted
+  regardless of the value of SECRET (with the 'if' intact if necessary)
+
+relaxedmem13.c : slightly simplified, I believe has the same behavior
+
+relaxedmem14.c : use += so that it can't be pulled out of loop?
+  gcc: amazing! depending on whether secret matches, read of x is either
+  before or after read of y!  However, the *write* to x is after the read of y
+  in both cases
+
+relaxedmem15.c : vs 13, add b==3 condition to alwaysTrue check, and a mutation
+  of b so that the compiler can't infer b's value as easily
+  gcc: when guess is correct, huge simplification - no
+  loop, no read of alwaysTrue or b; when guess is incorrect, much more
+  complicated, reads alwaysTrue and b, I think the loop is still eliminated
+  though.  Regardless, the x=1 assignment is in a way different place depending
+  on secret
+
+relaxedmem16.c : remove b==3 condition (sometimes compiler could infer it was
+  never true); add another do-while to attempt to keep the read of y after the
+  write to x in the guess-incorrect case
+  gcc: when guess is correct, still hugely simplified, and x=1 below read of y
+  When guess is incorrect, complicated calculations are all done in registers,
+  and the final value of x is written back at the very end.  Compiler correctly
+  notices that if !alwaysTrue then we enter an infinite loop and never write x,
+  but this isn't really a problem
+
+relaxedmem17.c : add a bunch of register pressure to try to keep gcc from
+  reading y into a register early
+  gcc: for some reason still wants to keep y in a register even when it seems
+  like it requires an extra spill of something else.  Tried this on both -O3
+  and -Os.
+
+The hoisting that is done in relaxedmem7.c (on -O1, even) is done by
+simplifyCFG when it processes the "if.else" BB.
+
+The actual relevant code is HoistThenElseCodeToIf.  However, this only hoists
+instructions which were already at the tops of the blocks; it doesn't hoist
+across any memory accesses at all (volatile or not).
