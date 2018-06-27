@@ -1,2 +1,144 @@
 \section{Experiments}
 \label{sec:experiments}
+
+One theme of this paper is that optimizations not typically part of formal
+abstractions can result in information-flow leaks.
+This is typified by the Spectre attack, which leverages speculative execution,
+a hardware optimization.
+Sections \ref{sec:info-flow-attack} and \ref{sec:dse} presented other attacks
+along this same theme, which leverage relaxed memory models and dead store
+elimination respectively.
+In particular, the latter attack (and, to a degree, the former attack), result
+not from hardware optimizations, but from common \emph{compiler} optimizations.
+These attacks also, unlke Spectre, do not rely on timing side channels, or
+indeed timers of any kind, bypassing many common Spectre mitigations
+\cite{TODO}.
+Here we demonstrate the efficacy of each of these attacks against modern
+compilers and hardware, including both the \verb|clang| and \verb|gcc|
+compilers.
+
+All of our experiments are performed on a \todo{describe machine} with
+\verb|clang| version \todo{clang version} and \verb|gcc| version \todo{gcc
+version}.
+
+\subsection{Relaxed memory attack}
+\label{subsec:exp-rel-mem}
+
+\subsection{Dead store elimination attack}
+In this section we return to the attack in Section \ref{sec:dse} based on
+dead store elimination.
+
+As in Section \ref{subsec:exp-rel-mem}, we assume that there is a
+\verb|SECRET| which an attacker wishes to learn.
+This \verb|SECRET| is known to the compiler at compile time, but may not be
+accessed except behind a security check.
+We assume that the security check always evaluates to \verb|false| at runtime
+for the attacker, but that the attacker is allowed to write arbitrary code
+subject to the above restrictions.
+Despite the attacker's apparent inability to access \verb|SECRET|, we show
+that the attacker can learn its value using the idea in Section \ref{sec:dse}.
+This attack was tested and works on both \verb|clang| and \verb|gcc|.
+
+\ignore{
+In this simple example, the \verb|SECRET| is one bit.
+If the \verb|SECRET| is true, then the compiler may eliminate the
+\verb|if(SECRET)|, and subsequently combine both of the branches of the outer
+\verb|if| statement, replacing it with simply \verb|x := 2|.
+Following this, the compiler will naturally eliminate the redundant
+\verb|x := 1| write, and keep only the \verb|x := 2| operation.
+On the other hand, if the \verb|SECRET| is false, then the compiler cannot
+eliminate the outer \verb|if| statement.
+This prevents the compiler from eliminating the \verb|x := 1| write.
+
+From this, the attack proceeds straightforwardly.
+If the listening thread ever observes \verb|r := 1|, then the \verb|SECRET|
+must have been \verb|false|, whereas if it only observes \verb|r := 2|, then
+the \verb|SECRET| is highly likely to be true.
+}
+
+First, we start from the simple form of the attack presented in Section
+\ref{sec:dse}, and extend it to leak a secret consisting of an arbitrary
+number \verb|N| of bits.
+To do this, we simply compile \verb|N| copies of the function above, each
+performing a boolean test on the \verb|N|th secret bit.
+The function used for reading the \verb|k|th bit is as follows:
+\begin{verbatim}
+    (
+      r := x;
+    ) || (
+      x := 1;
+      if (canRead(SECRET)) {
+        if (SECRET & (1 << k)) { x := 2; }
+      } else {
+        x := 2;
+      }
+    )
+\end{verbatim}
+Then, we test each function in turn, each time noting the value of \verb|r|
+observed by the second thread.
+
+We make three additional tweaks to improve the reliability so that the attacker
+can confidently infer the value of \verb|SECRET| based on the observed values
+of \verb|r|.
+First, we insert additional time-consuming computation immediately following
+the \verb|x := 1| operation.
+This lengthens the timing window in which \verb|x| has the value \verb|1|,
+increasing the likelihood that the other thread will be able to observe
+\verb|x == 1| (unless the \verb|x := 1| write was eliminated, of course).
+Inserting this computation can be done without interfering with the dead store
+elimination process itself, so that the compiler will continue to eliminate
+the \verb|x := 1| write if and only if the appropriate bit of \verb|SECRET|
+was 1.
+For \verb|gcc|, we have a fair amount of freedom with the time-consuming
+computation (for instance, we can use an arbitrarily long loop), but with
+\verb|clang|, the computation must be branch-free, and furthermore not consist
+of too many instructions.
+This is because \verb|clang|'s dead store elimination pass operates only
+within basic blocks, and uses a heuristic to stop scanning the basic block
+early if it is too large.
+Nonetheless, we find that even with these restrictions, we are able to
+construct a reliable and fast attack against both \verb|clang| and \verb|gcc|.
+
+Second, rather than simply observing \verb|x| with \verb|r := x| in the
+`listening' thread, we continuously load \verb|x| in a loop until a
+nonzero value is observed -- i.e., we perform
+\begin{verbatim}
+    do {
+      r := x;
+    } while(r == 0);
+\end{verbatim}
+This remedies the case where \verb|r := x| could observe a value of \verb|x|
+from `before' either of the two possible writes performed by the other thread.
+
+Finally, we redundantly execute the entire attack several times, noting the
+final value of \verb|r| (the first observed nonzero value of \verb|x|) in each
+case.
+We note that if \emph{any} of the redundant runs produces \verb|r == 1| for a
+particular bit position, we can be certain that the corresponding bit of
+\verb|SECRET| \emph{must} be $0$, as it implies that the \verb|x := 1| write
+was not eliminated in that particular function.
+On the other hand, the more runs that observe \verb|r == 2| in a particular bit
+position despite our other reliability-increasing measures taken above, the
+more certain we can be that the \verb|x := 1| write was eliminated in that
+function, and the appropriate bit of \verb|SECRET| is $1$.
+
+Our implementation has two important ``knobs'' which trade off reliability
+vs.\@ performance.
+First, we have the length of time which the writing thread attempts to
+``stall'' immediately after the \verb|x := 1| write.
+Second, we have the number of entire redundant runs of the attack that are
+performed before the attacker reaches her conclusion.
+Increased reliability can be achieved by adjusting either of these knobs,
+and they each have (different) effects on the overall performance of the
+attack.
+After exploring the parameter space, we found that $3$ redundant runs is
+sufficient to provide near-100\% accuracy while still achieving speeds of
+over $10,000$ bits leaked per second (over $30,000$ `raw' bits leaked, that
+is, before error correction) with both \verb|gcc| and \verb|clang|.
+Specifically, our attack on \verb|gcc| reaches \todo{exact speed numbers} with
+\todo{exact accuracy numbers}, while our attack on \verb|clang| reaches
+\todo{exact speed numbers} with \todo{exact accuracy numbers}.
+
+We demonstrate an attack in which SECRET is a 2048-bit cryptographic key; the
+attacker is able to learn this key in under 200 ms with high (\todo{quantify})
+probability.
