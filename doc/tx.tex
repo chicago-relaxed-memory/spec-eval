@@ -140,6 +140,13 @@ with a plain read, then the outcome $(\DR f1)$ and $(\DR x0)$ is possible.
 % since $(\DW x0) < (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
 % requirements to be an rf-pomset.
 
+The notion rf-pomset is sufficient to capture hardware models and
+release/acquire access in C++, where happens-before contains reads-from
+\cite{Alglave:2014:HCM:2633904.2627752}.  To model relaxed access, it would
+be necessary to use a more general notion of rf-pomset, where
+$(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily imply $\bEv < \aEv$, instead
+requiring that $(\mathord< \cup \mathord\RF)$ be acyclic.
+
 \subsection{Transactions}
 \label{sec:transactions}
 
