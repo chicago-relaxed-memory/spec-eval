@@ -46,8 +46,8 @@
 \newcommand{\aAct}{a}
 \newcommand{\bAct}{b}
 \newcommand{\cAct}{c}
-\newcommand{\DRAcq}[2]{\mathsf{R_{acq}}\ifnotempty{#1}{\,#1\,#2}}
-\newcommand{\DWRel}[2]{\mathsf{W_{rel}}\ifnotempty{#1}{\,#1\,#2}}
+\newcommand{\DRAcq}[2]{\mathsf{Acq}\ifnotempty{#1}{\,#1\,#2}}
+\newcommand{\DWRel}[2]{\mathsf{Rel}\ifnotempty{#1}{\,#1\,#2}}
 \newcommand{\DR}[2]{\mathsf{R}\ifnotempty{#1}{\,#1\,#2}}
 \newcommand{\DW}[2]{\mathsf{W}\ifnotempty{#1}{\,#1\,#2}}
 \newcommand{\DT}[1]{\mathsf{T}\ifnotempty{#1}{\,#1}}
@@ -78,9 +78,9 @@
 \newcommand{\aPSS}{\mathcal{P}}
 
 \newcommand{\sem}[1]{\llbracket#1\rrbracket}
-\newcommand{\REL}[1]{#1\ensuremath{_{\mathsf{rel}}}}
-\newcommand{\ACQ}[1]{#1\ensuremath{_{\mathsf{acq}}}}
-\newcommand{\FENCE}{\texttt{fence}}
+\newcommand{\REL}{\mathsf{rel}\,}
+\newcommand{\ACQ}{\mathsf{acq}\,}
+%\newcommand{\FENCE}{\texttt{fence}}
 \newcommand{\BEGIN}{\texttt{begin}}
 \newcommand{\COMMIT}{\texttt{commit}\,}
 \newcommand{\END}{\texttt{end}}

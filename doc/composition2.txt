@@ -1,6 +1,48 @@
 --------------------------------
 - For code without spectr, if there is an information flow then there is a dependency
 - Spectr executions are not prefix closed.
+
+- Word Tearing (a la llvm)
+- Three kinds of speculation:
+  - relaxed memory, allows reordering (can only be "correct")
+  - pipeline execution of conditionals
+  - aborted transactions
+- Mechanisms
+  - partial order where order == semantic dependency
+    dependency only enforced when it is actually needed
+  - logic used for sequencing
+    sequential semantics resolved as building the pomset, not afterwards
+    so no need for pomset to have po in addition to hb/dependency
+  - can unify actions in different branches
+    allows us to merge (x!=1|a) and (x==1|a) to get (true|a)
+  - need rf because???
+
+- Data dependency has different semantics from control dependency:
+  Consider example with boolean values:
+    x:=1; || r:=x;if(r){y:=1;}else{y:=0;}
+  has different semantics from 
+    x:=1; || r:=x;y:=r;
+
+Lochbihler typesafety examples in Fig 7 and 8.
+Figure 7 is method call before allocation: gets stuck.
+Figure 8 fails subject reduction:
+
+b:=false; x:=null; y:=null;
+(x:=y;)
+||(r:=x; if(b){s:=new C();}else{r:=new D();} y:=r;)
+||(b:=true;)
+
+Variant from Section 5.4:
+(r:=x; if(b){s:=new char[2];}else{r:=new char[2];} y:=r;)
+
+Similar to alan's example Lochbiler section 5.1: "These races have the same
+pattern as in Fig. 5 [the standard tar pit], where the JMM is sufficiently
+strong to disallow out-of-thin- air values. However, in Fig. 8, this cycle
+occurs only if the then branch (l. 5) executes"
+
+This is the JMM trick of executing the else branch to justify things in most
+executions, then switching to the then branch in the final execution.
+
 --------------------------------
 
 Syntax:
