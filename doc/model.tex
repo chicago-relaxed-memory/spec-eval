@@ -174,12 +174,12 @@ such that:
 \item formulae are closed under negation, conjunction, disjunction,
 \item formulae are closed under substitution for registers or locations, written $\aForm[\bExp/\aReg]$ or $\aForm[\bExp/\aLoc]$,
 \item there is a relation $\vDash$ between formulae, and
-\item there are relations $\rreads$ and $\rwrites \subseteq (\Act \times \Loc \times \Val)$,
+\item there are partial functions $\rreads$ and $\rwrites: (\Act \times \Loc) \fun \Val$,
 \end{itemize}
 We shall say $\aAct$ \emph{reads} $\aVal$ \emph{from} $\aLoc$ whenever
-$(\aAct,\aLoc,\aVal) \in \rreads$, and
+$\rreads(\aAct,\aLoc) = \aVal$, and
 $\aAct$ \emph{writes} $\aVal$ \emph{to} $\aLoc$ whenever
-$(\aAct,\aLoc,\aVal) \in \rwrites$.
+$\rwrites(\aAct,\aLoc) = \aVal$.
 We shall say $\aForm$ \emph{implies} $\bForm$ whenever $\aForm\vDash\bForm$,
 $\aForm$ is a \emph{tautology} whenever $\TRUE\vDash\aForm$,
 $\aForm$ is \emph{unsatisfiable} whenever $\aForm\vDash\FALSE$, and
@@ -299,8 +299,15 @@ and there can be no preconditions dependent on $\aLoc$:
 \subsection{Sets of pomsets}
 \label{sec:sets-of-pomsets}
 
-Let $\aPSS_1 \sqcup \aPSS_2$ be the set $\aPSS_0$ where $\aPS_0 \in \aPSS_0$
-whenever there are $\aPS_1 \in \aPSS_1$ and  $\aPS_2 \in \aPSS_2$ such that:
+Our model of programs is going to be sets of rf-pomsets. In this section we define
+the operations on pomsets which are used in giving the semantics. These
+operations such as prefixing, choice, parallel composition, and so on, which are familiar
+from models of concurrency such as~\cite{ccs,csp}, but adapted to the setting of speculative
+evaluation.
+
+\begin{definition}
+Let $\aPS_0 \in (\aPSS_1 \sqcup \aPSS_2)$
+whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
 \begin{itemize}
 \item $\Event_0 = \Event_1 \cup \Event_2$,
 \item $\RF_0 = \RF_1 \cup \RF_2$,
@@ -315,11 +322,37 @@ whenever there are $\aPS_1 \in \aPSS_1$ and  $\aPS_2 \in \aPSS_2$ such that:
     and $\aForm_0$ implies $\aForm_2$.
   \end{itemize}
 \end{itemize}
+\end{definition}
+We use $\aPSS_1 \sqcup \aPSS_2$ in defining the semantics of conditionals.
+It contains the union of pomsets from $\aPSS_1$ and $\aPSS_2$,
+allowing overlap as long as they agree on actions. For example, if
+$\aPSS_1$ and $\aPSS_2$ contain:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm_1 \mid \bAct}{right=of a}
+  \po{a}{b}
+\end{tikzpicture}\qquad\qquad\begin{tikzpicture}[node distance=1em]
+  \event{b}{\bForm_2 \mid \bAct}{}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \po{b}{c}
+\end{tikzpicture}\]
+then $\aPSS_1 \sqcup \aPSS_2$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm_1 \lor \bForm_2 \mid \bAct}{right=of a}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \po{a}{b}
+  \po{b}{c}
+\end{tikzpicture}\]
+\begin{definition}
 Let $\aPSS_1 \parallel \aPSS_2$ be defined the same as $\aPSS_1 \sqcup \aPSS_2$ except that:
 \begin{itemize}
 \item $\RF_0 \supseteq \RF_1 \cup \RF_2$, and
  for any $\bEv, \aEv \in \Event_i$, if $(\bEv,\aEv)\in\RF_0$ then $(\bEv,\aEv)\in\RF_i$.
 \end{itemize}
+\end{definition}
+
+\begin{definition}
 Let $(\phi \mid \aAct) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
@@ -331,9 +364,14 @@ there is $\aPS\in\aPSS$ such that:
   \begin{itemize}
   \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
   \item $\bForm'$ implies $\bForm[\vec\aVal/\vec\aLoc]$, where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$, and
-  \item $0 \le' \aEv$ or $\bForm'$ implies $\bForm$.
+  \item if $\bForm$ is dependent on $\vec\aLoc$ or
+    there is some location that both $\aAct$ and $\bAct$ write to,
+    then $0 \le' \aEv$.
   \end{itemize}
 \end{itemize}
+\end{definition}
+
+\begin{definition}
 Let $\aPSS[\aExp/\aLV]$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
@@ -342,12 +380,19 @@ there is $\aPS\in\aPSS$ such that:
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$, and
 \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm[\aExp/\aLV] \mid \aAct)$.
 \end{itemize}
+\end{definition}
+
+\begin{definition}
 Let $(\aForm \mid \aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ whenever:
 \begin{itemize}
 \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\aForm$ implies $\bForm$.
 \end{itemize}
+\end{definition}
+
+\begin{definition}
 Let $(\nu\aLoc\st\aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ whenever
 $\aPS$ is $\aLoc$-closed.
+\end{definition}
 
 \subsection{Semantics of programs}
 \label{sec:semantics}
