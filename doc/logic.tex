@@ -1,0 +1,76 @@
+\section{Logic}
+\label{sec:logic}
+
+Syntax:
+\begin{verbatim}
+  phi ::= Wxv | Rxv | F(phi) | false | phi1 \/ phi2 | ~ phi
+\end{verbatim}
+Given a labelled rf-poset (E,lbl,<,rf), define satisfaction:
+\begin{verbatim}
+  e |= Wxv if lbl(e) = (true,Wxv)
+  e |= Rxv if lbl(e) = (true,Rxv)
+  e |= F(phi) if exists d < e, d |= phi
+\end{verbatim}
+Denote rf-poset by its carrier set E.
+Then a set of rf-poset is denoted as Es.
+\begin{verbatim}
+  Es |= phi if forall E in Es: forall e in E: e |= phi
+\end{verbatim}
+Coinduction for F [sound proof rule]:
+\begin{verbatim}
+  phi => F(phi)
+  ------------
+     ~ phi
+\end{verbatim}
+Superset closed formula:
+\begin{verbatim}
+  Define: phi is superset closed if (Es |= phi) and (Es' supseteq Es) imply (Es' |= phi)
+\end{verbatim}
+Parallel composition [sound proof rule]:
+\begin{verbatim}
+  phi is superset closed
+  Es1 |= phi  
+  Es2 |= phi
+  ----------------
+  Es1 || Es2  |= phi
+\end{verbatim}
+Closed at x:
+\begin{verbatim}
+  Define closed(x) = (Rxv => F(Wxv))
+\end{verbatim}
+Local declaration [sound proof rule]:
+\begin{verbatim}
+  x notin phi
+  Es |= closed(x) => phi
+  ----------------------
+  var x; Es |= phi
+\end{verbatim}
+Conditional TAR example:
+\begin{verbatim}
+  var x,y,z;
+  y:=0; y:=x  ||  x:=0; if(~z){x:=1}else{x:=y;a:=y}  ||  z:=0; z:=1
+\end{verbatim}
+\begin{verbatim}
+Goal: Es |= ~ F(Wa1)   [impossible to write a=1]
+\end{verbatim}
+Invariant:
+\begin{verbatim}
+     F(Wy1) => F(Rx1)
+  /\ F(Wa1) => F(Ry1) /\ G(Wx1 => F(Ry1))
+\end{verbatim}
+Closing y:
+\begin{verbatim}
+  F(Wa1) => F(Rx1) /\ G(Wx1 => F(Rx1))
+\end{verbatim}
+Closing x:
+\begin{verbatim}
+  F(Wa1) => F(Wx1) /\ G(Wx1 => F(Wx1))
+\end{verbatim}
+Using coinduction for F:  
+\begin{verbatim}
+  F(Wa1) => F(Wx1) /\ G(~ Wx1)
+\end{verbatim}
+Simplifying:  
+\begin{verbatim}
+  F(Wa1) => false
+\end{verbatim}
