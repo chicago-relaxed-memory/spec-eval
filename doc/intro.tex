@@ -1,1 +1,129 @@
 \section{Introduction}
+
+This paper studies information flow caused by speculation mechanisms
+in hardware and software in the execution of programming languages.
+
+Information flow from high (hi) to low (lo) provides a formal
+foundation for end-to-end security.  Informally, a program is secure
+if there is no observable dependency of lo-observables on hi-inputs.
+The precise formalization of this intutive idea has been the topic of
+extensive research (e.g., see~\cite{???}  for a detailed survey till
+2006), and can be generalized to account for a variety of language
+features and observables such as non-determinisim~\cite{???},
+concurrency~\cite{???}, reactivity~\cite{???}, and
+probability~\cite{???}. The static~\cite{???} and dynamic enforcement
+of these definitions in general purpose languages~\cite{???} has also
+been studied extensively and has influenced language design and
+implementation.
+
+A key parameter in the definitions alluded to above is the notion of
+observable that delimits the attacker model. Whereas the classical
+input-output behavior is an adequate foundation for compiler
+transformations, it has long been known that side-channels that leak
+information arise from other observables such as execution time and
+power consumption.
+
+The focus of this paper is the development of a semantic model of
+execution in programming languages to explicate side channel attacks
+that arise from speculation. Let program order (po) stand for the
+total order on the actions of each thread. An execution is speculative
+when it does not respect the program order(po), i.e., there are events
+$e_1 \le_{po} e_2$ such that $e_2$ appears to be executed before $e_1$.
+
+Our study addresses several sources of speculation in the concurrent
+execution of programs on modern microprocessors.
+\begin{itemize}
+
+\item Pipelined microprocessors use predictive schemes to utilize
+  resources more efficiently and improve performance. Informally,
+  these schemes use the prior history to predict the path of a
+  program, e.g. by guessing memory dependencies, or the outcome of
+  conditionals. Execution proceeds along the predicted path until it
+  is possible to validate the prediction; the execution is committed
+  if the prediction is correct; otherwise, the execution is rolled
+  back.  The speculation does not affect the observable input-output
+  behavior of the program, thus ensuring correctness with respect to
+  the usual intended semantics of the program. However, since there is
+  clear timing differences between the cases where the prediction is
+  and is not successful, it raises the concern that the predictive
+  mechanisms themselves could cause information-leaks via timing
+  side-channels; a fear that is realized with devastating impact by
+  the Spectre family of attacks~\cite{???}.
+
+\item Several modern microprocessors~\cite{???} support transactions
+  to aid in the design of correct and efficient concurrent
+  programs. Transactions are executed optimistically; they are
+  committed if there are no conflicts, and aborted otherwise. All
+  memory effects of an aborted transaction are rolled back; so there
+  is no way for a concurrent observer to detect an aborted
+  transaction.  However, the thread of the aborted transaction, via
+  abort-handler code, gets notified of the cancellation of the
+  transaction.
+
+  Thus, when a transaction of a thread aborts, the thread can deduce
+  plausible information about specific memory accesses of a
+  concurrently executing transaction. In combination with the
+  techniques used in Spectre, this potential has been exploited
+  recently to accelerate and scale up the efficacy of the attacker in
+  the Spectre family of attacks~\cite{???}.
+
+\item A hardware relaxed memory model prescribes a recipe to generate
+  \emph{preserved program order} (ppo) from po~\cite{???}; ppo is a
+  suborder of po that removes order between actions that commute
+  according to the architecture. For example, all hardware models
+  (e.g.,~\cite{???}) permit the commutation of writes to independent
+  locations that are adjacent in po.
+
+\item In the memory models of Java and C++\cite{???}, the programmer
+  is able to rely on po only when the program is race free. If the
+  program has races, the JMM forces the programmer to account
+  forspeculative execution by allowing a concurrent observer to detect
+  violations of po.
+
+\end{itemize}
+The Spectre examples motivate the main technical development of this
+paper, namely a semantic execution models of programming languages
+that capture enough detail to reveal and analyze the presence of side
+channels revealed by speculative execution. In these cases,
+information leaks are via an (unintended!) side-channel.
+
+In contrast, relaxed memory -- by design -- results in information leaks
+that can be observed in the input-output behavior of the program. As a
+happy, and arguably suprising consequence, we demonstrate -- hitherto
+unknown -- information leaks in other uses of speculative execution,
+namely relaxed memory.
+
+We illustrate with a simple example whose reasoning is validated by
+our model. In the parlance of information flow, the humble conditional
+suffices to construct a composition operator to detect information
+flow~\cite{???} in the presence of speculation.  Let P(hi) be a
+function with domain $\{0, \ldots ,n\}$ and codomain $\{1, \ldots
+,n\}$. Our aim is to write a program that tests whether there is
+information flow from input hi to the return value lo. Consider:
+\begin{verbatim}
+[Initial value of m, flow is 0. ]
+T1: r = z; m =r;
+T2: s = m;
+switch(s):
+case 0: z = P(0);
+case 1: z = P(1); flow = 1;
+...
+case n: z = P(n); flow = 1;
+\end{verbatim}
+When there is a dependency of the output on the input, there are at least two different possible
+assignments to z. In this case, the only possible execution, as validated by our model, of the above
+program is the SC execution that reads m as 0 and leaves flow untouched as 0.
+When there is no dependency from input to output the value of z is the same, say k in all cases,
+non-zero by assumption. In this case, the compiler can hoist the assignment of tt to z outside the
+conditional and swap with the independent asignment to hi, moving z = k to the beginning of T2,
+thus rewriting T2 to:
+\begin{verbatim}
+T2: z = k;
+s= m;
+switch(s):
+case 0: z = P(0);
+case 1: flow = 1;
+...
+case n: flow = 1;
+\end{verbatim}
+In this case, the program has an execution, validated by our model, that sets flow to 1.
