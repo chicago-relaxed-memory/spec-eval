@@ -13,9 +13,10 @@ volatile bool alwaysFalse = false;
 #error Please define SECRET when compiling (e.g. pass -DSECRET=123 to the compiler)
 #endif
 
-static void* threadfunc(void* dummy) {
-  // Apparently gcc will move a read past 31 writes but no more!
+static void* attackfunc(void* dummy) {
   x = 1;
+  // Apparently gcc (5.4.0) will move a read past 31 writes but no more!
+  // (gcc 6.3.0 won't move the read past any of these writes, but that's ok)
   if (alwaysFalse) { x = SECRET; }
   if (alwaysFalse) { x = SECRET; }
   if (alwaysFalse) { x = SECRET; }
@@ -47,10 +48,15 @@ static void* threadfunc(void* dummy) {
   if (alwaysFalse) { x = SECRET; }
   if (alwaysFalse) { x = SECRET; }
   // In the case that SECRET is 1, gcc will remove all of the if statements
-  // and move the read of y all the way to the top of the function, so the
-  // read of y is guaranteed to happen before the write of x. In that case,
-  // we're guaranteed to get z = 2. Otherwise the read of y won't be moved
-  // so we have a possibility of seeing y = 1, and hence writing z = 1.
+  // and:
+  //   (gcc 5.4.0) move the read of y all the way to the top of the function
+  //   (gcc 6.3.0) not move the read all the way to the top, but move the
+  //               write of x below the alwaysFalse reads, and move the read
+  //               of y above at least the write of x
+  // so in either case the read of y is guaranteed to happen before the write
+  // of x.  This means with SECRET==1, we're guaranteed to get z = 2.
+  // Otherwise the read of y won't be moved so we have a possibility of seeing
+  // y = 1, and hence writing z = 1.
   if (y) { z = 1; } else { z = 2; }
   return NULL;
 }
@@ -65,7 +71,7 @@ static bool attack() {
   void* dummy;
   pthread_t thread;
   // Fire up the worker
-  pthread_create(&thread, NULL, &threadfunc, NULL);
+  pthread_create(&thread, NULL, &attackfunc, NULL);
   // Copy x into y until z is set
   while (!z) { *volatile_y = *volatile_x; }
   // Close down the worker
@@ -76,11 +82,9 @@ static bool attack() {
 
 int main() {
   unsigned count = 0;
-  for(int i = 0; i < 10; i++) {
+  for(int i = 0; i < 100000; i++) {
     if(attack()) count++;
   }
   printf("%u\n", count);
   return 0;
 }
-
-
