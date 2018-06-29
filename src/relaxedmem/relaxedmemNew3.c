@@ -97,6 +97,7 @@ static void* forwarder(void* dummy) {
   }
 }
 
+#define NUM_TRIALS 50000000
 int main() {
   forwarder_exit = false;
   // Fire up the forwarder thread
@@ -104,13 +105,17 @@ int main() {
   pthread_create(&thread, NULL, &forwarder, NULL);
 
   unsigned count = 0;
-  for(int i = 0; i < 1000000; i++) {
+  for(int i = 0; i < NUM_TRIALS; i++) {
     if(attack()) count++;
   }
 
   // tell the forwarder thread to exit
   forwarder_exit = true;
 
-  printf("%u\n", count);
+  if(count == 0) {
+    printf("Observed z==1 in exactly 0 trials\n");
+  } else {
+    printf("Observed z==1 in %f%% of trials\n", 100*count/(double)NUM_TRIALS);
+  }
   return 0;
 }
