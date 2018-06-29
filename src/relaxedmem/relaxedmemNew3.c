@@ -9,11 +9,14 @@ static volatile int z;
 // 'volatile' ensures compiler keeps the check
 volatile bool alwaysFalse = false;
 
+static volatile bool forwarder_exit;
+
 #ifndef SECRET
 #error Please define SECRET when compiling (e.g. pass -DSECRET=123 to the compiler)
 #endif
 
-static void* attackfunc(void* dummy) {
+// don't inline this: make gcc optimize this as one function
+void __attribute__((noinline)) attackfunc() {
   x = 1;
   // Apparently gcc (5.4.0) will move a read past 31 writes but no more!
   // (gcc 6.3.0 won't move the read past any of these writes, but that's ok)
@@ -58,33 +61,51 @@ static void* attackfunc(void* dummy) {
   // Otherwise the read of y won't be moved so we have a possibility of seeing
   // y = 1, and hence writing z = 1.
   if (y) { z = 1; } else { z = 2; }
-  return NULL;
 }
 
 static bool attack() {
-  // We need volatile aliases for x and y to make sure the writes actually happen.
-  volatile int* volatile_x = &x;
-  volatile int* volatile_y = &y;
   x = 0;
-  y = 0;
   z = 0;
-  void* dummy;
-  pthread_t thread;
-  // Fire up the worker
-  pthread_create(&thread, NULL, &attackfunc, NULL);
-  // Copy x into y until z is set
-  while (!z) { *volatile_y = *volatile_x; }
-  // Close down the worker
-  pthread_join(thread, &dummy);
+  volatile int* volatile_y = &y;  // volatile alias so we actually continuously reload & check
+  while(*volatile_y);  // wait for forwarder to set y == 0
+  attackfunc();
   // If z is 1 at this point we know that SECRET is not 1.
   return (z == 1);
 }
 
+static void* forwarder(void* dummy) {
+  // We need volatile aliases for x and y to make sure the writes actually happen.
+  volatile int* volatile_x = &x;
+  volatile int* volatile_y = &y;
+
+  // copy x into y, forever
+  while(!forwarder_exit) {
+    // do this several times per iteration so we don't check forwarder_exit all the time
+    //*volatile_y = *volatile_x;
+    //*volatile_y = *volatile_x;
+    //*volatile_y = *volatile_x;
+    //*volatile_y = *volatile_x;
+    //*volatile_y = *volatile_x;
+    //*volatile_y = *volatile_x;
+    //*volatile_y = *volatile_x;
+    *volatile_y = *volatile_x;
+  }
+}
+
 int main() {
+  forwarder_exit = false;
+  // Fire up the forwarder thread
+  pthread_t thread;
+  pthread_create(&thread, NULL, &forwarder, NULL);
+
   unsigned count = 0;
-  for(int i = 0; i < 100000; i++) {
+  for(int i = 0; i < 1000000; i++) {
     if(attack()) count++;
   }
+
+  // tell the forwarder thread to exit
+  forwarder_exit = true;
+
   printf("%u\n", count);
   return 0;
 }
