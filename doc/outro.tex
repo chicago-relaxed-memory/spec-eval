@@ -1,1 +1,17 @@
 \section{Conclusions}
+
+One oddity of the model is that
+$\sem{r \GETS x\SEMI y \GETS r\SEMI\SKIP}$ includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx0}{\DR{x}{0}}{}
+  \nonevent{wy1}{\DW{y}{1}}{right=of rx0}
+  \po{rx0}{wy1}
+\end{tikzpicture}\]
+where the write action guessed its value incorrectly, and therefore has
+precondition $0=1$.   This form of speculative
+execution does not appear to be used in practice. In order to disallow it,
+one could change the semantics of $\SKIP$ to introduce a tick 
+action denoting successful completion of the thread and only consider
+executions in which the precondition of every tick action is satisfiable.  We
+leave the elaboration of this idea as future work.
+

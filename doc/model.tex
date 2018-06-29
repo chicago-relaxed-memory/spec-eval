@@ -190,7 +190,7 @@ Going forward, we assume a given data model, though some examples in
 \S\ref{sec:examples} make use of particular $\Act$.
 
 \subsection{Pomsets}
-1\label{sec:pomsets}
+\label{sec:pomsets}
 
 Recall the definition of a pomset from~\cite{pomsets}:
 \begin{definition}
@@ -248,7 +248,7 @@ may be put in parallel
 with another program which writes $0$ to $\aLoc$.
 If $\aLoc$ is scoped, though, such a program cannot exist,
 so we need each read of $\aLoc$ to have a matching write.
-This is captured by the \emph{reads-from} relation~\cite{???}, which we adapt to our setting.
+This is captured by the \emph{reads-from} relation~\cite{alglave}, which we adapt to our setting.
 \begin{definition}
   An \emph{rf-pomset} is a pomset together with a
   $\RF \subseteq (\Event\times\Loc\times\Event)$ such that for any $(\bEv,\aLoc,\aEv) \in \RF$:
@@ -413,8 +413,9 @@ on the preconditions of any subsequent events. The tricky part of the definition
 is the last clause, which places requirements on $\cEv \le \aEv$. In normal prefixing,
 this would always be required, but we only require it when either the precondition of $\aEv$
 depends on one of the variables read by $\aAct$, or if $\cEv$ and $\aEv$ write to the same
-variable (this condition is called \emph{per-location program order} in~\cite{???}, and
-simplifies the treatment of some of the examples). For example, if 
+variable (this condition, called \emph{per-location program order}
+in~\cite{alglave}, is necessary for the treatment of release/acquire fences
+in \S\ref{sec:ra}). For example, if 
 $\aPSS$ contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{b}{\bForm \mid \bAct}{}
@@ -471,5 +472,14 @@ semantics of a simple concurrent imperative programming language.
 \end{eqnarray*}
 \end{definition}
 
-At this point we have completed the formal definition of our model of speculative evaluation,
-and turn to examples of this model in use.
+A write may be thread-local, or it may generate a write event that it visible
+to other threads.  We allow thread-local writes in order to support dead
+store elimination in \S\ref{sec:dse}; the definition is refined to support
+release/acquire fencing in \S\ref{sec:ra}.  Symmetrically, a read may see a
+thread-local value, or it may generate a read event that must be justified by
+another thread.  In the latter case, occurrences of $\aReg$ are replaced with
+$\aLoc$ (rather than $\aVal$) to ensure that dependencies are tracked
+properly.
+
+We have completed the formal definition of our model of speculative
+evaluation, and now turn to examples of this model in use.

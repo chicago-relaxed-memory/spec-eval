@@ -1,4 +1,5 @@
 \subsection{Release/acquire synchronization}
+\label{sec:ra}
 
 In relaxed memory models, synchronization actions act as memory fences: that
 is, they are a barrier to reordering memory accesses.  In this section, we
@@ -16,6 +17,21 @@ to the definition of $(\aForm\mid\aAct)\prefix\aPSS$:
 \begin{itemize}
 \item $0 \le \aEv$ whenever $0$ is an aquire event or $\aEv$ is a release event.
 \end{itemize}
+This constraint ensures that events are ordered before a
+release and after an acquire.
+
+In addition, we must change the semantics of write from
+\S\ref{sec:sets-of-pomsets} to ensure that an action is generated for every
+write that might be published by a subsequent release action.
+% \begin{eqnarray*}
+%   \sem{\aLoc\GETS\aExp\SEMI \aCmd}
+%   & = & \{ \aPS \in \sem{\aCmd}[\aExp/\aLoc] \mid \exists \} \\
+%   & \cup & \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]
+% \end{eqnarray*}
+Formally, $\sem{\aLoc\GETS\aExp\SEMI \aCmd}$ only includes pomsets
+from $\sem{\aCmd}[\aExp/\aLoc]$ that contain a write to
+$\aLoc$ that is not preceded by a release.
+
 In examples, we will use
 releasing writes and aquiring reads:
 \begin{itemize}
@@ -29,8 +45,8 @@ $\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$.
   \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
   \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
 \end{eqnarray*}
-The extra constraint on prefixing ensures that events are ordered before a
-release and after an acquire.  For example, consider the program:
+
+For example, consider the program:
 \begin{verbatim}
   (x := 0; f := 0; x:= 1; rel f := 1;) || (acq r := f; s := x;)
 \end{verbatim}
@@ -141,30 +157,30 @@ with a plain read, then the outcome $(\DR f1)$ and $(\DR x0)$ is possible.
 % requirements to be an rf-pomset.
 
 The notion rf-pomset is sufficient to capture hardware models and
-release/acquire access in C++, where happens-before contains reads-from
-\cite{Alglave:2014:HCM:2633904.2627752}.  To model relaxed access, it would
-be necessary to use a more general notion of rf-pomset, where
+release/acquire access in C++, where reads-from implies happens-before
+\cite{alglave}.  To model C++ relaxed access, it
+would be necessary to use a more general notion of rf-pomset, where
 $(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily imply $\bEv < \aEv$, instead
 requiring that $(\mathord< \cup \mathord\RF)$ be acyclic.
 
 \subsection{Transactions}
 \label{sec:transactions}
 
-We model transactions by introducing the actions:
-\begin{itemize}
-\item $(\DB)$, an acquire action, and
-\item $(\DC{\vec\aLoc}{\vec\aVal})$, a release action that writes $\vec\aVal$ to $\vec\aLoc$,
-\end{itemize}
-with semantics:
+We model transactions by introducing the actions
+$(\DB) \in Acq$ and
+$(\DC) \in Rel$, which denote respectively the begin and commit of a transaction.
+Begin is an acquire action and commit is a release.
+The semantics is as follows:
 \begin{eqnarray*}
   \sem{\BEGIN\SEMI \bCmd}
-  & = & %\mathit{atomic}(
+  & = & 
   (\TRUE \mid \DB) \prefix \sem{\bCmd}
   \\
-  \sem{\IF\COMMIT\vec\aLoc\THEN \bCmd_1 \ELSE \bCmd_2}
-  & = & \textstyle\bigcup_{\vec\aVal,\,\aForm\,\text{implies}\,\vec\aLoc=\vec\aVal}\;
-        ((\aForm \mid \DC{\vec\aLoc}{\vec\aVal}) \prefix (\aForm \mid \sem{\bCmd_1}))
-        \sqcup  (\lnot\aForm \mid \sem{\bCmd_2})
+  \sem{\aReg\GETS\COMMIT\SEMI \bCmd}
+  & = &
+  (\TRUE \mid \DC) \prefix \sem{\bCmd}[1/\aReg]
+  \cup
+  (\FALSE \mid \DC) \prefix \sem{\bCmd}[0/\aReg]
 \end{eqnarray*}
 where we require that all pomsets in the semantics of programs be
 \emph{atomic}.
@@ -173,7 +189,7 @@ Before defining atomicity, we provide some auxiliary notation.
 
 We say that $\aEv$ is a \emph{begin event} if
 $\labelling(\aEv)=(\aForm\mid\DB)$ and a \emph{commit event} if
-$\labelling(\aEv)=(\aForm\mid\DC{\vec\aLoc}{\vec\aVal})$.
+$\labelling(\aEv)=(\aForm\mid\DC)$.
 
 We write $\aForm_\aEv$ for the formula and $\aAct_\aEv$ for the
 action of $\aEv$; that is, when $\labelling(\aEv)=(\aForm_\aEv\mid\aAct_\aEv)$.
@@ -242,15 +258,15 @@ applies when $\bEv$ is a begin.
 
 The definition handles simple examples:
 \begin{itemize}
-\item Single threaded example: $\DB_1 \DC{}{}_1 \DB_2 \DC{}{}_2$.  Because
-  $\DC{}{}_2$ is a release, we know that $\DC{}{}_1<\DC{}{}_2$.  Because
+\item Single threaded example: $\DB_1 \DC_1 \DB_2 \DC_2$.  Because
+  $\DC_2$ is a release, we know that $\DC_1<\DC_2$.  Because
   $\DB_1$ is an acquire, we know that $\DB_1<\DB_2$ By lifting, either of
-  these is sufficient to require that $\DC{}{}_1<\DB_2$.
+  these is sufficient to require that $\DC_1<\DB_2$.
 \[\begin{tikzpicture}[node distance=1em,baselinecenter]
   \event{b1}{\DB_1}{}
-  \event{c1}{\DC{}{}_1}{right=of b1}
+  \event{c1}{\DC_1}{right=of b1}
   \event{b2}{\DB_2}{below right=of b1}
-  \event{c2}{\DC{}{}_2}{right=of b2}
+  \event{c2}{\DC_2}{right=of b2}
   \po{b1}{c1}
   \po{b1}{b2}
   \po{b2}{c2}
@@ -259,9 +275,9 @@ The definition handles simple examples:
 \;\text{implies}\;
 \begin{tikzpicture}[node distance=1em,baselinecenter]
   \event{b1}{\DB_1}{}
-  \event{c1}{\DC{}{}_1}{right=of b1}
+  \event{c1}{\DC_1}{right=of b1}
   \event{b2}{\DB_2}{below right=of b1}
-  \event{c2}{\DC{}{}_2}{right=of b2}
+  \event{c2}{\DC_2}{right=of b2}
   \po{b1}{c1}
   \po{c1}{b2}
   \po{b2}{c2}
@@ -270,8 +286,8 @@ The definition handles simple examples:
 \[\begin{tikzpicture}[node distance=1em,baselinecenter]
   \event{b1}{\DB}{}
   \event{wx1}{\DW{x}{1}}{right=of b1}
-  \event{c1}{\DC{}{}_1}{above right=of wx1}
-  \nonevent{c2}{\DC{}{}_2}{below right=of wx1}
+  \event{c1}{\DC_1}{above right=of wx1}
+  \nonevent{c2}{\DC_2}{below right=of wx1}
   \event{rx1}{\DR{x}{1}}{right=2.5 em of wx1}
   \po{b1}{wx1}
   \po{wx1}{c1}
@@ -282,8 +298,8 @@ The definition handles simple examples:
 \begin{tikzpicture}[node distance=1em,baselinecenter]
   \event{b1}{\DB}{}
   \event{wx1}{\DW{x}{1}}{right=of b1}
-  \event{c1}{\DC{}{}_1}{above right=of wx1}
-  \nonevent{c2}{\DC{}{}_2}{below right=of wx1}
+  \event{c1}{\DC_1}{above right=of wx1}
+  \nonevent{c2}{\DC_2}{below right=of wx1}
   \event{rx1}{\DR{x}{1}}{right=2.5 em of wx1}
   \po{b1}{wx1}
   \po{wx1}{c1}
@@ -298,7 +314,7 @@ The definition handles simple examples:
 % \item Clause \eqref{xrf} also stops transactional IRIW.
 \end{itemize}
 % \begin{definition}
-%   An rf-pomset is transaction-closed if the $\DB$ and $\DC{}{}$ actions with
+%   An rf-pomset is transaction-closed if the $\DB$ and $\DC$ actions with
 %   satisfiable preconditions are totally ordered by $<$.
 % \end{definition}
 
@@ -315,7 +331,7 @@ includes
   \event{wx1}{\DW{x}{1}}{}
   \event{b}{\DB}{right=of wx1}
   \event{wx2}{\DW{x}{2}}{right=of b}
-  \event{c}{\DC{x}{2}}{right=of wx2}
+  \event{c}{\DC}{right=of wx2}
   \event{wy2}{\DW{y}{2}}{right=of c}
   \nonevent{wy1}{\DW{y}{1}}{below=of wy2}
   \po{b}{wx2}
@@ -330,7 +346,7 @@ and
   \event{wx1}{\DW{x}{1}}{}
   \event{b}{\DB}{right=of wx1}
   \nonevent{wx2}{\DW{x}{2}}{right=of b}
-  \nonevent{c}{\DC{x}{2}}{right=of wx2}
+  \nonevent{c}{\DC}{right=of wx2}
   \nonevent{wy2}{\DW{y}{2}}{right=of c}
   \event{wy1}{\DW{y}{1}}{below=of wy2}
   \po{b}{wx2}
