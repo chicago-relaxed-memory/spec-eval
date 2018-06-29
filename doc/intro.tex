@@ -1,7 +1,7 @@
 \section{Introduction}
 
 This paper studies information flow caused by speculation mechanisms
-in hardware and software in the execution of programming languages.
+in hardware and software in the execution of programs.
 
 Information flow from high (hi) to low (lo) provides a formal
 foundation for end-to-end security.  Informally, a program is secure
@@ -16,19 +16,19 @@ of these definitions in general purpose languages~\cite{???} has also
 been studied extensively and has influenced language design and
 implementation.
 
-A key parameter in the definitions alluded to above is the notion of
-observable that delimits the attacker model. Whereas the classical
+A key parameter in the definitions cited above is the notion of
+\emph{observable} that delimits the attacker model. Whereas the classical
 input-output behavior is an adequate foundation for compiler
 transformations, it has long been known that side-channels that leak
 information arise from other observables such as execution time and
 power consumption.
 
 The focus of this paper is the development of a semantic model of
-execution in programming languages to explicate side channel attacks
-that arise from speculation. Let program order (po) stand for the
-total order on the actions of each thread. An execution is speculative
-when it does not respect the program order(po), i.e., there are events
-$e_1 \le_{po} e_2$ such that $e_2$ appears to be executed before $e_1$.
+executions of programs to explicate side channel attacks that arise
+from speculation. In particular, we model conditionals such that it is
+possible for the behaviour of a conditional
+$(\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI)$ to depend on the behaviour
+of $\bCmd$ even when the condition $\aExp$ is true.
 
 Our study addresses several sources of speculation in the concurrent
 execution of programs on modern microprocessors.
@@ -67,63 +67,77 @@ execution of programs on modern microprocessors.
   recently to accelerate and scale up the efficacy of the attacker in
   the Spectre family of attacks~\cite{???}.
 
-\item A hardware relaxed memory model prescribes a recipe to generate
-  \emph{preserved program order} (ppo) from po~\cite{???}; ppo is a
-  suborder of po that removes order between actions that commute
-  according to the architecture. For example, all hardware models
-  (e.g.,~\cite{???}) permit the commutation of writes to independent
-  locations that are adjacent in po.
+\item Compiler optimizations may depend on both branches of
+  a conditional, for example an optimization that replaces
+  $(\IF(\aExp)\THEN \aCmd \ELSE \aCmd \FI)$ by $\aCmd$.
+  In particular, the program $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$
+  can be optimized to $(\aLoc\GETS1)$, which does not have a control
+  dependency from $\aReg$ to the assignment to $\aLoc$.
+  In contrast, the program $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$
+  cannot be optimized, so the control dependency cannot be removed.
 
-\item In the memory models of Java and C++\cite{???}, the programmer
-  is able to rely on po only when the program is race free. If the
-  program has races, the JMM forces the programmer to account
-  forspeculative execution by allowing a concurrent observer to detect
-  violations of po.
+  This would be fine if there were no program constructs
+  which could observe control dependencies, but unfortunately
+  relaxed memory models such as Java~\cite{???} or C++~\cite{???}
+  allow for such observations. This means there is the possibility
+  for information flows caused by optimizing compilers, which
+  we investigate in this paper.
+
+  Whereas information flows caused by speculation in hardware,
+  or by transactional memory are known~\cite{???,???},
+  these attacks on compiler optimiztions, and the relaxed memory
+  models that justify them, is new. In this paper we provide
+  both a formal model for such attacks, and experimental evidence
+  about their practicality
 
 \end{itemize}
-The Spectre examples motivate the main technical development of this
-paper, namely a semantic execution models of programming languages
-that capture enough detail to reveal and analyze the presence of side
-channels revealed by speculative execution. In these cases,
-information leaks are via an (unintended!) side-channel.
+Information flow attacks motivate the main technical development of this
+paper, namely a model of programs
+that captures enough detail to reveal and analyze the presence of side
+channels revealed by speculative execution.
 
-In contrast, relaxed memory -- by design -- results in information leaks
-that can be observed in the input-output behavior of the program. As a
-happy, and arguably suprising consequence, we demonstrate -- hitherto
-unknown -- information leaks in other uses of speculative execution,
-namely relaxed memory.
+The model is based on \emph{partially ordered multisets}~\cite{???},
+whose labels are given by read and write actions. These can be visualized
+as a graph where the edges indicate dependencies, for example
+$(\aReg\GETS\aLoc\SEMI \bLoc\GETS1\SEMI \cLoc\GETS\aReg+1)$
+has an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \event{wz2}{\DW{\cLoc}{2}}{right=of wy1}
+  \po[out=25,in=155]{rx1}{wz2}
+\end{tikzpicture}\]
+The edge from $(\DR{\aLoc}{1})$ to $(\DW{\cLoc}{2})$ indicates a
+data dependency. The novel aspect of the model is that events have
+\emph{preconditions} which may be false (and are visualized
+by crossing out the event). These are used in giving the
+semantics of conditionals, for example
+$(\IF(\aLoc)\THEN \bLoc\GETS1\SEMI\cLoc\GETS1 \ELSE \bLoc\GETS2\SEMI\cLoc\GETS1\FI)$
+has an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \nonevent{wy2}{\DW{\bLoc}{2}}{below=of wy1}
+  \event{wz1}{\DW{\cLoc}{1}}{right=of wy1}
+  \po{rx1}{wy1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+Th edges from $(\DR{\aLoc}{1})$ to $(\DW{\bLoc}{1})$ and
+$(\DW{\bLoc}{2})$ indicate control dependencies. The presence of
+a crossed out $(\DW{\bLoc}{2})$ indicates a failed speculation.
 
-We illustrate with a simple example whose reasoning is validated by
-our model. In the parlance of information flow, the humble conditional
-suffices to construct a composition operator to detect information
-flow~\cite{???} in the presence of speculation.  Let P(hi) be a
-function with domain $\{0, \ldots ,n\}$ and codomain $\{1, \ldots
-,n\}$. Our aim is to write a program that tests whether there is
-information flow from input hi to the return value lo. Consider:
-\begin{verbatim}
-[Initial value of m, flow is 0. ]
-T1: r = z; m =r;
-T2: s = m;
-switch(s):
-case 0: z = P(0);
-case 1: z = P(1); flow = 1;
-...
-case n: z = P(n); flow = 1;
-\end{verbatim}
-When there is a dependency of the output on the input, there are at least two different possible
-assignments to z. In this case, the only possible execution, as validated by our model, of the above
-program is the SC execution that reads m as 0 and leaves flow untouched as 0.
-When there is no dependency from input to output the value of z is the same, say k in all cases,
-non-zero by assumption. In this case, the compiler can hoist the assignment of tt to z outside the
-conditional and swap with the independent asignment to hi, moving z = k to the beginning of T2,
-thus rewriting T2 to:
-\begin{verbatim}
-T2: z = k;
-s= m;
-switch(s):
-case 0: z = P(0);
-case 1: flow = 1;
-...
-case n: flow = 1;
-\end{verbatim}
-In this case, the program has an execution, validated by our model, that sets flow to 1.
+The novel contributions of this paper are:
+\begin{itemize}
+
+\item a model of program execution that includes speculation (\S\ref{sec:model}),
+
+\item examples showing how the model can be applied,
+  including information flow attacks on
+  hardware, optimizing compilers, and transactional memory (\S\ref{sec:examples}), and
+
+\item experimental evidence about how practical it is to mount
+  the new class of attacks (\S\ref{sec:experiments}).
+
+\end{itemize}
+The information flow attacks against optimizing compilers were developed
+as a direct result of building the formal model.
