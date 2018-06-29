@@ -1,10 +1,10 @@
 CC=gcc
 ARMCC=arm-linux-gnueabi-gcc -march=armv8-a
-override CFLAGS += -O3
+override CFLAGS += -O3 -std=c11
 LDFLAGS=-lpthread
 
 # Change this here, or override on the command line with e.g. 'make SRC=myfile.c [...]'
-SRC=relaxedmem16.c
+SRC=relaxedmemNew2.c
 
 EXECS=matchguess wrongguess
 ASMS=$(addsuffix .s, $(EXECS))
@@ -13,16 +13,16 @@ ASMS=$(addsuffix .s, $(EXECS))
 all : $(EXECS) $(ASMS)
 asm : $(ASMS)
 
-matchguess : $(SRC)
+matchguess : $(SRC) cache_sets.h for_0_to_2047.h
 	$(CC) $(CFLAGS) -DSECRET=1 $< -o $@ $(LDFLAGS)
 
-wrongguess : $(SRC)
+wrongguess : $(SRC) cache_sets.h for_0_to_2047.h
 	$(CC) $(CFLAGS) -DSECRET=234987 $< -o $@ $(LDFLAGS)
 
-matchguess.s : $(SRC)
+matchguess.s : $(SRC) cache_sets.h for_0_to_2047.h
 	$(CC) $(CFLAGS) -S -DSECRET=1 $< -o $@
 
-wrongguess.s : $(SRC)
+wrongguess.s : $(SRC) cache_sets.h for_0_to_2047.h
 	$(CC) $(CFLAGS) -S -DSECRET=234987 $< -o $@
 
 .PHONY : clean
