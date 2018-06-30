@@ -1,39 +1,88 @@
 \section{Logic}
 \label{sec:logic}
 
-Syntax:
-\begin{verbatim}
-  phi ::= Wxv | Rxv | F(phi) | false | phi1 \/ phi2 | ~ phi
-\end{verbatim}
-Given a labelled rf-poset (E,lbl,<,rf), define satisfaction:
-\begin{verbatim}
-  e |= Wxv if lbl(e) = (true,Wxv)
-  e |= Rxv if lbl(e) = (true,Rxv)
-  e |= F(phi) if exists d < e, d |= phi
-\end{verbatim}
-Denote rf-poset by its carrier set E.
-Then a set of rf-poset is denoted as Es.
-\begin{verbatim}
-  Es |= phi if forall E in Es: forall e in E: e |= phi
-\end{verbatim}
-Coinduction for F [sound proof rule]:
-\begin{verbatim}
-  phi => F(phi)
-  ------------
-     ~ phi
-\end{verbatim}
-Superset closed formula:
-\begin{verbatim}
-  Define: phi is superset closed if (Es |= phi) and (Es' supseteq Es) imply (Es' |= phi)
-\end{verbatim}
-Parallel composition [sound proof rule]:
-\begin{verbatim}
-  phi is superset closed
-  Es1 |= phi  
-  Es2 |= phi
-  ----------------
-  Es1 || Es2  |= phi
-\end{verbatim}
+\newcommand{\since}[2]{{#1} \  {\tt  S } \  {#2}}
+\newcommand{\pLTL}{{\tt PLTL}}
+\newcommand{\once}{\Diamond^{-1}}
+\newcommand{\pastalways}{\Box^{-1}}
+\newcommand{\afo}{\phi}
+\newcommand{\bfo}{\psi}
+\newcommand{\mods}{\tt Models}
+
+
+
+We work with a variant of \pLTL\ \footnote{ Our presentation differs from standard presentations of past LTL\citet{Lichtenstein:1985:GP:648065.747612} in two ways.  First, we eschew the previous instant operator, to account for the current setting of partial orders; second, we consider strictly past  versions of the ``once'' and ``always in the past'' operators, by not evaluating the formula at the current instant.}   interpreted over pomsets.  The atoms of our logic are write and read events, and we use strictly in the past modal operators in addition to the usual boolean connectives.
+\[
+\begin{array}{lrl}
+ \afo &::=&\DR{\aLoc}{\aVal}  \mid \DW\aLoc\aVal \\
+      &&  \afo \vee\ \bfo \mid \neg \afo  \\
+      && \once\afo \\
+      && \pastalways\afo
+\end{array} 
+\]
+
+\begin{definition} [Satisfaction]
+Given an rf-pomset  $\aPS= (\Event, {\le}, \labelling)$ with alphabet $\Alphabet$, and  $\aEv \in \Event$, define:
+\[
+\begin{array}{lrl}
+ \aPS,\aEv & \models& \DR{\aLoc}{\aVal}, \ \mbox{if } \labelling(\aEv) =  (\TRUE, \DR{\aLoc}{\aVal}) \\
+\aPS,\aEv &\models& \DW{\aLoc}{\aVal}, \ \mbox{if } \labelling(\aEv) =  (\TRUE, \DW{\aLoc}{\aVal}) \\
+\aPS,\aEv &\models&  \afo\wedge\bfo, \ \mbox{if } \aPS,\aEv \models  \afo\ \mbox{ and } \aPS,\aEv \models  \bfo\  \\
+\aPS,\aEv &\models&  \neg\afo\ , \ \mbox{if } \aPS,\aEv \not\models \afo \\
+ \aPS,\aEv &\models& \once\afo, \mbox{if } (\exists \bEv \le \aEv, \bEv\not=\aEv) \  \aPS,\bEv \models \afo\  \\
+ \aPS,\aEv &\models& \pastalways\afo, \mbox{if } (\forall \bEv \le \aEv, \bEv\not=\aEv) \  \aPS,\bEv \models \afo\ 
+\end{array} 
+\]
+
+Define $\aPS \models \afo$ if $(\forall \aEv \in \Event) \ \aPS,\aEv  \models\ \afo$.
+
+For a set of rf-pomsets $\aPSS$, define $\aPSS\models \afo$ if $(\forall \aPS \in \aPSS) \ \aPS \models\ \afo$.
+\end{definition}
+While the boolean connectives are interpreted as expected, the strict past operators explore the past of the current event as determined by the pomset ordering.  Their interpretation does not include the current instant.  Thus, while they are connected by a DeMorgan law:
+\[ \pastalways\afo = \neg\once(\neg\afo) \]
+they do {\emph not} satisfy the rule:
+\[ \pastalways\afo\ \Rightarrow\ \once\afo \]
+The above semantics also validates the following proof rules:
+\begin{description}
+\item[Coinduction. ]
+\[ \frac{\afo \Rightarrow\ \once{\afo}}{\neg \afo} \]
+\item[Induction.] 
+\[ \frac{\pastalways\afo \Rightarrow\ \afo}{\afo} \]
+\end{description}
+The definition of satisfaction of formulas by pomsets validates:
+\[ \aPS \models \afo \Rightarrow\ \aPS \models \afo \wedge \pastalways\afo \]
+
+
+
+We next state a composition result in the style of Abadi and Lamport~\cite{Abadi:1993:CS:151646.151649}.  Our statement and proof is intentionally less general to focus on the underlying ideas in a setting that eschews circularity.    We view this compositiona result as capturing key aspects of no-ThinAirRead, as will become clearer in the examples below.
+
+The statement of the theorem requires us to incorporate environment assumptions.  
+\begin{definition}
+Let $\afo \in \pLTL$.  Then, define:
+\[ \mods{(\afo)} = \{ \aPS \mid \ \aPS \models \afo \} \]
+\end{definition}
+$ \mods{(\afo)}$ are the models of the formula $\afo$, i.e. the pomsets that satisfy the formula.    We say that $\afo$ is prefix closed, if $ \mods{(\afo)}$ is prefix-closed.
+
+\begin{definition}
+Let $\afo \in \pLTL$ be prefix-closed.  Let $ \bfo \in \pLTL$.  Then:
+\[ \afo, \aPS \models \bfo  \mbox{ if } \mods{(\afo)} \parallel \aPS \models \bfo \]
+\end{definition}
+Now, we are ready to state the composition theorem.  
+\begin{lemma}[Composition]
+For any prefix-closed $\afo \in \pLTL$, for any prefix closed $\aPSS_1, \aPSS_2$, \[
+\frac{\afo, \aPSS_1 \models\ \afo, \ \ \ \ \ \afo, \aPSS_2 \models\ \afo}{\aPSS_1 \parallel \aPSS_2 \models \afo}
+\]
+\end{lemma}
+\begin{proof}(Sketch)
+$\aPSS_1 \parallel \aPSS_2$ is prefix closed because $\aPSS_1,\aPSS_2$ and $ \mods{(\pastalways\afo)}$ are all prefix closed.  Proof proceeds by induction on prefixes of $\aPS \in \aPSS_1 \parallel \aPSS_2$.    
+
+The case for empty prefix  follows from assumption that  $\afo$ is prefix closed.  
+
+For the inductive case, consider $\aPS \in \aPSS_1 \parallel \aPSS_2$, i.e. $\aPS = \aPS_1 \parallel \aPS_2$ where $\aPS_i \in \aPSS_i$.  Consider a prefix (say $\aPS'$) got by deleting a maximal element, say $\aEv$, of $\aPS$.  There are two cases depending on whether $\aEv$ comes from $\aPS_1$ or $\aPS_2$.  In the case when $\aEv$ comes from $\aPS_1$, since $\aPS_2$ is a prefix of $\aPS'$ and $\aPS' \models \afo$ by induction hypothesis, we deduce that  $\aPS_2 \models \afo$.     Thus, $\aPS_2 \in \mods{(\afo)}$.  Since $\aPS_1 \in \aPSS_1$, assumption $\afo, \aPSS_1 \models\ \afo$,  we deduce that $\aPS_1 \parallel \aPS_2 \models \afo$.   
+\end{proof}
+
+\endinput
+
 Closed at x:
 \begin{verbatim}
   Define closed(x) = (Rxv => F(Wxv))
