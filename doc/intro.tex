@@ -1,7 +1,7 @@
 \section{Introduction}
 
 This paper studies information flow caused by speculation mechanisms
-in hardware and software in the execution of programs.
+in hardware and software.
 
 Information flow from high (hi) to low (lo) provides a formal
 foundation for end-to-end security.  Informally, a program is secure
@@ -17,13 +17,13 @@ been studied extensively and has influenced language design and
 implementation.
 
 A key parameter in the definitions cited above is the notion of
-\emph{observable} that delimits the attacker model. Whereas the classical
-input-output behavior is an adequate foundation for compiler
-transformations, it has long been known that side-channels that leak
+the \emph{observational power} of the attacker model. Whereas the classical
+input-output behavior is often an adequate foundation,
+it has long been known that side-channels that leak
 information arise from other observables such as execution time and
 power consumption.
 
-The focus of this paper is the development of a semantic model of
+The focus of this paper is the development of a compositional semantic model of
 executions of programs to explicate side channel attacks that arise
 from speculation. In particular, we model conditionals such that it is
 possible for the behaviour of a conditional
@@ -68,9 +68,9 @@ execution of programs on modern microprocessors.
   the Spectre family of attacks~\cite{???}.
 
 \item Compiler optimizations may depend on both branches of
-  a conditional, for example an optimization that replaces
+  a conditional, for example one that replaces
   $(\IF(\aExp)\THEN \aCmd \ELSE \aCmd \FI)$ by $\aCmd$.
-  In particular, the program $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$
+  In particular, $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$
   can be optimized to $(\aLoc\GETS1)$, which does not have a control
   dependency from $\aReg$ to the assignment to $\aLoc$.
   In contrast, the program $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$
@@ -78,7 +78,7 @@ execution of programs on modern microprocessors.
 
   This would be fine if there were no program constructs
   which could observe control dependencies, but unfortunately
-  relaxed memory models such as Java~\cite{???} or C++~\cite{???}
+  relaxed memory models such as C++~\cite{???} or LLVM~\cite{???}
   allow for such observations. This means there is the possibility
   for information flows caused by optimizing compilers, which
   we investigate in this paper.
@@ -100,7 +100,7 @@ The model is based on \emph{partially ordered multisets}~\cite{???},
 whose labels are given by read and write actions. These can be visualized
 as a graph where the edges indicate dependencies, for example
 $(\aReg\GETS\aLoc\SEMI \bLoc\GETS1\SEMI \cLoc\GETS\aReg+1)$
-has an execution:
+has an execution modelled by the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{\aLoc}{1}}{}
   \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
