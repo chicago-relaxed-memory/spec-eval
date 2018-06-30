@@ -95,10 +95,17 @@ int main() {
   for(int i = 0; i < 1000000; i++) {
     if(attack()) count++;
   }
-  printf("%u\n", count);
 
-  // tell the forwarder thread to exit
+  // tell the forwarder thread to exit: the rest is just analysis
   forwarder_exit = true;
+
+  if(count == 0) {
+    printf("Exactly 0 attacks returned true\n");
+  } else if(count == NUM_TRIALS) {
+    printf("Exactly 100.0%% of the attacks returned true\n");
+  } else {
+    printf("%f%% of the attacks returned true\n", 100*count/(double)NUM_TRIALS);
+  }
 
   return 0;
 }
