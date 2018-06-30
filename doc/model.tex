@@ -1,4 +1,5 @@
 \section{Model}
+\label{sec:model}
 
 The model used in this paper is one of sets of pomsets with event labels of the form
 $(\aForm \mid \aAct)$, where $\aForm$ is the event's precondition
@@ -34,7 +35,7 @@ contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx2}{1=1 \mid \DW{\aLoc}{2}}{right=of ry1}
 \end{tikzpicture}\]
-and since $1=1$ is a tautology, we elide it:
+and since $(1=1)$ is a tautology, we elide it:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
 \end{tikzpicture}\]
@@ -46,7 +47,7 @@ the pomset:
   \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
   \po{ry1}{wx2}
 \end{tikzpicture}\]
-as required. There is an ordering $(\DR{\bLoc}{1}) < (\DR{\aLoc}{2})$
+as required. There is an ordering $(\DR{\bLoc}{1}) < (\DW{\aLoc}{2})$
 because the precondition $(\aReg=1)$ depends on $\aReg$. If the preconditon
 was independent of $\aReg$ then there would be no ordering, for example
 $\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1-\aReg}$ contains
@@ -400,12 +401,13 @@ there is $\aPS\in\aPSS$ such that:
 \item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then:
   \begin{itemize}
   \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
-  \item $\bForm'$ implies $\bForm[\vec\aVal/\vec\aLoc]$, where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$, and
-  \item if $\bForm$ is dependent on $\vec\aLoc$ or
-    there is some location that both $\aAct$ and $\bAct$ write to,
+  \item $\bForm'$ implies $\bForm[\vec\aVal/\vec\aLoc]$,
+  \item if $\bForm$ is dependent on some $\vec\aLoc$,
+    or $\bAct$ writes to some $\vec\bLoc$,
     then $\cEv \le' \aEv$.
   \end{itemize}
 \end{itemize}
+where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$ and writes $\vec\bVal$ to $\vec\bLoc$.
 \end{definition}
 Prefixing is used to define the semantics of reads and writes, and adds a new event $\cEv$
 with action $\aAct$ and a precondition which implies $\phi$. It performs a substitution
@@ -422,8 +424,8 @@ $\aPSS$ contains:
   \event{c}{\cForm \mid \cAct}{right=of b}
   \po{b}{c}
 \end{tikzpicture}\]
-where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$,
-$\bAct$ does not write to $\aAct$'s write locations,
+where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$ and writes $\vec\bVal$ to $\vec\bLoc$,
+$\bAct$ does not write to $\vec\bLoc$,
 and $\bForm$ is independent of $\vec\aLoc$,
 then $(\aForm\mid\aAct)\prefix\aPSS$ contains:
 \[\begin{tikzpicture}[node distance=1em]

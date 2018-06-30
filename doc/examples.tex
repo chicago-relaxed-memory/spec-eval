@@ -1,4 +1,5 @@
 \section{Examples}
+\label{sec:examples}
 
 \subsection{Sequential memory accesses}
 \label{sec:sequential-memory}
@@ -20,11 +21,7 @@ $x$, which is $0$:
 To see how this execution is modelled, we first
 expand out the syntax sugar to get the program \verb`(x := 0; r := x; y := r+1; skip)`.
 Now $\sem{\SKIP}$ is just $\{\emptyset\}$, and
-$\sem{y \GETS r+1\SEMI \SKIP}$ is:
-\[
-   \bigcup_v\; (r+1=v \mid \DW yv) \prefix \sem{\SKIP}[v/y]
-\]
-which includes the case where $v$ is $1$:
+$\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
    (r+1=1 \mid \DW y1) \prefix \sem{\SKIP}[1/y]
 \]
@@ -34,12 +31,8 @@ which contains the pomset:
 \end{tikzpicture}\]
 expressing that this program can write $1$ to $y$,
 as long as the precondition $(r+1=1)$ is satisfied.
-Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ is:
-\[
-   \sem{y \GETS r+1\SEMI \SKIP}[x/r] \cup
-   \bigcup_v\; (\DR xv) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
-\]
-This has two cases, the sequential case
+Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$
+has two cases, the sequential case
 (which does not introduce a read action)
 and the concurrent case (which does).
 For the moment, we are interested in the sequential case, which is:
@@ -52,11 +45,7 @@ which contains the pomset:
 \end{tikzpicture}\]
 In this pomset, the precondition is $(x+1=1)$, which specifies a property
 of the thread-local value of $x$.
-Finally $\sem{x \GETS 0\SEMI r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ is:
-\[
-   \bigcup_v\; (0=v \mid \DW xv) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[v/x]
-\]
-which includes the case where $v$ is $0$:
+Finally $\sem{x \GETS 0\SEMI r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ includes:
 \[
    (0=0 \mid \DW x0) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[0/x]
 \]
@@ -70,7 +59,7 @@ all of whose preconditions are tautologies, so this has the expected behaviour:
   \event{wx0}{\DW{x}{0}}{}
   \event{wy1}{\DW{y}{1}}{right=of wx0}
 \end{tikzpicture}\]
-Note that $(\DW x0)$ does not read anything, and so there is no
+Note that $(\DW x0)$ there is no
 requirement of order between $(\DW x0)$ and $(\DW y1)$.
 
 This example demonstrates how preconditions
@@ -101,11 +90,7 @@ performs a concurrent read of $x$:
 \end{tikzpicture}\]
 To see how this execution is modelled, we first
 expand out the syntax sugar to get the program \verb`(x := 1; skip || r := x; y := r+1; skip)`.
-As before, $\sem{y \GETS r+1\SEMI \SKIP}$ is:
-\[
-   \bigcup_v\; (r+1=v \mid \DW yv) \prefix \sem{\SKIP}[v/y]
-\]
-which includes the case where $v$ is $2$:
+As before, $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
    (r+1=2 \mid \DW y2) \prefix \sem{\SKIP}[2/y]
 \]
@@ -113,19 +98,10 @@ which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wy2}{r+1=2 \mid \DW{y}{2}}{}
 \end{tikzpicture}\]
-Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ is:
-\[
-   \sem{y \GETS r+1\SEMI \SKIP}[x/r] \cup
-   \bigcup_v\; (\DR xv) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
-\]
-This has two cases, the sequential case
+Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ has two cases, the sequential case
 (which does not introduce a read action)
 and the concurrent case (which does).
-We are now interested in the concurrent case, which is:
-\[
-   \bigcup_v\; (\DR xv) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
-\]
-which includes the case where $v$ is $1$:
+We are now interested in the concurrent case, which includes:
 \[
    (\DR x1) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
 \]
@@ -136,8 +112,8 @@ which contains the pomset:
   \po{rx1}{wy2}
 \end{tikzpicture}\]
 Note that $(\DR x1)$ reads $1$ from $x$, and while
-$\TRUE$ implies $(x+1=2)[1/x]$ (since $1+1=2$ is a tautology)
-it does \emph{not} imply $(x+1=2)$ (which is not true for every value of $x$),
+$(x+1=2)[1/x]$ is a tautlogy
+$(x+1=2)$ is \emph{not} independent of $x$
 and so there is an ordering
 $(\DR x1) < (\DW y2)$
 modelling the data dependency of the write of $y$ on the read of $x$.
@@ -169,21 +145,7 @@ $(\DW \aLoc\aVal)$.
 
 Consider an example with two independent writes
 \verb|(x := 1; y := 2;)|.
-This has the semantics:
-\[
-  \bigcup_\aVal\; (1=\aVal \mid \DW x\aVal) \prefix \left(
-    \bigcup_\bVal\; (2=\bVal \mid \DW y\aVal) \prefix \left(
-      \{\emptyset\}
-    \right)[2/y]
-  \right)[1/x]
-\]
-which is the same as:
-\[
-  \bigcup_\aVal\; (1=\aVal \mid \DW x\aVal) \prefix
-    \bigcup_\bVal\; (2=\bVal \mid \DW y\aVal) \prefix
-      \{\emptyset\}
-\]
-which includes the case where $\aVal=1$ and $\bVal=2$:
+This has the semantics which includes:
 \[
   (1=1 \mid \DW x1) \prefix
     (2=2 \mid \DW y2) \prefix
@@ -214,8 +176,9 @@ is the same as the semantics of \verb|(y := 2; x := 1;)|.
 
 \subsection{Independent reads and writes}
 
-Whereas write prefixing introduces no new dependencies,
-read prefixing can. For example
+Whereas write prefixing introduces dependencies on events which write
+the the same location, read prefixing introduces dependencies on
+preconditions which depend on the location being read. For example
 in \S\ref{sec:concurrent-memory} we saw that the program
 \verb|(r := x; y := r+1;)| includes the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -223,25 +186,19 @@ in \S\ref{sec:concurrent-memory} we saw that the program
   \event{wy2}{\DW{y}{2}}{right=of rx1}
   \po{rx1}{wy2}
 \end{tikzpicture}\]
-but since $\TRUE$ does not imply $(x+1=2)$,
+but since $(x+1=2)$ depends on $x$,
 we have the requirement that $(\DR{x}{1}) \le (\DW{y}{2})$.
 
 This is in contrast to the program 
 \verb|(r := x; y := r+2-r;)|.
-Since $\TRUE$ implies $(x+2-x=2)[1/x]$, this contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1}{\DR{x}{1}}{}
-  \event{wy2}{\DW{y}{2}}{right=of rx1}
-  \po{rx1}{wy2}
-\end{tikzpicture}\]
-but also $\TRUE$ implies $(x+2-x=2)$
+Since $(x+2-x=2)$ is independent of $x$
 (at least for integer arithmetic)
-and so this also contains:
+this contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
   \event{wy2}{\DW{y}{2}}{right=of rx1}
 \end{tikzpicture}\]
-Thus, the semantics of \verb|(r := x; y := r+2-r;)|
+and we can show the semantics of \verb|(r := x; y := r+2-r;)|
 is the same as the semantics of \verb|(y := 2; r := x;)|.
 
 Note this this example shows that we are not just dealing
@@ -295,20 +252,19 @@ Similarly $\sem{y\GETS 2\SEMI\SKIP}$ contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wy2}{r=0 \mid \DW{y}{2}}{}
 \end{tikzpicture}\]
-and so $\sem{\IF(r)\{ x\GETS 1\SEMI\SKIP \} \ELSE \{ y\GETS 2\SEMI\SKIP \}}$
+and so $\sem{\IF(r)\THEN x\GETS 1\SEMI\SKIP \ELSE y\GETS 2\SEMI\SKIP \FI}$
 contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
   \event{wy2}{r=0 \mid \DW{y}{2}}{right=of wx1}
 \end{tikzpicture}\]
-Now, the semantics of concurrent read performs substitutions, for example
-a read of $0$ from $z$ into $r$ results in:
+Now, the semantics of concurrent read performs substitutions, for example:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz0}{\DR{z}{0}}{}
   \event{wx1}{0\neq0 \mid \DW{x}{1}}{right=of rz0}
   \event{wy2}{0=0 \mid \DW{y}{2}}{right=of wx1}
   \po{rz0}{wx1}
-  \po[out=30,in=150]{rz0}{wy2}
+  \po[out=25,in=155]{rz0}{wy2}
 \end{tikzpicture}\]
 which gives the required pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -349,7 +305,7 @@ of $1$ to $x$ are merged, resulting in no dependency:
   \event{wx1}{\DW{x}{1}}{right=of rz0}
 \end{tikzpicture}\]
 To see how this arises in the model,
-consider the definition of $\sem{\IF(r)\{ x\GETS1\SEMI\SKIP \} \ELSE \{ x\GETS1\SEMI\SKIP \}}$:
+consider the definition of $\sem{\IF(r)\THEN x\GETS1\SEMI\SKIP \ELSE x\GETS1\SEMI\SKIP \FI}$:
 \[
    \aPSS_1 \sqcup \aPSS_2 \quad\mbox{where}\quad
    \aPSS_1 = (r\neq 0 \mid \sem{x\GETS1\SEMI\SKIP})  \quad\mbox{and}\quad
@@ -452,21 +408,23 @@ memory locations have been touched.
 We model the \verb|touched| test by introducing a new action
 $(\DT{\aLoc})$ and defining:
 \begin{eqnarray*}
-  \sem{\IF \TOUCHED\aLoc\THEN \aCmd \ELSE \bCmd} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
+  \sem{\IF \TOUCHED\aLoc\THEN \aCmd \ELSE \bCmd \FI} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
 \end{eqnarray*}
 The additional requirement we need to add for $\aLoc$-closure is:
 \begin{itemize}
 \item if $\labelling(\aEv)=(\aForm \mid \DT{\aLoc})$
-  then there is $\bEv\not>\aEv$ with $\labelling(\bEv)=(\bForm \mid \aAct)$
-  where $\aAct$ reads or writes $\aLoc$.
+  then there is $\bEv<\aEv$
+  where $\bEv$ reads or writes $\aLoc$.
 \end{itemize}
-For example, one execution of \verb|SPECTRE| is:
+Note that there is no requirement that $\bEv$ be satisfiable,
+and indeed \verb|SPECTRE| has the execution:
 \[\begin{tikzpicture}[node distance=1em]
   \nonevent{rs}{\DR{\SEC}{1}}{}
   \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
   \event{ta}{\DT{a[1]}}{right=of wa}
   \event{wx}{\DW{x}{1}}{right=of ta}
   \po{rs}{wa}
+  \po{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
 Putting this in parallel with a high-security write to \verb|SECRET| gives:
@@ -478,6 +436,7 @@ Putting this in parallel with a high-security write to \verb|SECRET| gives:
   \event{wx}{\DW{x}{1}}{right=of ta}
   \rf{ws}{rs}
   \po{rs}{wa}
+  \po{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
 but due the requirement of \verb|a|-closure we do \emph{not} have:
@@ -489,6 +448,7 @@ but due the requirement of \verb|a|-closure we do \emph{not} have:
   \event{wx}{\DW{x}{1}}{right=of ta}
   \rf{ws}{rs}
   \po{rs}{wa}
+  \po{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
 Thus, the attacker has managed to leak the value of a high-security
@@ -527,8 +487,8 @@ which includes the execution:
   \rf[out=30,in=150]{wy0}{ry0}
   \rf[out=340,in=200]{wy1}{ry1}
   \rf[out=340,in=200]{wx0}{rx0}
-  % \po{wx0}{wx1}
-  % \po{wy0}{wy1}
+  \po{wx0}{wx1}
+  \po{wy0}{wy1}
   \po{rx1}{ry0}
   \po{ry1}{rx0}
 \end{tikzpicture}\]
@@ -663,6 +623,8 @@ further in \S\ref{sec:experiments}.
 
 \subsection{Dead store elimination}
 \label{sec:dse}
+
+\todo{Revisit this model now that write events are optional.}
 
 A common compiler optimization is \emph{dead store elimination},
 in which writes are omitted if they will be overwritten by a subsequent
@@ -812,25 +774,25 @@ Removing the syntax sugar, this is:
     x := 1; r3 := x; y := r3; skip
   }
 \end{verbatim}
-Now, $\sem{z := 1\SEMI r2 := x\SEMI y := r2\SEMI \SKIP}$
+Now, $\sem{z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP}$
 includes pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
   \event{wy1}{r_1=x=1 \mid \DW{y}{1}}{right=of wz1}
 \end{tikzpicture}\]
-and $\sem{x := 1\SEMI r3 := x\SEMI y := r3\SEMI \SKIP}$
+and $\sem{x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP}$
 includes pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1a}{r_1\neq 1 \mid \DW{x}{1}}{}
   \event{wy1}{r_1\neq 1 \mid \DW{y}{1}}{right=of wx1a}
 \end{tikzpicture}\]
-so  $\sem{\IF (r_1 = 1)\{ z := 1\SEMI r2 := x\SEMI y := r2\SEMI \SKIP \} \ELSE \{ x := 1\SEMI r3 := x\SEMI y := r3\SEMI \SKIP\}}$ includes:
+so  $\sem{\IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}$ includes:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
-  \event{wx1a}{r_1=0 \mid \DW{x}{1}}{right=of wz1}
-  \event{wy1}{(r_1=x=1) \lor (r_1=0) \mid \DW{y}{1}}{right=of wx1a}
+  \event{wx1a}{r_1\neq1 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{(r_1=x=1) \lor (r_1\neq1) \mid \DW{y}{1}}{right=of wx1a}
 \end{tikzpicture}\]
-which means $\sem{\IF (r_1 = 1) \{ z := 1\SEMI r2 := x\SEMI y := r2\SEMI \SKIP \} \ELSE \{ x := 1\SEMI r3 := x\SEMI y := r3\SEMI \SKIP\}}[x/r_1]$ includes:
+which means $\sem{\IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}[x/r_1]$ includes:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wz1}{x=1 \mid \DW{z}{1}}{}
   \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
@@ -842,7 +804,7 @@ Now $(x=x=1) \lor (x\neq1)$ is a tautology, so this is just:
   \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
   \event{wy1}{\DW{y}{1}}{right=of wx1a}
 \end{tikzpicture}\]
-and so $\sem{r_1 \GETS x\SEMI \IF (r_1 = 1) \{ z := 1\SEMI r2 := x\SEMI y := r2\SEMI \SKIP \} \ELSE \{ x := 1\SEMI r3 := x\SEMI y := r3\SEMI \SKIP\}}$ includes:
+and so $\sem{r_1 \GETS x\SEMI \IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}$ includes:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1a}{\DR{x}{1}}{}
   \event{wz1}{1=1 \mid \DW{z}{1}}{right=of rx1a}
@@ -864,6 +826,8 @@ as required. The rest of the example is straightforward, and shows that our sema
 agrees with the JMM in not supporting thread inlining.
 
 \subsection{Word tearing}
+
+\todo{Remove this section, since it's not needed for transactions?}
 
 In \S\ref{sec:transactions}, we shall be considering transactional memory,
 and in \S\ref{sec:transactions} show that we can model a simplified version

@@ -13,9 +13,10 @@ $\aAct$ is a \emph{release action} if $\aAct\in\Rel$ and $\aAct$ is an
 In a pomset, a release event is one labelled with a release action,
 and an aquire event is one labelled by an aquire action.
 The semantics of fences are given by adding an extra constraint
-to the definition of $(\aForm\mid\aAct)\prefix\aPSS$:
+to the definition of $(\aForm\mid\aAct)\prefix\aPSS$
+(recalling that $\cEv$ is the $\aAct$-labelled event being introduced):
 \begin{itemize}
-\item $0 \le \aEv$ whenever $0$ is an aquire event or $\aEv$ is a release event.
+\item $\cEv \le \aEv$ whenever $\cEv$ is an aquire event or $\aEv$ is a release event.
 \end{itemize}
 This constraint ensures that events are ordered before a
 release and after an acquire.
@@ -46,6 +47,8 @@ $\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$.
   \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
 \end{eqnarray*}
 
+\todo{Is this doing the right thing if an acquiring read happens to read from the same thread?}
+
 For example, consider the program:
 \begin{verbatim}
   (x := 0; f := 0; x:= 1; rel f := 1;) || (acq r := f; s := x;)
@@ -56,14 +59,14 @@ This has an execution:
   \event{wx1}{\DW{x}{1}}{right=of wx0}
   \event{wf0}{\DW{f}{0}}{right=of wx1}
   \event{wf1}{\DWRel{f}{1}}{right=of wf0}
-  \event{rf1}{\DRAcq{f}{1}}{below=of wf1}
+  \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx1}{\DR{x}{1}}{right=of rf1}
   \po{wx0}{wx1}
   \po{wf0}{wf1}
-  \po[bend left]{wx1}{wf1}
+  \po[out=25,in=155]{wx1}{wf1}
   \po{rf1}{rx1}
   \rf{wf1}{rf1}
-  \rf[out=-30,in=150]{wx1}{rx1}
+  \rf[out=25,in=155]{wx1}{rx1}
 \end{tikzpicture}\]
 but \emph{not}:
 \[\begin{tikzpicture}[node distance=1em]
@@ -71,14 +74,14 @@ but \emph{not}:
   \event{wx1}{\DW{x}{1}}{right=of wx0}
   \event{wf0}{\DW{f}{0}}{right=of wx1}
   \event{wf1}{\DWRel{f}{1}}{right=of wf0}
-  \event{rf1}{\DRAcq{f}{1}}{below=of wf1}
+  \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx0}{\DR{x}{0}}{right=of rf1}
   \po{wx0}{wx1}
   \po{wf0}{wf1}
-  \po[bend left]{wx1}{wf1}
+  \po[out=25,in=155]{wx1}{wf1}
   \po{rf1}{rx0}
   \rf{wf1}{rf1}
-  \rf[out=-25,in=155]{wx0}{rx0}
+  \rf[out=20,in=160]{wx0}{rx0}
 \end{tikzpicture}\]
 since $(\DW x0) < (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
 requirements to be an rf-pomset.  If we replace the release 
@@ -88,14 +91,14 @@ with a plain write, then the outcome $(\DRAcq f1)$ and $(\DR x0)$ is possible:
   \event{wx1}{\DW{x}{1}}{right=of wx0}
   \event{wf0}{\DW{f}{0}}{right=of wx1}
   \event{wf1}{\DW{f}{1}}{right=of wf0}
-  \event{rf1}{\DRAcq{f}{1}}{below=of wf1}
+  \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx0}{\DR{x}{0}}{right=of rf1}
   \po{wx0}{wx1}
   \po{wf0}{wf1}
   %\po[bend left]{wx1}{wf1}
   \po{rf1}{rx0}
   \rf{wf1}{rf1}
-  \rf[out=-25,in=155]{wx0}{rx0}
+  \rf[out=20,in=160]{wx0}{rx0}
 \end{tikzpicture}\]
 since no order is required between $(\DW x1)$ and $(\DW f1)$.  
 Symmetrically, if we replace the acquire of the original program
