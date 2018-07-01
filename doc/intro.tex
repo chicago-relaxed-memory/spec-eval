@@ -1,0 +1,145 @@
+\section{Introduction}
+
+This paper studies information flow caused by speculation mechanisms
+in hardware and software.
+
+Information flow from high (hi) to low (lo) provides a formal
+foundation for end-to-end security.  Informally, a program is secure
+if there is no observable dependency of lo-observables on hi-inputs.
+The precise formalization of this intutive idea has been the topic of
+extensive research (e.g., see~\cite{Sabelfeld:2006:LIS:2312191.2314769}  for a detailed survey till
+2006), and can be generalized to account for a variety of language
+features and observables such as non-determinisim~\cite{Wittbold1990InformationFI},
+concurrency~\cite{Smith:1998:SIF:268946.268975}, reactivity~\cite{O'Neill:2006:ISI:1155442.1155677}, and
+probability~\cite{Gray:1992:TMF:2699806.2699811}. The static and dynamic enforcement
+of these definitions in general purpose languages~\cite{myers-popl99} has also
+been studied extensively and has influenced language design and
+implementation.
+
+A key parameter in the definitions cited above is the notion of
+the \emph{observational power} of the attacker model. Whereas the classical
+input-output behavior is often an adequate foundation,
+it has long been known that side-channels that leak
+information arise from other observables such as execution time and
+power consumption.
+
+The focus of this paper is the development of a compositional semantic model of
+executions of programs to explicate side channel attacks that arise
+from speculation. In particular, we model conditionals such that it is
+possible for the behaviour of a conditional
+$(\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI)$ to depend on the behaviour
+of $\bCmd$ even when the condition $\aExp$ is true.
+
+Our study addresses several sources of speculation in the concurrent
+execution of programs on modern microprocessors.
+\begin{itemize}
+
+\item Pipelined microprocessors use predictive schemes to utilize
+  resources more efficiently and improve performance. Informally,
+  these schemes use the prior history to predict the path of a
+  program, e.g. by guessing memory dependencies, or the outcome of
+  conditionals. Execution proceeds along the predicted path until it
+  is possible to validate the prediction; the execution is committed
+  if the prediction is correct; otherwise, the execution is rolled
+  back.  The speculation does not affect the observable input-output
+  behavior of the program, thus ensuring correctness with respect to
+  the usual intended semantics of the program. However, since there is
+  clear timing differences between the cases where the prediction is
+  and is not successful, it raises the concern that the predictive
+  mechanisms themselves could cause information-leaks via timing
+  side-channels; a fear that is realized with devastating impact by
+  the Spectre family of attacks~\cite{???}.
+
+\item Several modern microprocessors~\cite{ChongSW18} support transactions
+  to aid in the design of correct and efficient concurrent
+  programs. Transactions are executed optimistically; they are
+  committed if there are no conflicts, and aborted otherwise. All
+  memory effects of an aborted transaction are rolled back; so there
+  is no way for a concurrent observer to detect an aborted
+  transaction.  However, the thread of the aborted transaction, via
+  abort-handler code, gets notified of the cancellation of the
+  transaction.
+
+  Thus, when a transaction of a thread aborts, the thread can deduce
+  plausible information about specific memory accesses of a
+  concurrently executing transaction. In combination with the
+  techniques used in Spectre, this potential has been exploited
+  recently to accelerate and scale up the efficacy of the attacker in
+  the Spectre family of attacks~\cite{???}.
+
+\item Compiler optimizations may depend on both branches of
+  a conditional, for example one that replaces
+  $(\IF(\aExp)\THEN \aCmd \ELSE \aCmd \FI)$ by $\aCmd$.
+  In particular, $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$
+  can be optimized to $(\aLoc\GETS1)$, which does not have a control
+  dependency from $\aReg$ to the assignment to $\aLoc$.
+  In contrast, the program $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$
+  cannot be optimized, so the control dependency cannot be removed.
+
+  This would be fine if there were no program constructs
+  which could observe control dependencies, but unfortunately
+  relaxed memory models such as JMM~\cite{Manson:2005:JMM:1047659.1040336}, C++~\cite{Boehm:2008:FCC:1375581.1375591} or LLVM~\cite{???}
+  allow for such observations. This means there is the possibility
+  for information flows caused by optimizing compilers, which
+  we investigate in this paper.
+
+  Whereas information flows caused by speculation in hardware,
+  or by transactional memory are known~\cite{???,???},
+  these attacks on compiler optimizations, and the relaxed memory
+  models that justify them, is new. In this paper we provide
+  both a formal model for such attacks, and experimental evidence
+  about their practicality
+
+\end{itemize}
+Information flow attacks motivate the main technical development of this
+paper.  This line of research was initiated by~\citet{Zhang:2012:LCM:2345156.2254078}.  
+Whereas they explore static annotations to address sidechannels in the context of hardware description languages, we explore a model of programs
+that captures enough detail to reveal and analyze the presence of side
+channels revealed by speculative execution.  
+
+
+The model is based on \emph{partially ordered multisets}~\cite{Plotkin:1997:TSP:266557.266600},
+whose labels are given by read and write actions. These can be visualized
+as a graph where the edges indicate dependencies, for example
+$(\aReg\GETS\aLoc\SEMI \bLoc\GETS1\SEMI \cLoc\GETS\aReg+1)$
+has an execution modelled by the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \event{wz2}{\DW{\cLoc}{2}}{right=of wy1}
+  \po[out=25,in=155]{rx1}{wz2}
+\end{tikzpicture}\]
+The edge from $(\DR{\aLoc}{1})$ to $(\DW{\cLoc}{2})$ indicates a
+data dependency. The novel aspect of the model is that events have
+\emph{preconditions} which may be false (and are visualized
+by crossing out the event). These are used in giving the
+semantics of conditionals, for example
+$(\IF(\aLoc)\THEN \bLoc\GETS1\SEMI\cLoc\GETS1 \ELSE \bLoc\GETS2\SEMI\cLoc\GETS1\FI)$
+has an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \nonevent{wy2}{\DW{\bLoc}{2}}{below=of wy1}
+  \event{wz1}{\DW{\cLoc}{1}}{right=of wy1}
+  \po{rx1}{wy1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+Th edges from $(\DR{\aLoc}{1})$ to $(\DW{\bLoc}{1})$ and
+$(\DW{\bLoc}{2})$ indicate control dependencies. The presence of
+a crossed out $(\DW{\bLoc}{2})$ indicates a failed speculation.
+
+The novel contributions of this paper are:
+\begin{itemize}
+
+\item a model of program execution that includes speculation (\S\ref{sec:model}),
+
+\item examples showing how the model can be applied,
+  including information flow attacks on
+  hardware, optimizing compilers, and transactional memory (\S\ref{sec:examples}), and
+
+\item experimental evidence about how practical it is to mount
+  the new class of attacks (\S\ref{sec:experiments}).
+
+\end{itemize}
+The information flow attacks against optimizing compilers were developed
+as a direct result of building the formal model.
