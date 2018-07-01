@@ -66,6 +66,8 @@
 \newcommand{\cEv}{c}
 \newcommand{\begEv}{b}
 \newcommand{\comEv}{c}
+\newcommand{\ltN}{\mathrel{\,\mid\!\!\!<}}
+\newcommand{\gtN}{\mathrel{\,\mid\!\!\!>}}
 
 \newcommand{\Alphabet}{\Sigma}
 \newcommand{\labelling}{\lambda}
@@ -120,8 +122,9 @@
 \tikzstyle{baselinecenter} = [baseline=(current bounding box.west)]
 \tikzstyle{event} = [draw=black, fill=blue!10, rectangle, rounded corners, minimum size=3ex]
 \tikzstyle{po} = [->]
+\tikzstyle{wk} = [->,dashed]
 \tikzstyle{lift} = [->,double]
-\tikzstyle{rf} = [->,thick,dashed,draw=black!50!green]
+\tikzstyle{rf} = [->,thick,draw=black!50!green]
 
 \tikzset{
     nonevent/.style={
@@ -144,4 +147,5 @@
 \newcommand{\po}[3][]{\draw[po,#1](#2)to(#3);}
 \newcommand{\lift}[3][]{\draw[lift,#1](#2)to(#3);}
 \newcommand{\rf}[3][]{\draw[rf,#1](#2)to(#3);}
+\newcommand{\wk}[3][]{\draw[wk,#1](#2)to(#3);}
 \newcommand{\rfx}[4][]{\draw[rf,#1](#2) edge node[above,text=black!50!green]{$#3$} (#4);}
