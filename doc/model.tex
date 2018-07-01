@@ -140,7 +140,7 @@ which include:
   with precondition $\aForm$ and action $\aAct$ to pomsets in $\aPSS$,
 \item \emph{substitution} $\aPSS[\aExp/\aLoc]$, which performs a substitution
   on every precondition in $\aPSS$, and
-\item \emph{join} $\aPSS_1\sqcup\aPSS_2$, which unions pomsets from
+\item \emph{join} $\aPSS_1\parallel\aPSS_2$, which unions pomsets from
   $\aPSS_1$ and $\aPSS_2$, allowing events to be merged.
 \end{itemize}
 We make data models precise in~\S\ref{sec:preliminaries},
@@ -190,7 +190,7 @@ and $(\DW{\aLoc}{\aVal})$, which writes $\aVal$ to $\aLoc$.
 Going forward, we assume a given data model, though some examples in
 \S\ref{sec:examples} make use of particular $\Act$.
 
-\subsection{Pomsets}
+\subsection{3-valued pomsets}
 \label{sec:pomsets}
 
 Recall the definition of a pomset from~\cite{pomsets}:
@@ -368,6 +368,13 @@ we also have negative statements $(\bEv \ltN \aEv)$
   \item if $\cEv \ge \bEv \ltN \aEv$ or $\cEv \ltN \bEv \ge \aEv$ then $\cEv \ltN \aEv$.
   \end{itemize}
 \end{definition}
+
+\begin{definition}
+  A \emph{3-valued pomset} $(\Event, {\le}, {\ltN}, \labelling)$
+  is a 3-valued poset $(\Event, {\le}, {\ltN})$ and
+  a pomset $(\Event, {\le}, \labelling)$.
+\end{definition}
+
 In diagrams, we visualize $(\bEv \ltN \aEv)$ as a dashed
 arrow from $\aEv$ to $\bEv$ (note the flip of direction).
 We will refer to edges introduced by $(\bEv < \aEv)$ as
@@ -471,22 +478,22 @@ but this is \emph{not} a valid 3-valued pomset,
 since $(\DW{\aLoc}{2}) < (\DR{\aLoc}{1})$ but also $(\DW{\aLoc}{2}) \ltN (\DR{\aLoc}{1})$,
 which is a contradiction.
 
-\subsection{Sets of pomsets}
+\subsection{Sets of 3-valued pomsets}
 \label{sec:sets-of-pomsets}
 
 Our model of programs is going to be sets of rf-pomsets. In this section we define
 the operations on pomsets which are used in giving the semantics. These
-operations such as prefixing, choice, parallel composition, and so on, which are familiar
+operations such as prefixing, parallel composition, restriction and so on, which are familiar
 from models of concurrency such as~\cite{ccs,csp}, but adapted to the setting of speculative
 evaluation.
 
 \begin{definition}
-Let $\aPS_0 \in (\aPSS_1 \sqcup \aPSS_2)$
+Let $\aPS_0 \in (\aPSS_1 \parallel \aPSS_2)$
 whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
 \begin{itemize}
 \item $\Event_0 = \Event_1 \cup \Event_2$,
-\item $\RF_0 = \RF_1 \cup \RF_2$,
 \item if $\aEv \le_1 \bEv$ or $\aEv \le_2 \bEv$ then $\aEv \le_0 \bEv$,
+\item if $\aEv \ltN_1 \bEv$ or $\aEv \ltN_2 \bEv$ then $\aEv \ltN_0 \bEv$,
 \item if $\labelling_0(\aEv) = (\aForm_0 \mid \aAct)$ then either:
   \begin{itemize}
   \item $\labelling_1(\aEv) = (\aForm_1 \mid \aAct)$ and $\labelling_2(\aEv) = (\aForm_2 \mid \aAct)$
@@ -498,7 +505,8 @@ whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
   \end{itemize}
 \end{itemize}
 \end{definition}
-We use $\aPSS_1 \sqcup \aPSS_2$ in defining the semantics of conditionals.
+We use $\aPSS_1 \parallel \aPSS_2$ in defining the semantics of conditionals
+and concurrency.
 It contains the union of pomsets from $\aPSS_1$ and $\aPSS_2$,
 allowing overlap as long as they agree on actions. For example, if
 $\aPSS_1$ and $\aPSS_2$ contain:
@@ -509,59 +517,15 @@ $\aPSS_1$ and $\aPSS_2$ contain:
 \end{tikzpicture}\qquad\qquad\begin{tikzpicture}[node distance=1em]
   \event{b}{\bForm_2 \mid \bAct}{}
   \event{c}{\cForm \mid \cAct}{right=of b}
-  \po{b}{c}
+  \wk{b}{c}
 \end{tikzpicture}\]
-then $\aPSS_1 \sqcup \aPSS_2$ contains:
+then $\aPSS_1 \parallel \aPSS_2$ contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{a}{\aForm \mid \aAct}{}
   \event{b}{\bForm_1 \lor \bForm_2 \mid \bAct}{right=of a}
   \event{c}{\cForm \mid \cAct}{right=of b}
   \po{a}{b}
-  \po{b}{c}
-\end{tikzpicture}\]
-
-\begin{definition}
-Let $\aPS_0 \in (\aPSS_1 \parallel \aPSS_2)$
-whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
-\begin{itemize}
-\item $\Event_0 = \Event_1 \cup \Event_2$, for disjoint $\Event_1$ and $\Event_2$,
-\item $\RF_0 \supseteq \RF_1 \cup \RF_2$, and
- for any $\bEv, \aEv \in \Event_i$, if $(\bEv,\aEv)\in\RF_0$ then $(\bEv,\aEv)\in\RF_i$.
-\item if $\aEv \le_1 \bEv$ or $\aEv \le_2 \bEv$ then $\aEv \le_0 \bEv$,
-\item if $\labelling_0(\aEv) = (\aForm_0 \mid \aAct)$ then either:
-  \begin{itemize}
-  \item $\labelling_1(\aEv) = (\aForm_1 \mid \aAct)$ and $\aEv \not\in \Event_2$
-    and $\aForm_0$ implies $\aForm_1$, or
-  \item $\labelling_2(\aEv) = (\aForm_2 \mid \aAct)$ and $\aEv \not\in \Event_1$
-    and $\aForm_0$ implies $\aForm_2$.
-  \end{itemize}
-\end{itemize}
-\end{definition}
-Parallel composition is very similar to join, with two important differences:
-it can add rf edges between the two sides, and there is no merging of events.
-For example, if
-$\aPSS_1$ and $\aPSS_2$ contain:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{a}{\aForm \mid \aAct}{}
-  \event{b}{\bForm \mid \bAct}{right=of a}
-  \po{a}{b}
-\end{tikzpicture}\qquad\qquad\begin{tikzpicture}[node distance=1em]
-  \event{c}{\cForm \mid \cAct}{}
-  \event{d}{\dForm \mid \dAct}{right=of c}
-  \po{c}{d}
-\end{tikzpicture}\]
-and $\aAct$ writes $\aVal$ to $\aLoc$, which $\cAct$ reads,
-and $\dAct$ writes $\bVal$ to $\bLoc$, which $\bAct$ reads,
-then $\aPSS_1 \sqcup \aPSS_2$ contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{a}{\aForm \mid \aAct}{}
-  \event{b}{\bForm \mid \bAct}{right=of a}
-  \event{c}{\cForm \mid \cAct}{right=2.5em of b}
-  \event{d}{\dForm \mid \dAct}{right=of c}
-  \po{a}{b}
-  \po{c}{d}
-  \rf[out=25,in=155]{a}{c}
-  \rf[out=205,in=335]{d}{b}
+  \wk{b}{c}
 \end{tikzpicture}\]
 
 \begin{definition}
@@ -569,16 +533,17 @@ Let $(\phi \mid \aAct) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
 \item $\Event' = \Event \cup \{\cEv\}$,
-\item $\RF' = \RF$,
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
+\item if $\bEv \ltN \aEv$ then $\bEv \ltN' \aEv$,
 \item $\labelling'(\cEv) = (\bForm, \aAct)$, where $\bForm$ implies $\aForm$, and
 \item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then:
   \begin{itemize}
   \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
   \item $\bForm'$ implies $\bForm[\vec\aVal/\vec\aLoc]$,
-  \item if $\bForm$ is dependent on some $\vec\aLoc$,
-    or $\bAct$ writes to some $\vec\bLoc$,
-    then $\cEv \le' \aEv$.
+  \item if $\bForm$ is dependent on any $\vec\aLoc$,
+    then $\cEv \le' \aEv$, and
+  \item if $\bAct$ writes to $\vec\bLoc$,
+    then $\cEv \gtN' \aEv$.
   \end{itemize}
 \end{itemize}
 where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$ and writes $\vec\bVal$ to $\vec\bLoc$.
@@ -586,12 +551,10 @@ where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$ and writes $\vec\bVal$ to $\vec
 Prefixing is used to define the semantics of reads and writes, and adds a new event $\cEv$
 with action $\aAct$ and a precondition which implies $\phi$. It performs a substitution
 on the preconditions of any subsequent events. The tricky part of the definition
-is the last clause, which places requirements on $\cEv \le \aEv$. In normal prefixing,
-this would always be required, but we only require it when either the precondition of $\aEv$
+is the last two clauses, which places requirements on $\cEv \le \aEv$ and $\cEv \gtN \aEv$. In normal prefixing,
+these would always be required, but we only require it when either the precondition of $\aEv$
 depends on one of the variables read by $\aAct$, or if $\cEv$ and $\aEv$ write to the same
-variable (this condition, called \emph{per-location program order}
-in~\cite{alglave}, is necessary for the treatment of release/acquire fences
-in \S\ref{sec:ra}). For example, if 
+variables. For example, if 
 $\aPSS$ contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{b}{\bForm \mid \bAct}{}
@@ -615,8 +578,8 @@ Let $\aPSS[\aExp/\aLoc]$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
 \item $\Event' = \Event$,
-\item $\RF' = \RF$,
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$, and
+\item if $\bEv \ltN \aEv$ then $\bEv \ltN' \aEv$, and
 \item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm[\aExp/\aLoc] \mid \aAct)$.
 \end{itemize}
 and similarly for $\aPSS[\aLoc/\aReg]$.
@@ -642,7 +605,7 @@ semantics of a simple concurrent imperative programming language.
   \sem{\SKIP} & = & \{ \emptyset \} \\
   \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \sem{\aCmd}[\aExp/\aLoc] \cup \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
   \sem{\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\DR\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
-  \sem{\IF (\aExp) \THEN \aCmd \ELSE \bCmd \FI} & = & (\aExp \neq 0 \mid \sem{\aCmd}) \sqcup (\aExp=0 \mid \sem{\bCmd}) \\
+  \sem{\IF (\aExp) \THEN \aCmd \ELSE \bCmd \FI} & = & (\aExp \neq 0 \mid \sem{\aCmd}) \parallel (\aExp=0 \mid \sem{\bCmd}) \\
   \sem{\aCmd \PAR \bCmd} & = & \sem{\aCmd} \parallel \sem{\bCmd} \\
   \sem{\VAR\aLoc\SEMI \aCmd} & = & \nu \aLoc \st \sem{\aCmd}
 \end{eqnarray*}
