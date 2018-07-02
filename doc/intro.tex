@@ -48,7 +48,7 @@ execution of programs on modern microprocessors.
   and is not successful, it raises the concern that the predictive
   mechanisms themselves could cause information-leaks via timing
   side-channels; a fear that is realized with devastating impact by
-  the Spectre family of attacks~\cite{???}.
+  the Spectre family of attacks~\cite{DBLP:journals/corr/abs-1801-01203}.
 
 \item Several modern microprocessors~\cite{ChongSW18} support transactions
   to aid in the design of correct and efficient concurrent
@@ -65,7 +65,7 @@ execution of programs on modern microprocessors.
   concurrently executing transaction. In combination with the
   techniques used in Spectre, this potential has been exploited
   recently to accelerate and scale up the efficacy of the attacker in
-  the Spectre family of attacks~\cite{???}.
+  the Spectre family of attacks~\cite{DBLP:conf/uss/DisselkoenKPT17}.
 
 \item Compiler optimizations may depend on both branches of
   a conditional, for example one that replaces
@@ -78,7 +78,7 @@ execution of programs on modern microprocessors.
 
   This would be fine if there were no program constructs
   which could observe control dependencies, but unfortunately
-  relaxed memory models such as JMM~\cite{Manson:2005:JMM:1047659.1040336}, C++~\cite{Boehm:2008:FCC:1375581.1375591} or LLVM~\cite{???}
+  relaxed memory models such as JMM~\cite{Manson:2005:JMM:1047659.1040336}, C++~\cite{Boehm:2008:FCC:1375581.1375591} or LLVM~\cite{DBLP:conf/popl/ZhaoNMZ12}
   allow for such observations. This means there is the possibility
   for information flows caused by optimizing compilers, which
   we investigate in this paper.
