@@ -158,6 +158,7 @@ struct manyRuns_res {
                             // E.g. numOffBy[0] gives how many times it
                             //   was exactly correct
   unsigned numRuns;  // how many total runs were done (sum of the entries in numOffBy)
+  unsigned totalBitsCorrect;  // how many total bits were correct across all runs
   uint64_t elapsedNanoseconds;  // total duration of manyRuns, in nanoseconds
 };
 
@@ -166,15 +167,21 @@ struct manyRuns_res {
 // durationMS: how long to run the program for (approximately), in milliseconds
 // res: pointer to a manyRuns_res struct where results should be returned
 void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct manyRuns_res* res) {
-  for(int i = 0; i < 65; i++) res->numOffBy[i] = 0;
+  // initialize res
+  memset(res->numOffBy, 0, 2049*sizeof(unsigned));
   res->numRuns = 0;
+  res->totalBitsCorrect = 0;
+
   uint64_t start = getTime();
   uint64_t targetEnd = start + durationMS*1000000;
   while(getTime() < targetEnd) {
     uint64_t* guessedSecret = leak2048bitSecret(iters, error_runs);
     unsigned bitsWrong = 0;
     for(unsigned which_64t = 0; which_64t < 32; which_64t++)
-      for(int i = 0; i < 64; i++) if((SECRET[which_64t] & (1ULL << i)) ^ (guessedSecret[which_64t] & (1ULL << i))) bitsWrong++;
+      for(int i = 0; i < 64; i++)
+        if((SECRET[which_64t] & (1ULL << i)) ^ (guessedSecret[which_64t] & (1ULL << i))) bitsWrong++;
+
+    res->totalBitsCorrect += 2048-bitsWrong;
     res->numOffBy[bitsWrong]++;
     res->numRuns++;
     free(guessedSecret);
@@ -186,6 +193,7 @@ void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct m
 // These are explained in manyRuns_analyze()
 struct manyRuns_analysis {
   double ns_per_run;  // how many nanoseconds each run took on average
+  double bitAccuracy;  // what percentage of bits were leaked correctly
   double completelyCorrectRate;  // what percentage of trials obtained the completely correct secret
   double leakedBitsPerSec;  // information leak bandwidth, in bits/sec
 };
@@ -195,6 +203,7 @@ struct manyRuns_analysis {
 static void manyRuns_analyze(struct manyRuns_res* res, struct manyRuns_analysis* analysis) {
   analysis->ns_per_run = res->elapsedNanoseconds / (double)res->numRuns;
   double sec_per_run = analysis->ns_per_run / 1e9;
+  analysis->bitAccuracy = res->totalBitsCorrect / (double)(2048*res->numRuns);
   analysis->completelyCorrectRate = res->numOffBy[0] / (double)res->numRuns;
   analysis->leakedBitsPerSec = 2048 * (1 / sec_per_run);
 }
@@ -308,15 +317,19 @@ int main(int argc, char* argv[]) {
     manyRuns(iters, error_runs, 2000, &res);
     struct manyRuns_analysis analysis;
     manyRuns_analyze(&res, &analysis);
+
+    printf("Number of complete 2048-bit trials which were off by x bits:\n");
     unsigned total = 0;
     for(unsigned i = 0; i < 2049 && total != res.numRuns; i++) {
       if(i == 0 || res.numOffBy[i] > 0) printf("%u: %u\n", i, res.numOffBy[i]);
       total += res.numOffBy[i];
     }
     if(total != res.numRuns) printf("more: %u\n", res.numRuns - total);
+
     printf("%u runs in %.3f sec, or %.3f ms per run\n", res.numRuns, res.elapsedNanoseconds/(double)1e9, analysis.ns_per_run/1e6);
-    printf("%.1f%% of runs were completely correct\n", analysis.completelyCorrectRate*100);
-    printf("Information leak bandwidth approximately %.1f bits per second\n", analysis.leakedBitsPerSec);
+    printf("  (leak bandwidth %.1f bits/sec after error correction)\n", analysis.leakedBitsPerSec);
+    printf("Overall, after error correction, %.3f%% of bits were correct\n", 100*analysis.bitAccuracy);
+    printf("  and %.1f%% of runs were completely correct\n", 100*analysis.completelyCorrectRate);
 
   }
   return 0;
