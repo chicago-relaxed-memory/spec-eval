@@ -25,7 +25,7 @@ static volatile bool alwaysFalse = false;
 static volatile bool observer_exit = false;
 static pthread_barrier_t barrier;
 static unsigned x;
-static unsigned a;
+static unsigned char a[2048];
 
 // attack function for gcc (i.e. not clang/llvm)
 #if !defined(__clang__) && !defined(__llvm__)
@@ -102,19 +102,19 @@ void (*attackfunc_array[2048])(uint64_t);
 // iters: a tuning parameter passed on to attackfunc()
 // returns the guessed value of the bit
 static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
-  // initialize for run
   x = 0;
-  a = 0;
 
   pthread_barrier_wait(&barrier);  // tell observer to start
 
   attackfunc_array[bitnum](iters);
 
-  pthread_barrier_wait(&barrier);
-  // after that barrier, 'a' is guaranteed to be valid?
+  // use a volatile pointer so that it keeps reloading for real
+  volatile unsigned char* result = &a[bitnum];
+  unsigned char retval;
+  do { retval = *result; } while(retval == 0);  // wait until result is nonzero
 
-  return a==2;  // if we observe x==2, then the x=1 store
-                // was (probably) eliminated; see notes on attackfunc()
+  return retval == 2;  // if we observe x==2, then the x=1 store
+                       // was (probably) eliminated; see notes on attackfunc()
 }
 
 static void* observer(void* dummy) {
@@ -122,14 +122,17 @@ static void* observer(void* dummy) {
   // but we don't want x itself to be volatile, because then DSE isn't allowed
   volatile unsigned* x_vol = &x;
 
+  unsigned index = 0;
+
   // loop until main thread tells us to exit
   while(!observer_exit) {
     pthread_barrier_wait(&barrier);
 
     // wait until we observe either x==1 or x==2
-    do { a = *x_vol; } while(a == 0);
+    do { a[index] = *x_vol; } while(a[index] == 0);
 
-    pthread_barrier_wait(&barrier);
+    index++;  // having recorded one slot of a, move to the next slot
+    if(index >= 2048) index = 0;
   }
 }
 
@@ -145,6 +148,8 @@ static uint64_t* leak2048bitSecret(uint64_t iters, unsigned error_runs) {
   memset(finalLeakedSecret, 0xff, 32*sizeof(uint64_t));
 
   do {
+    memset(a, 0, 2048*sizeof(unsigned char));  // this ensures that leakSingleBit properly waits for observer's result
+                                               // rather than possibly reading last time's result
     for(unsigned which_64t = 0; which_64t < 32; which_64t++) {
       uint64_t leakedSecret = 0;  // just the 64 bits we're operating on right now
       for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
@@ -289,8 +294,8 @@ int main(int argc, char* argv[]) {
 
 #if !defined(__clang__) && !defined(__llvm__)
     // gcc respects the 'iters' parameter
-    const uint64_t iters_vals[] = {10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
-    const unsigned length_iters_vals = 12;
+    const uint64_t iters_vals[] = {10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000};
+    const unsigned length_iters_vals = 14;
 #else
     // clang does not respect the 'iters' parameter
     const uint64_t iters_vals[] = {1};
