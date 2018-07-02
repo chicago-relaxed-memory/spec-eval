@@ -21,17 +21,12 @@ to the definition of $(\aForm\mid\aAct)\prefix\aPSS$
 This constraint ensures that events are ordered before a
 release and after an acquire.
 
-In addition, we must change the semantics of write from
-\S\ref{sec:sets-of-pomsets} to ensure that an action is generated for every
-write that might be published by a subsequent release action.
-% \begin{eqnarray*}
-%   \sem{\aLoc\GETS\aExp\SEMI \aCmd}
-%   & = & \{ \aPS \in \sem{\aCmd}[\aExp/\aLoc] \mid \exists \} \\
-%   & \cup & \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]
-% \end{eqnarray*}
-Formally, $\sem{\aLoc\GETS\aExp\SEMI \aCmd}$ only includes pomsets
-from $\sem{\aCmd}[\aExp/\aLoc]$ that contain a write to
-$\aLoc$ that is not preceded by a release.
+% In addition, we must change the semantics of write from
+% \S\ref{sec:sets-of-pomsets} to ensure that an action is generated for every
+% write that might be published by a subsequent release action.
+% Formally, $\sem{\aLoc\GETS\aExp\SEMI \aCmd}$ only includes pomsets
+% from $\sem{\aCmd}[\aExp/\aLoc]$ that contain a write to
+% $\aLoc$ that is not preceded by a release.
 
 In examples, we will use
 releasing writes and acquiring reads:
@@ -46,8 +41,6 @@ $\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$.
   \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
   \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
 \end{eqnarray*}
-
-\todo{Is this doing the right thing if an acquiring read happens to read from the same thread?}
 
 For example, consider the program:
 \begin{verbatim}
@@ -159,19 +152,20 @@ with a plain read, then the outcome $(\DR f1)$ and $(\DR x0)$ is possible.
 % since $(\DW x0) < (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
 % requirements to be an rf-pomset.
 
-The notion rf-pomset is sufficient to capture hardware models and
-release/acquire access in C++, where reads-from implies happens-before
-\cite{alglave}.  To model C++ relaxed access, it
-would be necessary to use a more general notion of rf-pomset, where
-$(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily imply $\bEv < \aEv$, instead
-requiring that $(\mathord< \cup \mathord\RF)$ be acyclic.
+% The notion rf-pomset is sufficient to capture hardware models and
+% release/acquire access in C++, where reads-from implies happens-before
+% \cite{alglave}.  To model C++ relaxed access, it
+% would be necessary to use a more general notion of rf-pomset, where
+% $(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily imply $\bEv < \aEv$, instead
+% requiring that $(\mathord< \cup \mathord\RF)$ be acyclic.
 
 \subsection{Transactions}
 \label{sec:transactions}
 
-We introduce two actions to model transactions: The acquire action
-$(\DB{\aVal})\in\Acq$ represents a begin.  The release action
-$(\DC{\aVal})\in \Rel$ represents a commit.  The semantics is as follows:
+We present a simple model of serializable transactions. The action
+$(\DB{\aVal})\in\Acq$ represents the begin of a transaction with id $\aVal$
+and $(\DC{\aVal})\in \Rel$ represents the corresponding commit, with
+semantics:
 \begin{eqnarray*}
   \sem{\aReg\GETS\BEGIN\aVal\SEMI \bCmd}
   & = &
@@ -183,35 +177,51 @@ $(\DC{\aVal})\in \Rel$ represents a commit.  The semantics is as follows:
   \cup
   (\FALSE \mid \DC{\aVal}) \prefix \sem{\bCmd}[0/\aReg]
 \end{eqnarray*}
-
+At top level, we require that pomsets be \emph{serializable}, as defined below.
 \begin{definition}
-  We say that event $\begEv$ \emph{matches} $\comEv$ if
-  $\labelling(\begEv)=(\DB{\aVal})$ and $\labelling(\comEv)=(\DC{\aVal})$,
+  We say that event $\comEv$ \emph{matches} $\begEv$ if
+  $\labelling(\comEv)=(\DC{\aVal})$ and $\labelling(\begEv)=(\DB{\aVal})$,
   for some $\aVal$.
   We say that a begin event \emph{aborts} every matching commit is
   unsatisfiable.
   We say that $\begEv$ \emph{begins} $\aEv$ if $\begEv<\aEv$ is a tautologous
-  begin and there is no intervening tautologous matching commit.  
+  begin and there is no intervening tautologous matching commit; in this case
+  $\aEv$ \emph{belongs to} $\begEv$.
   % event $\comEv$ such that $\begEv<\comEv<\aEv$
   We say that $\comEv$ \emph{commits} $\aEv$ if $\comEv>\aEv$ is a
   tautologous commit and there is no intervening tautologous matching begin.
   % event $\begEv$ such that $\aEv<\begEv<\comEv$.
-\end{definition}
-\begin{definition}
-  A pomset is \emph{isolated} if:
-  \begin{itemize}
-  \item every commit follows the matching begin,
-  \item $<$ totally orders tautological begins and commits,
-  \item if $\begEv$ begins $\aEv$, but not $\bEv$, and $\bEv<\aEv$ then $\bEv<\begEv$,
-  \item if $\comEv$ ends $\aEv$, but not $\bEv$, and $\aEv<\bEv$ then $\comEv<\bEv$,
-  \item if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,    
-  \item if $\begEv$ begins both $\aEv$ and $\bEv$ which read the same
-    location then both see the read value, and
-  \item if $\begEv$ aborts then there must be some unsatisfiable matching
+% \end{definition}
+% \begin{definition}
+  A pomset is \emph{serializable} if:
+  \begin{enumerate}
+  \item\label{tx:1} no two begins have the same id,
+  \item\label{tx:2} every commit follows the matching begin,
+  \item\label{tx:3} $<$ totally orders tautological begins and commits,
+  \item\label{tx:4} if $\begEv$ begins $\aEv$, but not $\bEv$, and $\bEv<\aEv$ then $\bEv<\begEv$,
+  \item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, and $\aEv<\bEv$ then $\comEv<\bEv$,
+  \item\label{tx:6} if $\aEv$ and $\bEv$ belong to $\begEv$ and read the same
+    location, then both read the same value, 
+  % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,    
+  % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$
+  %   ends $\aEv$ such that both $\aEv$ implies $\comEv$ and $\comEv$ implies $\aEv$,    
+  \item\label{tx:7} if $\aEv$ belongs to $\begEv$, then $\aEv$ implies some
+    matching $\comEv$ that ends $\aEv$, and
+  \item\label{tx:8} if $\begEv$ aborts then there must be some unsatisfiable matching
     commit $\comEv$ and events $\begEv<\aEv<\comEv$ and $\bEv<\aEv$
     such that both $\aEv$ and $\bEv$ touch the same location.
-  \end{itemize}
+  \end{enumerate}
 \end{definition}
+In discussion, we identify transactions by their unique begin event.  A
+transaction that does not abort is \emph{successful}.
+%
+Conditions \ref{tx:1}-\ref{tx:5} ensure serializability.  Conditions
+\ref{tx:4}-\ref{tx:6} also ensure strong isolation for non-transactional
+events \cite{DBLP:journals/pacmpl/DongolJR18}. Condition \ref{tx:7} ensures
+that all events in aborted transactions are unsatisfiable.
+Condition \label{tx:8} requires that aborts only occur due to caching
+conflicts---this is similar to the treatment of the touch operation in
+\S\ref{sec:spectre}.
 
 % The definition handles simple examples:
 % \begin{itemize}

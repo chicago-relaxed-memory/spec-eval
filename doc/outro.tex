@@ -1,4 +1,4 @@
-\section{Conclusions}
+\section{Conclusions and future work}
 
 One oddity of the model is that
 $\sem{r \GETS x\SEMI y \GETS r\SEMI\SKIP}$ includes:
@@ -15,3 +15,24 @@ action denoting successful completion of the thread and only consider
 executions in which the precondition of every tick action is satisfiable.  We
 leave the elaboration of this idea as future work.
 
+\todo{Comment on the following:}
+\begin{itemize}
+\item coherence = per location total order on $\not<$
+
+\item Validation of write removal requires some tricks to ensure that thread
+  does not rf its own write
+
+\item Definition of rf can use $\not<$ in first clause, rather than $\leq$.
+  We chose the stronger definition because it makes some of the examples
+  simpler: in particular, the example motivating rf needs a volatile in the
+  other thread if you don't have rf-implies-hb. Old text: The notion
+  rf-pomset is sufficient to capture hardware models and release/acquire
+  access in C++, where reads-from implies happens-before \cite{alglave}.  To
+  model C++ relaxed access, it would be necessary to use a more general
+  notion of rf-pomset, where $(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily
+  imply $\bEv < \aEv$, instead requiring that $(\mathord< \cup \mathord\RF)$
+  be acyclic.
+
+\item The design space for transactions is very rich
+  \cite{DBLP:journals/pacmpl/DongolJR18}.  We have only presented one option.
+\end{itemize}
