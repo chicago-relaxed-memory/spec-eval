@@ -22,44 +22,43 @@ static const uint64_t SECRET[32] = {
 };
 
 static volatile bool alwaysFalse = false;
-static unsigned x[2048];  // use a different 'x' for each bit, so we don't have
-                          // to worry about resetting it properly with fencing,
-                          // or about running multiple threadfuncs in parallel
+static volatile bool observer_exit = false;
+static pthread_barrier_t barrier;
+static unsigned x;
+static unsigned a;
 
-// thread function for gcc (i.e. not clang/llvm)
+// attack function for gcc (i.e. not clang/llvm)
 #if !defined(__clang__) && !defined(__llvm__)
 
 // if the SECRET-based condition evaluates to false (i.e. the appropriate bit
 //   of SECRET was 0), gcc feels the need to keep the x=1 store intact,
-//   and the main thread will probably observe x==1.
+//   and the observer thread will probably observe x==1.
 // if the SECRET-based condition evaluates to true (i.e. the appropriate bit
 //   of SECRET was 1), gcc is fine skipping the dead x=1 store and doing
-//   just the x=2 store, and the main thread cannot observe x==1.
+//   just the x=2 store, and the observer thread cannot observe x==1.
 // iters: a tuning parameter, how long we attempt to stall (in some arbitrary
 //   time unit) between the two stores to x
-#define DECLARE_THREADFUNC(bitnum) \
-static void* threadfunc_##bitnum(void* iters) { \
-  x[bitnum] = 1; \
+#define DECLARE_ATTACKFUNC(bitnum) \
+/* don't inline attackfuncs: make gcc optimize each one as one function */ \
+static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t iters) { \
+  x = 1; \
  \
   /* waste some time, but don't use a syscall like usleep().                 */ \
   /* If we use a syscall, gcc wants to do the x=1 store first, regardless.   */ \
   /* Must be a do-while loop so gcc knows it executes at least once          */ \
   /* (otherwise gcc inserts an extra conditional branch, and suddenly thinks */ \
   /* the x=1 store is necessary again)                                       */ \
-  uint64_t iterscount = (uint64_t)iters; \
   volatile int v = 0; \
-  do { v++; } while(--iterscount > 0); \
+  do { v++; } while(--iters > 0); \
  \
   if(alwaysFalse) { \
-    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x[bitnum] = 2; \
+    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x = 2; \
   } else { \
-    x[bitnum] = 2; \
+    x = 2; \
   } \
-  \
-  return 0; \
 }
 
-#else  // thread function for clang/llvm
+#else  // attack function for clang/llvm
 
 #define TWICE(op) op op
 #define EIGHT(op) TWICE(TWICE(TWICE(op)))
@@ -68,14 +67,15 @@ static void* threadfunc_##bitnum(void* iters) { \
 
 // if the SECRET-based condition evaluates to false (i.e. the appropriate bit
 //   of SECRET was 0), clang feels the need to keep the x=1 store intact,
-//   and the main thread will probably observe x==1.
+//   and the observer thread will probably observe x==1.
 // if the SECRET-based condition evaluates to true (i.e. the appropriate bit
 //   of SECRET was 1), clang is fine skipping the dead x=1 store and doing
-//   just the x=2 store, and the main thread cannot observe x==1.
+//   just the x=2 store, and the observer thread cannot observe x==1.
 // note that for clang we ignore the 'iters' parameter; see notes below
-#define DECLARE_THREADFUNC(bitnum) \
-static void* threadfunc_##bitnum(void* junk) { \
-  x[bitnum] = 1; \
+#define DECLARE_ATTACKFUNC(bitnum) \
+/* don't inline attackfuncs: make clang optimize each one as one function */ \
+static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t junk) { \
+  x = 1; \
  \
   /* waste some time, but don't use a syscall like usleep().                    */ \
   /* For clang, we also can't use a loop; the two stores to x must remain in    */ \
@@ -84,37 +84,53 @@ static void* threadfunc_##bitnum(void* junk) { \
   EIGHT(EIGHT(__rdtsc();)) \
  \
   if(alwaysFalse) { \
-    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x[bitnum] = 2; \
+    if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x = 2; \
   } else { \
-    x[bitnum] = 2; \
+    x = 2; \
   } \
- \
-  return 0; \
 }
 
 #endif  // gcc vs. clang/llvm
 
-// declare all threadfuncs
-FOR_0_TO_2047(DECLARE_THREADFUNC)
+// declare all attackfuncs
+FOR_0_TO_2047(DECLARE_ATTACKFUNC)
 
-// array storing pointers to all 2048 threadfuncs
-void* (*threadfunc_array[2048])(void*);
+// array storing pointers to all 2048 attackfuncs
+void (*attackfunc_array[2048])(uint64_t);
 
 // bitnum: which bit of the secret to leak
-// iters: a tuning parameter passed on to threadfunc()
+// iters: a tuning parameter passed on to attackfunc()
 // returns the guessed value of the bit
 static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
-  volatile unsigned* x_vol = &x[bitnum];  // use a volatile pointer so it keeps reloading for real
-                                          // but we don't want x itself to be volatile, because then DSE isn't allowed
-  pthread_t thread;
-  void* (*threadfuncToUse)(void*) = threadfunc_array[bitnum];
-  pthread_create(&thread, NULL, threadfuncToUse, (void*) iters);
-  unsigned a;
-  do { a = *x_vol; } while(a == 0);  // wait until we observe either x==1 or x==2
-  void* dummy;
-  pthread_join(thread, &dummy);
+  // initialize for run
+  x = 0;
+  a = 0;
+
+  pthread_barrier_wait(&barrier);  // tell observer to start
+
+  attackfunc_array[bitnum](iters);
+
+  pthread_barrier_wait(&barrier);
+  // after that barrier, 'a' is guaranteed to be valid?
+
   return a==2;  // if we observe x==2, then the x=1 store
-                         // was (probably) eliminated; see notes on threadfunc()
+                // was (probably) eliminated; see notes on attackfunc()
+}
+
+static void* observer(void* dummy) {
+  // use a volatile pointer so that it keeps reloading for real
+  // but we don't want x itself to be volatile, because then DSE isn't allowed
+  volatile unsigned* x_vol = &x;
+
+  // loop until main thread tells us to exit
+  while(!observer_exit) {
+    pthread_barrier_wait(&barrier);
+
+    // wait until we observe either x==1 or x==2
+    do { a = *x_vol; } while(a == 0);
+
+    pthread_barrier_wait(&barrier);
+  }
 }
 
 // iters: a tuning parameter passed on to leakSingleBit()
@@ -133,7 +149,6 @@ static uint64_t* leak2048bitSecret(uint64_t iters, unsigned error_runs) {
       uint64_t leakedSecret = 0;  // just the 64 bits we're operating on right now
       for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
         unsigned bigbitnum = which_64t*64 + bitnum;
-        x[bigbitnum] = 0;
         if(leakSingleBit(bigbitnum, iters)) leakedSecret |= 1ULL << bitnum;
       }
       // if we ever observe 0 in any position, that means we observed x=1,
@@ -215,7 +230,7 @@ static void printUsage(char* progname) {
                   "In the first case, print results for a variety of values for the \"iters\" and \"error_runs\" tuning parameters\n"
                   "In the second case, print results for just the given values of the tuning parameters\n\n"
 #if !defined(__clang__) && !defined(__llvm__)
-                  "  \"iters\" tuning parameter: how long the signalling thread waits between its two assignments to x\n"
+                  "  \"iters\" tuning parameter: how long the main thread waits between its two assignments to x\n"
 #else
                   "  \"iters\" tuning parameter: Since this executable was compiled with clang/llvm, this\n"
                   "    parameter is meaningless and ignored\n"
@@ -259,9 +274,14 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
 
-  // initialize threadfunc array
-#define INITIALIZE_THREADFUNC(i) threadfunc_array[i] = threadfunc_##i;
-  FOR_0_TO_2047(INITIALIZE_THREADFUNC)
+  // initialize attackfunc array
+#define INITIALIZE_ATTACKFUNC(i) attackfunc_array[i] = attackfunc_##i;
+  FOR_0_TO_2047(INITIALIZE_ATTACKFUNC)
+
+  // Fire up the observer thread
+  pthread_barrier_init(&barrier, NULL, 2);
+  pthread_t thread;
+  pthread_create(&thread, NULL, &observer, NULL);
 
   struct manyRuns_res res;
 
@@ -269,8 +289,8 @@ int main(int argc, char* argv[]) {
 
 #if !defined(__clang__) && !defined(__llvm__)
     // gcc respects the 'iters' parameter
-    const uint64_t iters_vals[] = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
-    const unsigned length_iters_vals = 15;
+    const uint64_t iters_vals[] = {10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+    const unsigned length_iters_vals = 12;
 #else
     // clang does not respect the 'iters' parameter
     const uint64_t iters_vals[] = {1};
@@ -332,5 +352,9 @@ int main(int argc, char* argv[]) {
     printf("  and %.1f%% of runs were completely correct\n", 100*analysis.completelyCorrectRate);
 
   }
+
+  // tell the observer thread to exit
+  observer_exit = true;
+
   return 0;
 }

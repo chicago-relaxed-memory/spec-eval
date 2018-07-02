@@ -16,7 +16,7 @@ dseattack.s : dseattack.c for_0_to_2047.h
 
 .PHONY : run
 run: $(EXECS)
-	./$< run 100 3  # approximately tuned well on my (Craig's) machine
+	./$< run 10000 3  # approximately tuned well on my (Craig's) machine
 
 .PHONY : runtune
 runtune: $(EXECS)
