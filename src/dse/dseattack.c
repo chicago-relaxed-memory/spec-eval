@@ -125,8 +125,8 @@ static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
 //   as a heap-allocated array which caller is responsible for freeing
 static uint64_t* leak2048bitSecret(uint64_t iters, unsigned error_runs) {
   unsigned run = 0;
-  uint64_t* finalLeakedSecret = malloc(2048);  // 32 uint64_t's
-  for(unsigned i = 0; i < 32; i++) finalLeakedSecret[i] = 0xffffffffffffffff;
+  uint64_t* finalLeakedSecret = malloc(32*sizeof(uint64_t));  // 2048 bits
+  memset(finalLeakedSecret, 0xff, 32*sizeof(uint64_t));
 
   do {
     for(unsigned which_64t = 0; which_64t < 32; which_64t++) {
