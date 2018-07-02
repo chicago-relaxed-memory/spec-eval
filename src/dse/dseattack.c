@@ -97,7 +97,7 @@ static void* threadfunc_##bitnum(void* junk) { \
 // declare all threadfuncs
 FOR_0_TO_2047(DECLARE_THREADFUNC)
 
-// array storing pointers to all 64 threadfuncs
+// array storing pointers to all 2048 threadfuncs
 void* (*threadfunc_array[2048])(void*);
 
 // bitnum: which bit of the secret to leak
