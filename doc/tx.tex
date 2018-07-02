@@ -170,48 +170,48 @@ requiring that $(\mathord< \cup \mathord\RF)$ be acyclic.
 \label{sec:transactions}
 
 We introduce two actions to model transactions: The acquire action
-$(\DB) \in \Acq$ represents a begin.  The release actions $(\DC) \in \Rel$
-represents a commit.  The semantics is as follows:
+$(\DB{\aVal})\in\Acq$ represents a begin.  The release action
+$(\DC{\aVal})\in \Rel$ represents a commit.  The semantics is as follows:
 \begin{eqnarray*}
-  \sem{\BEGIN\SEMI \bCmd}
-  & = & 
-  (\TRUE \mid \DB) \prefix \sem{\bCmd}
-  \\
-  \sem{\aReg\GETS\COMMIT\SEMI \bCmd}
+  \sem{\aReg\GETS\BEGIN\aVal\SEMI \bCmd}
   & = &
-  (\TRUE \mid \DC) \prefix \sem{\bCmd}[1/\aReg]
+  (\TRUE \mid \DB{\aVal}) \prefix \sem{\aCmd}[\aVal/\aReg]
+  \\
+  \sem{\aReg\GETS\COMMIT\aVal\SEMI \bCmd}
+  & = &
+  (\TRUE \mid \DC{\aVal}) \prefix \sem{\bCmd}[1/\aReg]
   \cup
-  (\FALSE \mid \DC) \prefix \sem{\bCmd}[0/\aReg]
+  (\FALSE \mid \DC{\aVal}) \prefix \sem{\bCmd}[0/\aReg]
 \end{eqnarray*}
 
 \begin{definition}
+  We say that event $\begEv$ \emph{matches} $\comEv$ if
+  $\labelling(\begEv)=(\DB{\aVal})$ and $\labelling(\comEv)=(\DC{\aVal})$,
+  for some $\aVal$.
+  We say that a begin event \emph{aborts} every matching commit is
+  unsatisfiable.
   We say that $\begEv$ \emph{begins} $\aEv$ if $\begEv<\aEv$ is a tautologous
-  begin and there is no intervening tautologous commit.  
+  begin and there is no intervening tautologous matching commit.  
   % event $\comEv$ such that $\begEv<\comEv<\aEv$
   We say that $\comEv$ \emph{commits} $\aEv$ if $\comEv>\aEv$ is a
-  tautologous commit and there is no intervening tautologous begin.
+  tautologous commit and there is no intervening tautologous matching begin.
   % event $\begEv$ such that $\aEv<\begEv<\comEv$.
-  We say that $\begEv$ \emph{aborts} if $\begEv$ is a tautologous begin and
-  for every tautologous commit $\comEv > \begEv$ there is an intervening
-  tautologous begin. 
-  %$\bEv$ such that $\begEv<\bEv<\comEv$.
 \end{definition}
 \begin{definition}
   A pomset is \emph{isolated} if:
   \begin{itemize}
+  \item every commit follows the matching begin,
   \item $<$ totally orders tautological begins and commits,
   \item if $\begEv$ begins $\aEv$, but not $\bEv$, and $\bEv<\aEv$ then $\bEv<\begEv$,
   \item if $\comEv$ ends $\aEv$, but not $\bEv$, and $\aEv<\bEv$ then $\comEv<\bEv$,
-  \item if $\begEv$ begins $\aEv$ then some $\comEv$ both implies and ends $\aEv$,    
+  \item if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,    
   \item if $\begEv$ begins both $\aEv$ and $\bEv$ which read the same
     location then both see the read value, and
-  \item if $\begEv$ aborts then there must be some unsatisfiable commit
-    $\comEv>\begEv$, with no intervening tautologous begin, and events
-    $\begEv<\aEv<\comEv$ and $\bEv<\aEv$ such that both $\aEv$ and $\bEv$
-    touch the same location.
+  \item if $\begEv$ aborts then there must be some unsatisfiable matching
+    commit $\comEv$ and events $\begEv<\aEv<\comEv$ and $\bEv<\aEv$
+    such that both $\aEv$ and $\bEv$ touch the same location.
   \end{itemize}
 \end{definition}
-
 
 % The definition handles simple examples:
 % \begin{itemize}

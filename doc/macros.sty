@@ -55,9 +55,8 @@
 \newcommand{\DW}[2]{\mathsf{W}\ifnotempty{#1}{\,#1\,#2}}
 \newcommand{\DT}[1]{\mathsf{T}\ifnotempty{#1}{\,#1}}
 \newcommand{\DF}{\mathsf{F}}
-\newcommand{\DB}{\mathsf{B}}
-\newcommand{\DC}{\mathsf{C}}
-\newcommand{\DA}{\mathsf{A}}
+\newcommand{\DB}[1]{\mathsf{B}\ifnotempty{#1}{\,#1}}
+\newcommand{\DC}[1]{\mathsf{C}\ifnotempty{#1}{\,#1}}
 
 \newcommand{\Event}{E}
 \newcommand{\aEv}{e}
@@ -84,8 +83,8 @@
 \newcommand{\REL}{\mathsf{rel}\,}
 \newcommand{\ACQ}{\mathsf{acq}\,}
 %\newcommand{\FENCE}{\texttt{fence}}
-\newcommand{\BEGIN}{\texttt{begin}}
-\newcommand{\COMMIT}{\texttt{commit}}
+\newcommand{\BEGIN}{\texttt{begin}\,}
+\newcommand{\COMMIT}{\texttt{commit}\,}
 \newcommand{\END}{\texttt{end}}
 \newcommand{\SKIP}{\texttt{skip}}
 \newcommand{\GETS}{\texttt{:=}\,}
