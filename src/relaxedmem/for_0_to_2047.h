@@ -21,8 +21,6 @@ macro(13) \
 macro(14) \
 macro(15) \
 macro(16) \
-
-/*
 macro(17) \
 macro(18) \
 macro(19) \
@@ -2055,4 +2053,3 @@ macro(2045) \
 macro(2046) \
 macro(2047) \
 
-  */
