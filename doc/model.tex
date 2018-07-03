@@ -24,7 +24,7 @@ the pomset:
   \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
   \po{ry1}{wx2}
 \end{tikzpicture}\]
-This pomset is build compositonally. First, $\sem{\aLoc\GETS\aReg+1}$
+This pomset is built compositionally. First, $\sem{\aLoc\GETS\aReg+1}$
 contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx2}{\aReg=1 \mid \DW{\aLoc}{2}}{right=of ry1}
@@ -208,7 +208,7 @@ for example if $\labelling(\aEv)=(\aForm\mid\aAct)$ and
 $\labelling(\bEv)=(\bForm\mid\bAct)$ then we say:
 \begin{itemize}
 \item $\aEv$ implies $\bEv$ whenever $\aForm$ implies $\bForm$,
-\item $\aEv$ is a tautology whenever $\aForm$ is a tautlogy,
+\item $\aEv$ is a tautology whenever $\aForm$ is a tautology,
 \item $\aEv$ is unsatisfiable whenever $\aForm$ is unsatisfiable,
 \item $\aEv$ is independent of $\aLoc$ whenever $\aForm$ is independent of $\aLoc$,
 \item $\aEv$ writes $\aVal$ to $\aLoc$ whenever $\aAct$ writes $\aVal$ to $\aLoc$, and
@@ -251,7 +251,7 @@ with another program which writes $0$ to $\aLoc$.
 If the program is closed wrt $\aLoc$ is scoped, though, such an execution cannot exist,
 so we need each read of $\aLoc$ to have a matching write.
 This is captured by defining when $\aEv$ \emph{reads $\aLoc$ from} $\bEv$~\cite{alglave}.
-A preliminary definition (which as we shall see, needs strengthened) is:
+A preliminary definition (which, as we shall see, needs to be strengthened) is:
 \begin{itemize}
 \item $\bEv < \aEv$,
 \item if $\aEv$ is satisfiable, then $\bEv$ is a tautology,
@@ -318,7 +318,7 @@ If this is placed in parallel with:
   \po{ry1}{wz1}
   \po{ry2}{wz2}
 \end{tikzpicture}\]
-then a possible excution is:
+then a possible execution is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\DW{\aLoc}{1}}{}
   \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
@@ -353,8 +353,8 @@ read from $(\DW{\aLoc}{1})$.
 There are a number of ways this can be addressed, for example
 in models such as~\cite{???} the reads-from relation is taken
 as a primitive. In this paper, we propose \emph{3-valued posets}
-as a solution. These are posets in which as well as positive statements
-$(\bEv < \aEv)$ (interpreted as $\aEv$ depends on $\bEv$)
+as a solution. These are posets in which, in addition to positive statements
+$(\bEv < \aEv)$ (interpreted as $\aEv$ depends on $\bEv$),
 we also have negative statements $(\bEv \ltN \aEv)$
 (interpreted as $\aEv$ cannot depend on $\bEv$).
 
@@ -480,11 +480,11 @@ which is a contradiction.
 \subsection{Sets of 3-valued pomsets}
 \label{sec:sets-of-pomsets}
 
-Our model of programs is going to be sets of rf-pomsets. In this section we define
-the operations on pomsets which are used in giving the semantics. These
-operations such as prefixing, parallel composition, restriction and so on, which are familiar
-from models of concurrency such as~\cite{ccs,csp}, but adapted to the setting of speculative
-evaluation.
+Our model of programs is going to be sets of 3-valued pomsets. In this section
+we define the operations on pomsets which are used in giving the semantics.
+These are operations such as prefixing, parallel composition, restriction, and
+so on; they are familiar from models of concurrency such as~\cite{ccs,csp}, but
+adapted here to the setting of speculative evaluation.
 
 \begin{definition}
 Let $\aPS_0 \in (\aPSS_1 \parallel \aPSS_2)$

@@ -88,7 +88,7 @@ execution of programs on modern microprocessors.
   these attacks on compiler optimizations, and the relaxed memory
   models that justify them, is new. In this paper we provide
   both a formal model for such attacks, and experimental evidence
-  about their practicality
+  about their practicality.
 
 \end{itemize}
 Information flow attacks motivate the main technical development of this
@@ -98,9 +98,9 @@ that captures enough detail to reveal and analyze the presence of side
 channels revealed by speculative execution.  
 
 
-The model is based on \emph{partially ordered multisets}~\cite{Plotkin:1997:TSP:266557.266600},
-whose labels are given by read and write actions. These can be visualized
-as a graph where the edges indicate dependencies, for example
+The model is based on \emph{partially ordered multisets}~\cite{Plotkin:1997:TSP:266557.266600}
+(``pomsets''), whose labels are given by read and write actions. These can be
+visualized as a graph where the edges indicate dependencies, for example
 $(\aReg\GETS\aLoc\SEMI \bLoc\GETS1\SEMI \cLoc\GETS\aReg+1)$
 has an execution modelled by the pomset:
 \[\begin{tikzpicture}[node distance=1em]

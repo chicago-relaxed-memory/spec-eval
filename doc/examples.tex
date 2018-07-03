@@ -714,9 +714,9 @@ but that \verb`(x := 1; || y := x+1;)` has:
   \rf{wx1}{rx1}
   \po{rx1}{wy2}
 \end{tikzpicture}\]
-That is in the sequential case there is no depenency from the
+That is, in the sequential case there is no dependency from the
 write of $x$ to the write of $y$, but in the concurrent case there
-is such a dependecy.
+is such a dependency.
 
 This can be used to construct a counter-example to thread inlining, based on~\cite[Ex~11]{jmm}:
 \begin{verbatim}
