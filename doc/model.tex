@@ -254,7 +254,7 @@ This is captured by defining when $\aEv$ \emph{reads $\aLoc$ from} $\bEv$~\cite{
 A preliminary definition (which as we shall see, needs strengthened) is:
 \begin{itemize}
 \item $\bEv < \aEv$,
-\item $\aEv$ implies $\bEv$,
+\item if $\aEv$ is satisfiable, then $\bEv$ is a tautology,
 \item $\bEv$ writes $\aVal$ to $\aLoc$,
   and $\aEv$ reads $\aVal$ from $\aLoc$, and
 \item there is no $\bEv < \cEv < \aEv$ such that
@@ -404,7 +404,7 @@ further concurrency cannot turn a non-blocker into a blocker.
   In a 3-valued pomset, $\aEv$ \emph{can read $\aLoc$ from} $\bEv$ whenever: 
   \begin{itemize}
   \item $\bEv < \aEv$,
-  \item $\aEv$ implies $\bEv$,
+  \item if $\aEv$ is satisfiable, then $\bEv$ is a tautology,
   \item $\bEv$ writes $\aVal$ to $\aLoc$,
     and $\aEv$ reads $\aVal$ from $\aLoc$, and
   \item if $\aEv$ implies $\cEv$ and $\cEv$ writes to $\aLoc$
