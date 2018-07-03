@@ -211,7 +211,7 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
   \item\label{tx:7} if $\aEv$ belongs to $\begEv$, then $\aEv$ implies some
     matching $\comEv$ that ends $\aEv$, and
   \item\label{tx:8} if $\begEv$ aborts then there must be some $\aEv$ that
-    belongs to $\begEv$ and some $\bEv\le\aEv$ that does not belong to
+    belongs to $\begEv$ and some tautologous $\bEv\le\aEv$ that does not belong to
     $\begEv$ such that $\aEv$ and $\bEv$ touch the same location.
   \end{enumerate}
 \end{definition}
