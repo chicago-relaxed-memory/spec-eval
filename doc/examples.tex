@@ -624,15 +624,15 @@ further in \S\ref{sec:experiments}.
 \subsection{Dead store elimination}
 \label{sec:dse}
 
-\todo{Revisit this model now that write events are optional.}
-
 A common compiler optimization is \emph{dead store elimination},
 in which writes are omitted if they will be overwritten by a subsequent
 write later in the same thread. For example, in the program
 \verb|(x := 1; x := 2)|, the first write to \verb|x| can be eliminated,
 since the second is guaranteed:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{wx2}{\DW{x}{2}}{}
+  \nonevent{wx1}{\DW{x}{1}}{}
+  \event{wx2}{\DW{x}{2}}{right=of wx1}
+  \wk{wx1}{wx2}
 \end{tikzpicture}\]
 but in the program \verb|(x := 1; if (r) { x := 2; })| the first
 write cannot be eliminated, since the second might not happen:

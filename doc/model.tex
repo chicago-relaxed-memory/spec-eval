@@ -258,7 +258,6 @@ A preliminary definition (which as we shall see, needs strengthened) is:
 \item $\bEv$ writes $\aVal$ to $\aLoc$,
   and $\aEv$ reads $\aVal$ from $\aLoc$, and
 \item there is no $\bEv < \cEv < \aEv$ such that
-  $\aEv$ implies $\cEv$ and
   $\cEv$ writes to $\aLoc$.
 \end{itemize}
 In diagrams, for readability we often highlight the reads-from edges,
@@ -407,7 +406,7 @@ further concurrency cannot turn a non-blocker into a blocker.
   \item if $\aEv$ is satisfiable, then $\bEv$ is a tautology,
   \item $\bEv$ writes $\aVal$ to $\aLoc$,
     and $\aEv$ reads $\aVal$ from $\aLoc$, and
-  \item if $\aEv$ implies $\cEv$ and $\cEv$ writes to $\aLoc$
+  \item if $\cEv$ writes to $\aLoc$
     then either $\bEv \ltN \cEv$ or $\cEv \ltN \aEv$.
   \end{itemize}
 \end{definition}
