@@ -1,121 +1,114 @@
 \section{Logic}
 \label{sec:logic}
 
-\newcommand{\since}[2]{{#1} \  {\tt  S } \  {#2}}
-\newcommand{\pLTL}{{\tt PLTL}}
+\newcommand{\pLTL}{\textsf{PLTL}}
 \newcommand{\once}{\Diamond^{-1}}
-\newcommand{\pastalways}{\Box^{-1}}
+\newcommand{\always}{\Box^{-1}}
 \newcommand{\afo}{\phi}
 \newcommand{\bfo}{\psi}
-\newcommand{\mods}{\tt Models}
+\newcommand{\mods}{\texsf{Models}}
 
-
-
-We work with a variant of \pLTL\ \footnote{ Our presentation differs from
-  standard presentations of past
-  LTL\citet{Lichtenstein:1985:GP:648065.747612} in two ways.  First, we
-  eschew the previous instant operator, to account for the current setting of
-  partial orders; second, we consider strictly past versions of the ``once''
-  and ``always in the past'' operators, by not evaluating the formula at the
-  current instant.}  interpreted over pomsets.  The atoms of our logic are
-write and read events, and we use strictly in the past modal operators in
-addition to the usual boolean connectives.
-\begin{displaymath}
-  \begin{array}{lrl}
-    \afo &::=&\DR{\aLoc}{\aVal}  \mid \DW\aLoc\aVal \\
-    &&  \afo \wedge\ \bfo \mid \neg \afo  \\
-    && \once\afo \mid\ \pastalways\afo
-  \end{array} 
-\end{displaymath}
-As usual, we write $\afo\vee\bfo$ for $\neg(\neg \afo \wedge\ \neg \bfo)$,
-and $\afo \Rightarrow \bfo$ for $\neg \afo \vee \bfo$.
-
-\begin{definition} [Satisfaction]
-  Given an rf-pomset $\aPS= (\Event, {\le}, \labelling)$ with alphabet
-  $\Alphabet$, and $\aEv \in \Event$, define:
+We adapt past linear temporal logic (\pLTL)
+\cite{Lichtenstein:1985:GP:648065.747612} to pomsets by dropping the previous
+instant operator and adopting strict versions of the temporal operators.
+The atoms of our logic are write and read events.
+% \begin{displaymath}
+%   \afo \QUAD::=\QUAD
+%   \DR{\aLoc}{\aVal}
+%   \mid
+%   \DW\aLoc\aVal
+%   \afo \wedge\bfo
+%   \mid \neg \afo
+%   \once\afo
+%   \mid \always\afo
+% \end{displaymath}
+\begin{definition} %[Satisfaction]
+  Given an pomset $\aPS$ and event $\aEv$, define:
   \begin{displaymath}
     \begin{array}{lrl}
-      \aPS,\aEv & \models& \DR{\aLoc}{\aVal}, \ \mbox{if } \labelling(\aEv) =  (\TRUE, \DR{\aLoc}{\aVal}) \\
-      \aPS,\aEv &\models& \DW{\aLoc}{\aVal}, \ \mbox{if } \labelling(\aEv) =  (\TRUE, \DW{\aLoc}{\aVal}) \\
-      \aPS,\aEv &\models&  \afo\wedge\bfo, \ \mbox{if } \aPS,\aEv \models  \afo\ \mbox{ and } \aPS,\aEv \models  \bfo\  \\
-      \aPS,\aEv &\models&  \neg\afo\ , \ \mbox{if } \aPS,\aEv \not\models \afo \\
-      \aPS,\aEv &\models& \once\afo, \mbox{if } (\exists \bEv \le \aEv, \bEv\not=\aEv) \  \aPS,\bEv \models \afo\  \\
-      \aPS,\aEv &\models& \pastalways\afo, \mbox{if } (\forall \bEv \le \aEv, \bEv\not=\aEv) \  \aPS,\bEv \models \afo\ 
+      \aPS,\aEv &\models& \DW{\aLoc}{\aVal}, \text{ if } \labelling(\aEv) =  (\TRUE, \DW{\aLoc}{\aVal}) \\
+      \aPS,\aEv &\models& \DR{\aLoc}{\aVal}, \text{ if } \labelling(\aEv) =  (\TRUE, \DR{\aLoc}{\aVal}) \\
+      \aPS,\aEv &\models& \afo\land\bfo, \text{ if } \aPS,\aEv \models  \afo \text{ and } \aPS,\aEv \models  \bfo \\
+      \aPS,\aEv &\models& \neg\afo, \text{ if } \aPS,\aEv \not\models \afo \\
+      %\aPS,\aEv &\models& \once\afo, \text{if } (\exists \bEv \le \aEv, \bEv\not=\aEv)  \aPS,\bEv \models \afo \\
+      \aPS,\aEv &\models& \always\afo, \text{ if } (\forall \bEv \le \aEv  \bEv\not=\aEv)\; \aPS,\bEv \models \afo
     \end{array} 
   \end{displaymath}
-
-  Define $\aPS \models \afo$ if $(\forall \aEv \in \Event) \ \aPS,\aEv  \models\ \afo$.
-
-  For a set of rf-pomsets $\aPSS$, define $\aPSS\models \afo$ if $(\forall \aPS \in \aPSS) \ \aPS \models\ \afo$.
+  Define $\aPS \models \afo$ if
+  $(\forall \aEv \in \Event) \;\aPS,\aEv \models\afo$ and $\aPSS\models \afo$
+  if $(\forall \aPS \in \aPSS)\; \aPS \models\afo$.
 \end{definition}
-The definition of satisfaction of formulas by pomsets validates the rule: if
-$\aPS \models \afo$ then $\aPS \models \afo \wedge \pastalways\afo$.
+As usual, we write
+$\once\afo$ for $\neg(\always\neg\afo)$,
+$\afo\lor\bfo$ for $\neg(\neg \afo \land \neg \bfo)$,
+and $\afo \Rightarrow \bfo$ for $\neg \afo \lor \bfo$.
 
-While the boolean connectives are interpreted as expected, the strict past
-operators explore the past of the current event as determined by the pomset
-ordering.  Their interpretation does not include the current instant.  Thus,
-while they are connected by a DeMorgan law
+The past operators do not include the current instant, and thus 
+they do \emph{not} satisfy the rule
 \begin{math}
-  \pastalways\afo = \neg\once(\neg\afo)
-\end{math}
-they do {\emph not} satisfy the rule
-\begin{math}
-  \pastalways\afo\ \Rightarrow\ \once\afo.
+  \always\afo\Rightarrow\once\afo.
 \end{math}
 However, they do satisfy:
-\begin{description}
-\item[Coinduction.]
-  \begin{math}
-    (\afo \Rightarrow\ \once{\afo}) \Rightarrow\ \neg \afo
-  \end{math}
-\item[Induction.] 
-  \begin{math}
-    (\pastalways\afo \Rightarrow\ \afo) \Rightarrow\ \afo
-  \end{math}
-\end{description}
+% \begin{align*}  
+%   \frac{\aPS \models \afo \Rightarrow\once{\afo}}{\aPS \models \neg \afo}\text{(Coinduction)}
+%   &&
+%   \frac{\aPS \models \always\afo \Rightarrow\afo}{\aPS \models \afo}\text{(Induction)}
+% \end{align*}
+\begin{gather*}
+  \tag{Coinduction}
+  (\afo \Rightarrow\once{\afo}) \Rightarrow\neg \afo
+  \\
+  \tag{Induction}
+  (\always\afo \Rightarrow\afo) \Rightarrow\afo
+\end{gather*}
+% \begin{description}
+% \item[Coinduction.]
+%   \begin{math}
+%     (\afo \Rightarrow\once{\afo}) \Rightarrow\neg \afo
+%   \end{math}
+% \item[Induction.] 
+%   \begin{math}
+%     (\always\afo \Rightarrow\afo) \Rightarrow\afo
+%   \end{math}
+% \end{description}
+Note that $\aPS \models \afo \land \always\afo$ whenever $\aPS \models \afo$.
 
-We next state a composition result in the style of Abadi and
-Lamport~\cite{Abadi:1993:CS:151646.151649}.  Our statement and proof is
-intentionally less general to simplify the presentation.  We view the
-composition result as capturing key aspects of no-ThinAirRead, as will become
-clearer in the examples below.
-
-The statement of the theorem requires us to incorporate environment
-assumptions in the satisfaction relation.
-\begin{definition}
-  Let $\afo \in \pLTL$.  Then, define:
-  \begin{displaymath} \mods{(\afo)} = \{ \aPSS \mid \ \aPSS \models \afo \} \end{displaymath}
-\end{definition}
-$\mods{(\afo)}$ are the models of the formula $\afo$, i.e. the pomsets that
-satisfy the formula.  We say that $\afo$ is prefix closed if $\mods{(\afo)}$
+We state a composition result in the style of Abadi and
+Lamport~\cite{Abadi:1993:CS:151646.151649}.  To simplify the presentation, we
+present the special case with a single invariant.
+% We view the
+% composition result as capturing key aspects of no-ThinAirRead, as will become
+% clearer in the examples below.
+In order to state the theorem, we generalize the satisfaction relation to
+include environment assumptions.  Let
+\begin{math}
+  \mods{(\afo)} = \{ \aPSS \mid \aPSS \models \afo \}
+\end{math}
+be the set of pomsets that
+satisfy $\afo$.
+We say that $\afo$ is prefix closed if $\mods{(\afo)}$
 is prefix-closed\footnote{$\aPS_1$ is a prefix of $\aPS$ if the carrier set
   of $\aPS_1$ is a downwards closed subset of $\aPS$; i.e if
   $\aEv \in \aPS_1$ and $ \bEv \le_{\aPS} \aEv$, then $\bEv$ also in
   $\aPS_1$.}.
-
-%\begin{definition}
-Let $\afo \in \pLTL$ be prefix-closed.  Let $ \bfo \in \pLTL$.  Then define
-\begin{math}
-  \afo, \aPSS \models \bfo  \mbox{ if } \mods{(\afo)} \parallel \aPSS \models \bfo.
-\end{math}
-% \end{definition}
-
-We are now ready to state the composition theorem.  In the vocabulary of
-~\citet{Abadi:1993:CS:151646.151649}, we are in the special case of
-invariants without environment assumptions.
-\begin{lemma}[Composition]
-  Let $\afo \in \pLTL$ be prefix-closed.  Let $\aPSS_1, \aPSS_2$ be
+\begin{definition}
+  \begin{math}
+    \afo, \aPSS \models \bfo  \text{ if } \mods{(\afo)} \parallel \aPSS \models \bfo
+  \end{math}
+\end{definition}
+\begin{proposition}%[Composition]
+  Let $\afo$ be prefix-closed.  Let $\aPSS_1, \aPSS_2$ be
   augmentation-closed\footnote{$\aPS_1$ is a augmentation of $\aPS$ if their
     carrier sets are the same and if $ \bEv \le_{\aPS} \aEv$, then
     $\bEv \le \aEv$ also in $\aPS_1$.}.  Then:
   \begin{displaymath}
     \frac{
-      \afo, \aPSS_1 \models\ \afo
+      \afo, \aPSS_1 \models\afo
       \quad
-      \afo, \aPSS_2 \models\ \afo
+      \afo, \aPSS_2 \models\afo
     }{\aPSS_1 \parallel \aPSS_2 \models \afo}
   \end{displaymath}
-\end{lemma}
+\end{proposition}
 \begin{proof}[Sketch]
   We will show that all prefixes in the prefix closures of
   $\aPSS_1 \parallel \aPSS_2$ satisfy the required property.  Proof proceeds
@@ -135,11 +128,10 @@ invariants without environment assumptions.
   since $\aPS_2$ is a prefix of $\aPS'$ and $\aPS' \models \afo$ by induction
   hypothesis, we deduce that $\aPS_2 \models \afo$.  Thus,
   $\aPS_2 \in \mods{(\afo)}$.  Since $\aPS_1 \in \aPSS_1$, assumption
-  $\afo, \aPSS_1 \models\ \afo$, we deduce that
+  $\afo, \aPSS_1 \models\afo$, we deduce that
   $\aPS_1 \parallel \aPS_2 \models \afo$.
 \end{proof}
 
-\endinput
 
 Closed at x:
 \begin{verbatim}
