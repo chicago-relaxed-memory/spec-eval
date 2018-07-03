@@ -364,7 +364,7 @@ we also have negative statements $(\bEv \ltN \aEv)$
   together with ${\ltN} \subseteq (\Event\times\Event)$ such that:
   \begin{itemize}
   \item if $\bEv \le \aEv$ then $\aEv \ltN \bEv$,
-  \item if $\bEv \le \aEv$ and $\bEv \ltN \aEv$ then $\aEv = \bEv$,
+  \item if $\bEv \le \aEv$ and $\bEv \ltN \aEv$ then $\bEv = \aEv$,
   \item if $\cEv \ge \bEv \ltN \aEv$ or $\cEv \ltN \bEv \ge \aEv$ then $\cEv \ltN \aEv$.
   \end{itemize}
 \end{definition}
@@ -375,10 +375,10 @@ we also have negative statements $(\bEv \ltN \aEv)$
   a pomset $(\Event, {\le}, \labelling)$.
 \end{definition}
 
-In diagrams, we visualize $(\bEv \ltN \aEv)$ as a dashed
-arrow from $\aEv$ to $\bEv$ (note the flip of direction).
+In diagrams, we visualize $(\aEv \ltN \bEv)$ as a dashed
+arrow from $\bEv$ to $\aEv$ (note the flip of direction).
 We will refer to edges introduced by $(\bEv < \aEv)$ as
-\emph{strong edges} and those introduced by $(\bEv \ltN \aEv)$
+\emph{strong edges} and those introduced by $(\aEv \ltN \bEv)$
 as \emph{weak edges}, for example:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
@@ -562,7 +562,7 @@ $\aPSS$ contains:
   \po{b}{c}
 \end{tikzpicture}\]
 where $\aAct$ reads $\vec\aVal$ from $\vec\aLoc$ and writes $\vec\bVal$ to $\vec\bLoc$,
-$\bAct$ does not write to $\vec\bLoc$,
+$\bAct$ writes to $\vec\bLoc$,
 and $\bForm$ is independent of $\vec\aLoc$,
 then $(\aForm\mid\aAct)\prefix\aPSS$ contains:
 \[\begin{tikzpicture}[node distance=1em]
@@ -570,6 +570,7 @@ then $(\aForm\mid\aAct)\prefix\aPSS$ contains:
   \event{b}{\bForm \mid \bAct}{right=of a}
   \event{c}{\cForm[\vec\aVal/\vec\aLoc] \mid \cAct}{right=of b}
   \po[out=25,in=155]{a}{c}
+  \wk{a}{b}
   \po{b}{c}
 \end{tikzpicture}\]
 
@@ -603,7 +604,7 @@ semantics of a simple concurrent imperative programming language.
 \begin{definition}
 \begin{eqnarray*}
   \sem{\SKIP} & = & \{ \emptyset \} \\
-  \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \sem{\aCmd}[\aExp/\aLoc] \cup \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
+  \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
   \sem{\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\DR\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
   \sem{\IF (\aExp) \THEN \aCmd \ELSE \bCmd \FI} & = & (\aExp \neq 0 \mid \sem{\aCmd}) \parallel (\aExp=0 \mid \sem{\bCmd}) \\
   \sem{\aCmd \PAR \bCmd} & = & \sem{\aCmd} \parallel \sem{\bCmd} \\
@@ -611,10 +612,8 @@ semantics of a simple concurrent imperative programming language.
 \end{eqnarray*}
 \end{definition}
 
-A write may be thread-local, or it may generate a write event that it visible
-to other threads.  We allow thread-local writes in order to support dead
-store elimination in \S\ref{sec:dse}; the definition is refined to support
-release/acquire fencing in \S\ref{sec:ra}.  Symmetrically, a read may see a
+A write generates a write event that may be visible
+to other threads.  A read may see a
 thread-local value, or it may generate a read event that must be justified by
 another thread.  In the latter case, occurrences of $\aReg$ are replaced with
 $\aLoc$ (rather than $\aVal$) to ensure that dependencies are tracked
