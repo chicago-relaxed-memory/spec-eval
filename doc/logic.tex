@@ -1,12 +1,13 @@
 \section{Logic}
 \label{sec:logic}
 
+\newcommand{\closed}{\textsf{closed}}
 \newcommand{\pLTL}{\textsf{PLTL}}
 \newcommand{\once}{\Diamond^{-1}}
 \newcommand{\always}{\Box^{-1}}
 \newcommand{\afo}{\phi}
 \newcommand{\bfo}{\psi}
-\newcommand{\mods}{\texsf{Models}}
+\newcommand{\mods}{\textsf{Models}}
 
 We adapt past linear temporal logic (\pLTL)
 \cite{Lichtenstein:1985:GP:648065.747612} to pomsets by dropping the previous
@@ -18,18 +19,19 @@ The atoms of our logic are write and read events.
 %   \mid
 %   \DW\aLoc\aVal
 %   \afo \wedge\bfo
-%   \mid \neg \afo
+%   \mid \lnot \afo
 %   \once\afo
 %   \mid \always\afo
 % \end{displaymath}
-\begin{definition} %[Satisfaction]
+%\begin{definition} %[Satisfaction]
   Given an pomset $\aPS$ and event $\aEv$, define:
   \begin{displaymath}
     \begin{array}{lrl}
       \aPS,\aEv &\models& \DW{\aLoc}{\aVal}, \text{ if } \labelling(\aEv) =  (\TRUE, \DW{\aLoc}{\aVal}) \\
       \aPS,\aEv &\models& \DR{\aLoc}{\aVal}, \text{ if } \labelling(\aEv) =  (\TRUE, \DR{\aLoc}{\aVal}) \\
       \aPS,\aEv &\models& \afo\land\bfo, \text{ if } \aPS,\aEv \models  \afo \text{ and } \aPS,\aEv \models  \bfo \\
-      \aPS,\aEv &\models& \neg\afo, \text{ if } \aPS,\aEv \not\models \afo \\
+      \aPS,\aEv &\models& \TRUE\\
+      \aPS,\aEv &\models& \lnot\afo, \text{ if } \aPS,\aEv \not\models \afo \\
       %\aPS,\aEv &\models& \once\afo, \text{if } (\exists \bEv \le \aEv, \bEv\not=\aEv)  \aPS,\bEv \models \afo \\
       \aPS,\aEv &\models& \always\afo, \text{ if } (\forall \bEv \le \aEv  \bEv\not=\aEv)\; \aPS,\bEv \models \afo
     \end{array} 
@@ -37,11 +39,13 @@ The atoms of our logic are write and read events.
   Define $\aPS \models \afo$ if
   $(\forall \aEv \in \Event) \;\aPS,\aEv \models\afo$ and $\aPSS\models \afo$
   if $(\forall \aPS \in \aPSS)\; \aPS \models\afo$.
-\end{definition}
-As usual, we write
-$\once\afo$ for $\neg(\always\neg\afo)$,
-$\afo\lor\bfo$ for $\neg(\neg \afo \land \neg \bfo)$,
-and $\afo \Rightarrow \bfo$ for $\neg \afo \lor \bfo$.
+%\end{definition}
+
+Let $\once\afo$ be defined as $\lnot(\always\lnot\afo)$. 
+In addition, let $\FALSE$, $\lor$ and $\Rightarrow$ be defined in the
+standard way.
+% $\afo\lor\bfo$ for $\lnot(\lnot \afo \land \lnot \bfo)$,
+% and $\afo \Rightarrow \bfo$ for $\lnot \afo \lor \bfo$.
 
 The past operators do not include the current instant, and thus 
 they do \emph{not} satisfy the rule
@@ -50,13 +54,13 @@ they do \emph{not} satisfy the rule
 \end{math}
 However, they do satisfy:
 % \begin{align*}  
-%   \frac{\aPS \models \afo \Rightarrow\once{\afo}}{\aPS \models \neg \afo}\text{(Coinduction)}
+%   \frac{\aPS \models \afo \Rightarrow\once{\afo}}{\aPS \models \lnot \afo}\text{(Coinduction)}
 %   &&
 %   \frac{\aPS \models \always\afo \Rightarrow\afo}{\aPS \models \afo}\text{(Induction)}
 % \end{align*}
 \begin{gather*}
   \tag{Coinduction}
-  (\afo \Rightarrow\once{\afo}) \Rightarrow\neg \afo
+  (\afo \Rightarrow\once{\afo}) \Rightarrow\lnot \afo
   \\
   \tag{Induction}
   (\always\afo \Rightarrow\afo) \Rightarrow\afo
@@ -64,7 +68,7 @@ However, they do satisfy:
 % \begin{description}
 % \item[Coinduction.]
 %   \begin{math}
-%     (\afo \Rightarrow\once{\afo}) \Rightarrow\neg \afo
+%     (\afo \Rightarrow\once{\afo}) \Rightarrow\lnot \afo
 %   \end{math}
 % \item[Induction.] 
 %   \begin{math}
@@ -72,6 +76,19 @@ However, they do satisfy:
 %   \end{math}
 % \end{description}
 Note that $\aPS \models \afo \land \always\afo$ whenever $\aPS \models \afo$.
+
+Define $\closed(\aLoc) = (\DR{\aLoc}{\aVal} \Rightarrow \once
+\DW{\aLoc}{\aVal})$.  The following proof rule is sound:
+\begin{displaymath}
+  \tag{Closing $\aLoc$}
+  \frac{
+    \afo \text{ is independent of } \aLoc
+    \qquad
+    \aPS \models \closed(\aLoc) \Rightarrow \afo
+  }{
+    \nu \aLoc \st \aPS \models \afo
+  }
+\end{displaymath}
 
 We state a composition result in the style of Abadi and
 Lamport~\cite{Abadi:1993:CS:151646.151649}.  To simplify the presentation, we
@@ -84,13 +101,14 @@ include environment assumptions.  Let
 \begin{math}
   \mods{(\afo)} = \{ \aPSS \mid \aPSS \models \afo \}
 \end{math}
-be the set of pomsets that
-satisfy $\afo$.
-We say that $\afo$ is prefix closed if $\mods{(\afo)}$
-is prefix-closed\footnote{$\aPS_1$ is a prefix of $\aPS$ if the carrier set
-  of $\aPS_1$ is a downwards closed subset of $\aPS$; i.e if
-  $\aEv \in \aPS_1$ and $ \bEv \le_{\aPS} \aEv$, then $\bEv$ also in
-  $\aPS_1$.}.
+be the set of pomsets that satisfy $\afo$.  We say that $\afo$ is prefix
+closed if $\mods{(\afo)}$ is prefix-closed\footnote{$\aPS'$ is a prefix of
+  $\aPS$ if $\Event'\subseteq\Event$, $\aEv\in\Event'$ and $ \bEv\le\aEv$
+  imply $\bEv\in\Event'$, and $(\labelling',\leq',\ltN')$ coincide with
+  $(\labelling,\leq,\ltN)$ for elements of $\Event'$.}
+  % when $\aEv,\,\bEv\in\Event'$: $\labelling'(\aEv)=\labelling(\aEv)$,
+  % $\aEv\leq'\bEv$ iff $\aEv\leq\bEv$, and $\aEv\ltN'\bEv$ iff
+  % $\aEv\ltN\bEv$. 
 \begin{definition}
   \begin{math}
     \afo, \aPSS \models \bfo  \text{ if } \mods{(\afo)} \parallel \aPSS \models \bfo
@@ -98,78 +116,79 @@ is prefix-closed\footnote{$\aPS_1$ is a prefix of $\aPS$ if the carrier set
 \end{definition}
 \begin{proposition}%[Composition]
   Let $\afo$ be prefix-closed.  Let $\aPSS_1, \aPSS_2$ be
-  augmentation-closed\footnote{$\aPS_1$ is a augmentation of $\aPS$ if their
-    carrier sets are the same and if $ \bEv \le_{\aPS} \aEv$, then
-    $\bEv \le \aEv$ also in $\aPS_1$.}.  Then:
+  augmentation-closed\footnote{$\aPS'$ is an augmentation of $\aPS$ if
+    $\Event'=\Event$, $\aEv\le\bEv$ implies $\aEv\le'\bEv$, $\aEv\ltN\bEv$
+    implies $\aEv\ltN'\bEv$, and
+    % $\labelling'(\aEv)=\labelling(\aEv)$
+    if $\labelling(\aEv) = (\bForm \mid \bAct)$ then
+    $\labelling'(\aEv) = (\bForm' \mid \bAct)$ where $\bForm'$ implies
+    $\bForm$.}  Then:
   \begin{displaymath}
+    \tag{Composition}
     \frac{
       \afo, \aPSS_1 \models\afo
-      \quad
+      \qquad
       \afo, \aPSS_2 \models\afo
     }{\aPSS_1 \parallel \aPSS_2 \models \afo}
   \end{displaymath}
 \end{proposition}
-\begin{proof}[Sketch]
+\begin{proof}[Proof sketch]
   We will show that all prefixes in the prefix closures of
   $\aPSS_1 \parallel \aPSS_2$ satisfy the required property.  Proof proceeds
   by induction on prefixes of $\aPS \in \aPSS_1 \parallel \aPSS_2$.
 
   The case for empty prefix  follows from assumption that  $\afo$ is prefix closed.  
 
-  For the inductive case, consider $\aPS$ in the prefix closure of
-  $\aPSS_1 \parallel \aPSS_2$, i.e. $\aPS = \aPS_1 \parallel \aPS_2$ where
+  For the inductive case, consider %$\aPS$ in the prefix closure of $\aPSS_1 \parallel \aPSS_2$, i.e.
+  $\aPS \in \aPS_1 \parallel \aPS_2$ where
   $\aPS_i \in \aPSS_i$.  Since $\aPSS_1$ and $\aPSS_2$ are augmentation
   closed, we can assume that the restriction of $\aPS$ to the events of
   $\aPS_i$ coincides with $\aPS_i$, for $i=1,2$.
-
-  Consider a prefix (say $\aPS'$) got by deleting a maximal element, say
-  $\aEv$, of $\aPS$.  There are two cases depending on whether $\aEv$ comes
-  from $\aPS_1$ or $\aPS_2$.  In the case when $\aEv$ comes from $\aPS_1$,
-  since $\aPS_2$ is a prefix of $\aPS'$ and $\aPS' \models \afo$ by induction
-  hypothesis, we deduce that $\aPS_2 \models \afo$.  Thus,
-  $\aPS_2 \in \mods{(\afo)}$.  Since $\aPS_1 \in \aPSS_1$, assumption
-  $\afo, \aPSS_1 \models\afo$, we deduce that
-  $\aPS_1 \parallel \aPS_2 \models \afo$.
+  %
+  Consider a prefix $\aPS'$ derived by removing a maximal element $\aEv$ from
+  $\aPS$.  Suppose $\aEv$ comes from $\aPS_1$ (the other case is
+  symmetric). Since $\aPS_2$ is a prefix of $\aPS'$ and $\aPS' \models \afo$
+  by induction hypothesis, we deduce that $\aPS_2 \models \afo$.
+  % Thus, $\aPS_2 \in \mods{(\afo)}$.
+  Since $\aPS_1 \in \aPSS_1$, by assumption $\afo, \aPSS_1 \models\afo$ we
+  deduce that $\aPS \models \afo$.
 \end{proof}
 
-
-Closed at x:
-\begin{verbatim}
-  Define closed(x) = (Rxv => F(Wxv))
-\end{verbatim}
-Local declaration [sound proof rule]:
-\begin{verbatim}
-  x notin phi
-  Es |= closed(x) => phi
-  ----------------------
-  var x; Es |= phi
-\end{verbatim}
-Conditional TAR example:
+Consider the following example program:
 \begin{verbatim}
   var x,y,z;
-  y:=0; y:=x  ||  x:=0; if(~z){x:=1}else{x:=y;a:=y}  ||  z:=0; z:=1
+  y:=0; y:=x  ||  x:=0; if(~z){x:=1;}else{x:=y;a:=y;}  ||  z:=0; z:=1
 \end{verbatim}
-\begin{verbatim}
-Goal: Es |= ~ F(Wa1)   [impossible to write a=1]
-\end{verbatim}
-Invariant:
-\begin{verbatim}
-     F(Wy1) => F(Rx1)
-  /\ F(Wa1) => F(Ry1) /\ G(Wx1 => F(Ry1))
-\end{verbatim}
-Closing y:
-\begin{verbatim}
-  F(Wa1) => F(Rx1) /\ G(Wx1 => F(Rx1))
-\end{verbatim}
-Closing x:
-\begin{verbatim}
-  F(Wa1) => F(Wx1) /\ G(Wx1 => F(Wx1))
-\end{verbatim}
-Using coinduction for F:  
-\begin{verbatim}
-  F(Wa1) => F(Wx1) /\ G(~ Wx1)
-\end{verbatim}
-Simplifying:  
-\begin{verbatim}
-  F(Wa1) => false
-\end{verbatim}
+This program is allowed to write $1$ to $a$ under many speculative
+memory models
+\cite{Manson:2005:JMM:1047659.1040336,DBLP:journals/toplas/Lochbihler13,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17},
+even though the read of $1$ from $y$ in the else branch of the second
+thread arises out of thin air.  Using the proof rules developed above we prove the formula
+\begin{math}
+  \lnot\once(\DW{a}{1})
+\end{math}
+holds for the models of this program.  We start with the following invariant,
+which holds for each of the three threads, and thus, by composition, for the
+aggregate program.
+\begin{displaymath}
+  [\once(\DW{y}{1}) \Rightarrow \once(\DR{x}{1})]
+  \land
+  [\once(\DW{a}{1}) \Rightarrow (\once(\DR{y}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DR{y}{1})))]
+\end{displaymath}
+Closing $y$, we have:
+\begin{displaymath}
+  \once(\DW{a}{1}) \Rightarrow (\once(\DR{x}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DR{x}{1})))
+\end{displaymath}
+Closing $x$, we have:
+\begin{displaymath}
+  \once(\DW{a}{1}) \Rightarrow (\once(\DW{x}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DW{x}{1})))
+\end{displaymath}
+By coinduction:  
+\begin{displaymath}
+  \once(\DW{a}{1}) \Rightarrow (\once(\DW{x}{1}) \land \always(\lnot \DW{x}{1}))
+\end{displaymath}
+Simplifying, we have, as required:  
+\begin{displaymath}
+  \once(\DW{a}{1}) \Rightarrow \FALSE
+\end{displaymath}
+
