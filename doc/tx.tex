@@ -180,26 +180,29 @@ semantics:
 At top level, we require that pomsets be \emph{serializable}, as defined below.
 \begin{definition}
   We say that event $\comEv$ \emph{matches} $\begEv$ if
-  $\labelling(\comEv)=(\DC{\aVal})$ and $\labelling(\begEv)=(\DB{\aVal})$,
-  for some $\aVal$.
-  We say that a begin event \emph{aborts} every matching commit is
-  unsatisfiable.
-  We say that $\begEv$ \emph{begins} $\aEv$ if $\begEv<\aEv$ is a tautologous
-  begin and there is no intervening tautologous matching commit; in this case
+  $\labelling(\comEv)=(\DC{\aVal})$ and
+  $\labelling(\begEv)=(\DB{\aVal})$. %, for some $\aVal$.
+  We say that a begin event \emph{aborts} if every matching commit is
+  unsatisfiable.  We say that begin event $\begEv$ \emph{begins} $\aEv$ if
+  $\begEv\le\aEv$ and there is no intervening matching commit; in this case
   $\aEv$ \emph{belongs to} $\begEv$.
-  % event $\comEv$ such that $\begEv<\comEv<\aEv$
-  We say that $\comEv$ \emph{commits} $\aEv$ if $\comEv>\aEv$ is a
-  tautologous commit and there is no intervening tautologous matching begin.
-  % event $\begEv$ such that $\aEv<\begEv<\comEv$.
+  % event $\comEv$ such that $\begEv\le\comEv\le\aEv$
+  We say that commit event $\comEv$ \emph{commits} $\aEv$ if $\aEv\le\comEv$
+  and there is no intervening matching begin.
+  % event $\begEv$ such that $\aEv\le\begEv\le\comEv$.
 % \end{definition}
 % \begin{definition}
   A pomset is \emph{serializable} if:
   \begin{enumerate}
   \item\label{tx:1} no two begins have the same id,
   \item\label{tx:2} every commit follows the matching begin,
-  \item\label{tx:3} $<$ totally orders tautological begins and commits,
-  \item\label{tx:4} if $\begEv$ begins $\aEv$, but not $\bEv$, and $\bEv<\aEv$ then $\bEv<\begEv$,
-  \item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, and $\aEv<\bEv$ then $\comEv<\bEv$,
+  \item\label{tx:3} $\le$ totally orders tautological begins and commits,
+  %\item\label{tx:4} if $\begEv$ begins $\aEv$, but not $\bEv$, and $\bEv\le\aEv$ then $\bEv\le\begEv$,
+  \item\label{tx:4} if $\begEv$ begins $\aEv$, but not $\bEv$, then
+    $\bEv\le\aEv$ implies $\bEv\le\begEv$ and $\aEv\ltN\bEv$ implies $\begEv\ltN\bEv$
+  %\item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, and $\aEv\le\bEv$ then $\comEv\le\bEv$,
+  \item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, then
+    $\aEv\le\bEv$ implies $\comEv\le\bEv$ and $\bEv\ltN\aEv$ implies $\bEv\ltN\comEv$,
   \item\label{tx:6} if $\aEv$ and $\bEv$ belong to $\begEv$ and read the same
     location, then both read the same value, 
   % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,    
@@ -207,9 +210,9 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
   %   ends $\aEv$ such that both $\aEv$ implies $\comEv$ and $\comEv$ implies $\aEv$,    
   \item\label{tx:7} if $\aEv$ belongs to $\begEv$, then $\aEv$ implies some
     matching $\comEv$ that ends $\aEv$, and
-  \item\label{tx:8} if $\begEv$ aborts then there must be some unsatisfiable matching
-    commit $\comEv$ and events $\begEv<\aEv<\comEv$ and $\bEv<\aEv$
-    such that both $\aEv$ and $\bEv$ touch the same location.
+  \item\label{tx:8} if $\begEv$ aborts then there must be some $\aEv$ that
+    belongs to $\begEv$ and some $\bEv\le\aEv$ that does not belong to
+    $\begEv$ such that $\aEv$ and $\bEv$ touch the same location.
   \end{enumerate}
 \end{definition}
 In discussion, we identify transactions by their unique begin event.  A
