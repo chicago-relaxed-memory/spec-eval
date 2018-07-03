@@ -59,7 +59,7 @@ all of whose preconditions are tautologies, so this has the expected behaviour:
   \event{wx0}{\DW{x}{0}}{}
   \event{wy1}{\DW{y}{1}}{right=of wx0}
 \end{tikzpicture}\]
-Note that $(\DW x0)$ there is no
+Note that there is no
 requirement of order between $(\DW x0)$ and $(\DW y1)$.
 
 This example demonstrates how preconditions
@@ -130,7 +130,7 @@ and so $\sem{x \GETS 1\SEMI \SKIP \PAR r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ i
   \rf{wx1}{rx1}
   \po{rx1}{wy2}
 \end{tikzpicture}\]
-as expected, including an rf-dependency between the concurrent write of $x$
+as expected, including an reads-from dependency between the concurrent write of $x$
 and the matching read.
 
 This example demonstrates how read and write events
@@ -176,8 +176,8 @@ is the same as the semantics of \verb|(y := 2; x := 1;)|.
 
 \subsection{Independent reads and writes}
 
-Whereas write prefixing introduces dependencies on events which write
-the the same location, read prefixing introduces dependencies on
+Whereas write prefixing introduces weak dependencies on events which write
+the the same location, read prefixing introduces strong dependencies on
 preconditions which depend on the location being read. For example
 in \S\ref{sec:concurrent-memory} we saw that the program
 \verb|(r := x; y := r+1;)| includes the pomset:
@@ -487,8 +487,8 @@ which includes the execution:
   \rf[out=30,in=150]{wy0}{ry0}
   \rf[out=340,in=200]{wy1}{ry1}
   \rf[out=340,in=200]{wx0}{rx0}
-  \po{wx0}{wx1}
-  \po{wy0}{wy1}
+  \wk{wx0}{wx1}
+  \wk{wy0}{wy1}
   \po{rx1}{ry0}
   \po{ry1}{rx0}
 \end{tikzpicture}\]
