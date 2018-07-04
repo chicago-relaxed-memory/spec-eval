@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include "pthread_barrier.h"  // from darwinpthreadbarrier; necessary because pthreads on Mac doesn't implement barrier
 #include <unistd.h>  // nanosleep()
 #include <stdlib.h>  // exit()
 #include <math.h>
@@ -45,9 +46,6 @@ static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t iters) { \
  \
   /* waste some time, but don't use a syscall like usleep().                 */ \
   /* If we use a syscall, gcc wants to do the x=1 store first, regardless.   */ \
-  /* Must be a do-while loop so gcc knows it executes at least once          */ \
-  /* (otherwise gcc inserts an extra conditional branch, and suddenly thinks */ \
-  /* the x=1 store is necessary again)                                       */ \
   volatile int v = 0; \
   volatile unsigned char* a_vol = &a[bitnum];  /* volatile so we keep reloading */ \
   do { \
@@ -138,6 +136,7 @@ static void* observer(void* dummy) {
     index++;  // having recorded one slot of a, move to the next slot
     if(index >= 2048) index = 0;
   }
+  return 0;
 }
 
 // iters: a tuning parameter passed on to leakSingleBit()
