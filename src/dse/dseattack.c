@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include "pthread_barrier.h"  // from darwinpthreadbarrier; necessary because pthreads on Mac doesn't implement barrier
 #include <unistd.h>  // nanosleep()
 #include <stdlib.h>  // exit()
 #include <math.h>
@@ -24,7 +23,6 @@ static const uint64_t SECRET[32] = {
 
 static volatile bool alwaysFalse = false;
 static volatile bool observer_exit = false;
-static pthread_barrier_t barrier;
 static unsigned x;
 static unsigned r;
 
@@ -100,37 +98,42 @@ FOR_0_TO_2047(DECLARE_ATTACKFUNC)
 // array storing pointers to all 2048 attackfuncs
 void (*attackfunc_array[2048])(uint64_t);
 
+static void set_x_and_wait_for_r(int value) {
+  // Volatile aliases so reads and writes actually happen
+  volatile unsigned* x_vol = &x;
+  volatile unsigned* r_vol = &r;
+  *x_vol = value;
+  while(*r_vol != value);
+}
+
 // bitnum: which bit of the secret to leak
 // iters: a tuning parameter passed on to attackfunc()
 // returns the guessed value of the bit
 static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
-  x = 0;
-  r = 0;  // ensure we properly wait for observer's result than than possibly reading last time's result
-
-  pthread_barrier_wait(&barrier);  // tell observer to start
+  // ensure we properly wait for observer's result than than possibly reading last time's result
+  set_x_and_wait_for_r(1);
+  set_x_and_wait_for_r(0);
 
   attackfunc_array[bitnum](iters);
 
   // use a volatile pointer so that it keeps reloading for real
-  volatile unsigned *result = &r;
+  volatile unsigned *r_vol = &r;
   unsigned char retval;
-  do { retval = *result; } while(retval == 0);  // wait until result is nonzero
+  do { retval = *r_vol; } while(retval == 0);  // wait until r is nonzero
 
   return retval == 2;  // if we observe x==2, then the x=1 store
                        // was (probably) eliminated; see notes on attackfunc()
 }
 
 static void* observer(void* dummy) {
-  // use a volatile pointer so that it keeps reloading for real
+  // use volatile pointers so that reads/writes actually happen
   // but we don't want x itself to be volatile, because then DSE isn't allowed
   volatile unsigned* x_vol = &x;
+  volatile unsigned* r_vol = &r;
 
   // loop until main thread tells us to exit
   while(!observer_exit) {
-    pthread_barrier_wait(&barrier);
-
-    // wait until we observe either x==1 or x==2
-    do { r = *x_vol; } while(r == 0);
+   *r_vol = *x_vol;
   }
   return 0;
 }
@@ -281,7 +284,6 @@ int main(int argc, char* argv[]) {
   FOR_0_TO_2047(INITIALIZE_ATTACKFUNC)
 
   // Fire up the observer thread
-  pthread_barrier_init(&barrier, NULL, 2);
   pthread_t thread;
   pthread_create(&thread, NULL, &observer, NULL);
 
