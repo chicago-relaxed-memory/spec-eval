@@ -77,8 +77,7 @@ but \emph{not}:
   \rf[out=20,in=160]{wx0}{rx0}
 \end{tikzpicture}\]
 since $(\DW x0) < (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
-requirements to be an rf-pomset.
-\todo{FIXME: we no longer define the term ``rf-pomset''.}
+requirements to be a $x$-closed.
 If we replace the release
 with a plain write, then the outcome $(\DRAcq f1)$ and $(\DR x0)$ is possible:
 \[\begin{tikzpicture}[node distance=1em]
@@ -220,13 +219,13 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
 In discussion, we identify transactions by their unique begin event.  A
 transaction that does not abort is \emph{successful}.
 %
-Conditions \ref{tx:1}-\ref{tx:5} ensure serializability.  Conditions
-\ref{tx:4}-\ref{tx:6} also ensure strong isolation for non-transactional
-events \cite{DBLP:journals/pacmpl/DongolJR18}. Condition \ref{tx:7} ensures
-that all events in aborted transactions are unsatisfiable.
-Condition \ref{tx:8} requires that aborts only occur due to caching
-conflicts---this is similar to the treatment of the touch operation in
-\S\ref{sec:spectre}.
+Conditions \ref{tx:1}-\ref{tx:5} ensure serializability of committed
+transactions.  Conditions \ref{tx:4}-\ref{tx:6} also ensure strong isolation
+for non-transactional events
+\cite{DBLP:journals/pacmpl/DongolJR18}. Condition \ref{tx:7} ensures that all
+events in aborted transactions are unsatisfiable.  Condition \ref{tx:8}
+requires that aborts only occur due to caching conflicts---this is similar to
+the treatment of the touch operation in \S\ref{sec:spectre}.
 
 % The definition handles simple examples:
 % \begin{itemize}

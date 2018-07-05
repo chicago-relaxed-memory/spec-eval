@@ -9,6 +9,11 @@
 \newcommand{\bfo}{\psi}
 \newcommand{\mods}{\textsf{Models}}
 
+In this section, we develop sufficient logical infrastructure to prove that
+our semantics disallows thin air executions.  We present a variant of the
+TAR-pit example from \S\ref{sec:relaxed-memory} which poses difficulties
+under many speculative semantics.
+
 We adapt past linear temporal logic (\pLTL)
 \cite{Lichtenstein:1985:GP:648065.747612} to pomsets by dropping the previous
 instant operator and adopting strict versions of the temporal operators.
@@ -33,7 +38,7 @@ The atoms of our logic are write and read events.
       \aPS,\aEv &\models& \TRUE\\
       \aPS,\aEv &\models& \lnot\afo, \text{ if } \aPS,\aEv \not\models \afo \\
       %\aPS,\aEv &\models& \once\afo, \text{if } (\exists \bEv \le \aEv, \bEv\not=\aEv)  \aPS,\bEv \models \afo \\
-      \aPS,\aEv &\models& \always\afo, \text{ if } (\forall \bEv \le \aEv  \bEv\not=\aEv)\; \aPS,\bEv \models \afo
+      \aPS,\aEv &\models& \always\afo, \text{ if } (\forall \bEv \le \aEv,\,  \bEv\not=\aEv)\; \aPS,\bEv \models \afo
     \end{array} 
   \end{displaymath}
   Define $\aPS \models \afo$ if
@@ -77,8 +82,14 @@ However, they do satisfy:
 % \end{description}
 Note that $\aPS \models \afo \land \always\afo$ whenever $\aPS \models \afo$.
 
-Define $\closed(\aLoc) = (\DR{\aLoc}{\aVal} \Rightarrow \once
-\DW{\aLoc}{\aVal})$.  The following proof rule is sound:
+We now present two proof rules.  The first rule captures the semantics of
+local variables.  Define
+\begin{math}
+  \closed(\aLoc) = (\DR{\aLoc}{\aVal} \Rightarrow \once \DW{\aLoc}{\aVal}).
+\end{math}
+Although this definition does not mention intervening writes, it is
+sufficient for our example.  It is straightforward to establish that the
+soundness of the following proof rule:
 \begin{displaymath}
   \tag{Closing $\aLoc$}
   \frac{
@@ -90,7 +101,7 @@ Define $\closed(\aLoc) = (\DR{\aLoc}{\aVal} \Rightarrow \once
   }
 \end{displaymath}
 
-We state a composition result in the style of Abadi and
+The second rule describes composition, in the style of Abadi and
 Lamport~\cite{Abadi:1993:CS:151646.151649}.  To simplify the presentation, we
 present the special case with a single invariant.
 % We view the
@@ -109,11 +120,12 @@ closed if $\mods{(\afo)}$ is prefix-closed\footnote{$\aPS'$ is a prefix of
   % when $\aEv,\,\bEv\in\Event'$: $\labelling'(\aEv)=\labelling(\aEv)$,
   % $\aEv\leq'\bEv$ iff $\aEv\leq\bEv$, and $\aEv\ltN'\bEv$ iff
   % $\aEv\ltN\bEv$. 
-\begin{definition}
+\begin{noenv}
+  Define
   \begin{math}
-    \afo, \aPSS \models \bfo  \text{ if } \mods{(\afo)} \parallel \aPSS \models \bfo
+    \afo, \aPSS \models \bfo  \text{ if } \mods{(\afo)} \parallel \aPSS \models \bfo.
   \end{math}
-\end{definition}
+\end{noenv}
 \begin{proposition}%[Composition]
   Let $\afo$ be prefix-closed.  Let $\aPSS_1, \aPSS_2$ be
   augmentation-closed\footnote{$\aPS'$ is an augmentation of $\aPS$ if
@@ -154,36 +166,40 @@ closed if $\mods{(\afo)}$ is prefix-closed\footnote{$\aPS'$ is a prefix of
   deduce that $\aPS \models \afo$.
 \end{proof}
 
-Consider the following example program:
+We now turn to the example program, which is a variant of \cite[Figure 8]{DBLP:journals/toplas/Lochbihler13}:
 \begin{verbatim}
   var x,y,z;
   y:=0; y:=x  ||  x:=0; if(~z){x:=1;}else{x:=y;a:=y;}  ||  z:=0; z:=1
 \end{verbatim}
 This program is allowed to write $1$ to $a$ under many speculative
 memory models
-\cite{Manson:2005:JMM:1047659.1040336,DBLP:journals/toplas/Lochbihler13,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17},
+\cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17},
 even though the read of $1$ from $y$ in the else branch of the second
-thread arises out of thin air.  Using the proof rules developed above we prove the formula
+thread arises out of thin air.   In contrast, we prove the formula
 \begin{math}
   \lnot\once(\DW{a}{1})
 \end{math}
-holds for the models of this program.  We start with the following invariant,
+holds for the models of this program in our semantics.  We start with the following invariant,
 which holds for each of the three threads, and thus, by composition, for the
-aggregate program.
+aggregate program:
 \begin{displaymath}
   [\once(\DW{y}{1}) \Rightarrow \once(\DR{x}{1})]
   \land
   [\once(\DW{a}{1}) \Rightarrow (\once(\DR{y}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DR{y}{1})))]
 \end{displaymath}
-Closing $y$, we have:
+Closing $y$, we have,
+\begin{math}
+  \once(\DR{y}{1}) \Rightarrow \once(\DW{y}{1}) % \Rightarrow \once(\DR{x}{1})
+\end{math}
+and thus, using the left conjunct, we have:
 \begin{displaymath}
   \once(\DW{a}{1}) \Rightarrow (\once(\DR{x}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DR{x}{1})))
 \end{displaymath}
-Closing $x$, we have:
+By closing $x$, we can replace $\once(\DR{x}{1})$ with $\once(\DW{x}{1})$:
 \begin{displaymath}
   \once(\DW{a}{1}) \Rightarrow (\once(\DW{x}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DW{x}{1})))
 \end{displaymath}
-By coinduction:  
+Applying coinduction to the right conjunct, we have:
 \begin{displaymath}
   \once(\DW{a}{1}) \Rightarrow (\once(\DW{x}{1}) \land \always(\lnot \DW{x}{1}))
 \end{displaymath}
