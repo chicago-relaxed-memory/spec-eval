@@ -33,5 +33,5 @@ runtune: $(EXECS)
 
 .PHONY : clean
 clean:
-	-rm -rf $(EXECS) *.s
 	-$(MAKE) -C ../darwinpthreadbarrier clean
+	-rm $(EXECS) *.s *.o
