@@ -12,7 +12,7 @@ In particular, the latter attack (and, to a degree, the former attack), result
 not from hardware optimizations, but from common \emph{compiler} optimizations.
 These attacks also, unlike Spectre, do not rely on timing side channels, or
 indeed timers of any kind, bypassing many common Spectre mitigations
-\cite{FuzzyFox, Chrome's and Firefox's restrictions on precise timers, etc}.
+\cite{???}. %%%%% FuzzyFox, Chrome's and Firefox's restrictions on precise timers, etc.
 
 In this section we present concrete implementations of the attacks outlined in
 Sections~\ref{sec:info-flow-attack} and~\ref{sec:dse}, in both cases
@@ -41,7 +41,7 @@ key hardcoded into the application.
 This \verb|SECRET| is known to the compiler at compile time, but may not be
 accessed except behind a security check.
 We assume that the security check always evaluates to \verb|false| at runtime
-for the attacker, but that the attacker is allowed to write (\ie compile and
+for the attacker, but that the attacker is allowed to write (compile and
 execute) arbitrary code subject to the above restrictions.
 The attacker has no capabilities other than writing and executing code -- in
 particular the attacker may not disassemble the compiler or libraries to learn
@@ -58,7 +58,7 @@ Instead, library users must call an (arbitrarily complex) library function as
 a guard before using the \verb|SECRET| in code.
 In this hypothetical example, a static compiler pass ensures that the
 attacker's code only accesses the \verb|SECRET| inside an \verb|if| statement
-after calling the library's guard function; \ie the static pass ensures that
+after calling the library's guard function; the static pass ensures that
 the \verb|SECRET| is only accessed at program points where it can be proven
 that the guard function returned \verb|true|.
 
