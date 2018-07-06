@@ -390,7 +390,7 @@ We strengthen the definition of reads-from to require not just that
 no blocker exists, but that any candidate blocker must either
 have $\bEv \ltN \cEv$ or $\cEv \ltN \aEv$. This ensures that any
 further concurrency cannot turn a non-blocker into a blocker.
-\begin{definition}
+\begin{definition}\label{def:rf}
   In a 3-valued pomset, $\aEv$ \emph{can read $\aLoc$ from} $\bEv$ whenever: 
   \begin{itemize}
   \item $\bEv < \aEv$,

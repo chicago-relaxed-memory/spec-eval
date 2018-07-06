@@ -1,46 +1,34 @@
 \section{Conclusions and future work}
 
-One oddity of the model is that
-$\sem{r \GETS x\SEMI y \GETS r\SEMI\SKIP}$ includes:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx0}{\DR{x}{0}}{}
-  \nonevent{wy1}{\DW{y}{1}}{right=of rx0}
-  \po{rx0}{wy1}
-\end{tikzpicture}\]
-where the write action guessed its value incorrectly, and therefore has
-precondition $0=1$.   This form of speculative
-execution does not appear to be used in practice. In order to disallow it,
-one could change the semantics of $\SKIP$ to introduce a tick 
-action denoting successful completion of the thread and only consider
-executions in which the precondition of every tick action is satisfiable.  We
-leave the elaboration of this idea as future work.
+In this paper, we have presented a model of speculative evaluation, and
+showed that it captures non-trivial properties of speculations produced
+by hardware, compiler optimizations, and transactions. These properties
+include information flow attacks: in the case of hardware and transactions
+this is modelling known attacks~\cite{DBLP:journals/corr/abs-1801-01203,DBLP:conf/uss/DisselkoenKPT17},
+but in the case of compiler optimizations the attacks are new, and were
+discovered as a direct result of developing the model. We have experimentally
+validated that the attacks can be carried out against \verb|gcc| and \verb|clang|,
+though only against secrets known at compile time.
 
-\todo{Comment on the following:}
-\begin{itemize}
-\item coherence = per location total order on $\not<$
+The model of relaxed memory used in this paper is deliberately
+simplified, compared for example to
+C11~\cite{Boehm:2008:FCC:1375581.1375591,Batty:2011:MCC:1926385.1926394}.
+In particular our model of reads-from is strong, and could be weakened
+by replacing the requirement $\bEv<\aEv$ in Definition~\ref{def:rf}
+by $\aEv\ltN\bEv$. It remains to be seen how this impacts the model,
+in particular the logical formulation of $\aLoc$-closure in
+\S\ref{sec:logic} as
+$((\DR{\aLoc}{\aVal}) \Rightarrow \once(\DW{\aLoc}{\aVal}))$
+would no longer be sound.
+The model is also not considering coherence, though we speculate it
+can be added by requiring that for each $\aLoc$, $\ltN$ form a total
+order when restricted to events that write to $\aLoc$.
 
-\item Validation of write removal requires some tricks to ensure that thread
-  does not rf its own write
-
-\item Definition of rf can use $\not<$ in first clause, rather than $\leq$.
-  We chose the stronger definition because it makes some of the examples
-  simpler: in particular, the example motivating rf needs a volatile in the
-  other thread if you don't have rf-implies-hb.
-
-  Old text: The notion rf-pomset is sufficient to capture hardware models and
-  release/acquire access in C++, where reads-from implies happens-before
-  \cite{alglave}.  To model C++ relaxed access, it would be necessary to use
-  a more general notion of rf-pomset, where $(\bEv,\aLoc,\aEv) \in \RF$ does
-  not necessarily imply $\bEv < \aEv$, instead requiring that
-  $(\mathord< \cup \mathord\RF)$ be acyclic.
-
-\item The design space for transactions is very rich
-  \cite{DBLP:journals/pacmpl/DongolJR18}.  We have only presented one option.
-  we pun between abort and false commit
-  
-\end{itemize}
-
-
+The design space for transactions is very rich~\cite{DBLP:journals/pacmpl/DongolJR18}.
+We have only presented one design choice, and it remains to be seen how other
+design choices could be adopted. For example we have chosen to pun between
+commits which are aborted due to transaction failure, and ones which are aborted
+for other reasons such as failed speculation.
 
 % \todo{Integrate this example on information flow?}
 
@@ -61,5 +49,18 @@ leave the elaboration of this idea as future work.
 % \end{alltt}
 % In this case, the program has an execution, validated by our model, that sets {\tt noflow} to {\tt true}.
 
-% In the parlance
-% of information flow, the humble conditional suffices to construct a composition operator to detect information flow  in the presence of speculation.
+One interesting feature of this model is that (in the language
+of~\cite{Pichon-Pharabod:2016:CSR:2837614.2837616}) it is a
+\emph{per-candidate execution model}, in that the correctness of an
+execution only requires looking at that one execution, not at
+others. This is explicit in memory models such
+as~\cite{Jagadeesan:2010:GOS:2175486.2175503,Kang:2017:PSR:3009837.3009850} in which
+``alternative futures'' are explored, in a style reminiscent of
+Abramsky's bisimulation as a testing equivalence~\cite{ABRAMSKY1987225}. Models of
+information flow are similar, in that they require comparing different
+runs to test for the presence of dependencies. In contrast, the model
+presented here explcitly captures dependency in the pomset order, and
+models multiple runs by giving the semantics of $\IF$ in terms of a
+concurrent semantics of both branches.
+In the parlance
+of information flow, the humble conditional suffices to construct a composition operator to detect information flow  in the presence of speculation.
