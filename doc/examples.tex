@@ -526,6 +526,13 @@ has execution:
 \end{tikzpicture}\]
 Note that $(\DR x1) \not\le (\DW y1)$, so this does not introduce a cycle.
 
+\todo{We get around the no-per-candidate result of
+\cite{DBLP:conf/esop/BattyMNPS15} by modeling dependency more precisely.
+
+We handle all of the causality test cases \cite{PughWebsite} that are
+expressible in our language (TC15-16 require loops).  This includes TC9,
+which fails for \cite{DBLP:conf/lics/JeffreyR16}.  See appendix.}
+
 \subsection{Information flow attacks on relaxed memory}
 \label{sec:info-flow-attack}
 
@@ -621,6 +628,9 @@ and lift the assignment to \verb|x| out of the \verb|if| statement:
 After these optimizations, a sequentially consistent execution
 exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
 further in \S\ref{sec:experiments}.
+
+\todo{Cite work on noninterference with two executions.  Perhaps
+\cite{Devriese:2010:NTS:1849417.1849969}.}
 
 \subsection{Dead store elimination}
 \label{sec:dse}
