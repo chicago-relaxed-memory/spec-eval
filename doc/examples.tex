@@ -11,7 +11,7 @@ guarantees about their behaviour.
 In this section, we discuss the sequential semantics, and leave
 the concurrent semantics to \S\ref{sec:concurrent-memory}.
 
-Consider the program \verb`(x := 0; y := x+1;)`.  One execution of
+Consider the program $(\aLoc\GETS0\SEMI \bLoc\GETS\aLoc+1)$.  One execution of
 this program is where the write to $y$ uses the sequential value of
 $x$, which is $0$:
 \[\begin{tikzpicture}[node distance=1em]
@@ -19,7 +19,8 @@ $x$, which is $0$:
   \event{wy1}{\DW{y}{1}}{right=of wx0}
 \end{tikzpicture}\]
 To see how this execution is modelled, we first
-expand out the syntax sugar to get the program \verb`(x := 0; r := x; y := r+1; skip)`.
+expand out the syntax sugar to get the program
+$(\aLoc\GETS0\SEMI \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$
 Now $\sem{\SKIP}$ is just $\{\emptyset\}$, and
 $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
@@ -66,9 +67,9 @@ This example demonstrates how preconditions
 capture the sequential semantics of memory.
 In an execution containing an event with label
 $(\aForm \mid \aAct)$, one way the precondition $\aForm$
-can be discharged is by a write $\aLoc\GETS\aExp$,
+can be discharged is by an assignment $\aLoc\GETS\aExp$,
 which performs a substitution $[\aExp/\aLoc]$.
-This is a variant of the usual Hoare semantics for
+This is a variant of the Hoare semantics for
 assignment, where if $\aCmd$ has preconditon $\aForm$
 then $\aLoc\GETS\aExp\SEMI\aCmd$ has precondition
 $\aForm[\aExp/\aLoc]$.
@@ -78,7 +79,7 @@ $\aForm[\aExp/\aLoc]$.
 
 We now turn to the case of concurrent accesses to memory.
 Consider a concurrent version of the program from \S\ref{sec:sequential-memory}:
-\verb`(x := 1; || y := x+1;)`.
+$(\aLoc\GETS1 \PAR \bLoc\GETS\aLoc+1)$.
 One execution of this program is where the write to $y$
 performs a concurrent read of $x$:
 \[\begin{tikzpicture}[node distance=1em]
@@ -89,7 +90,8 @@ performs a concurrent read of $x$:
   \po{rx1}{wy2}
 \end{tikzpicture}\]
 To see how this execution is modelled, we first
-expand out the syntax sugar to get the program \verb`(x := 1; skip || r := x; y := r+1; skip)`.
+expand out the syntax sugar to get the program
+$(\aLoc\GETS1\SEMI\SKIP \PAR \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$.
 As before, $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
    (r+1=2 \mid \DW y2) \prefix \sem{\SKIP}[2/y]
@@ -98,9 +100,7 @@ which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wy2}{r+1=2 \mid \DW{y}{2}}{}
 \end{tikzpicture}\]
-Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ has two cases, the sequential case
-(which does not introduce a read action)
-and the concurrent case (which does).
+As before, $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ has two cases.
 We are now interested in the concurrent case, which includes:
 \[
    (\DR x1) \prefix \sem{y \GETS r+1\SEMI \SKIP}[x/r]
@@ -112,11 +112,10 @@ which contains the pomset:
   \po{rx1}{wy2}
 \end{tikzpicture}\]
 Note that $(\DR x1)$ reads $1$ from $x$, and while
-$(x+1=2)[1/x]$ is a tautlogy
-$(x+1=2)$ is \emph{not} independent of $x$
-and so there is an ordering
-$(\DR x1) < (\DW y2)$
-modelling the data dependency of the write of $y$ on the read of $x$.
+$(x+1=2)[1/x]$ is a tautlogy,
+$(x+1=2)$ is not,
+and so there is a dependency
+$(\DR x1) < (\DW y2)$.
 
 Now, $\sem{x \GETS 1\SEMI \SKIP}$ includes the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -130,8 +129,8 @@ and so $\sem{x \GETS 1\SEMI \SKIP \PAR r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ i
   \rf{wx1}{rx1}
   \po{rx1}{wy2}
 \end{tikzpicture}\]
-as expected, including an reads-from dependency between the concurrent write of $x$
-and the matching read.
+as expected, including a reads-from dependency
+$(\DW x1) < (\DR x1)$.
 
 This example demonstrates how read and write events
 capture the concurrent semantics of memory.
@@ -144,8 +143,8 @@ $(\DW \aLoc\aVal)$.
 \subsection{Independent writes}
 
 Consider an example with two independent writes
-\verb|(x := 1; y := 2;)|.
-This has the semantics which includes:
+$(\aLoc\GETS1\SEMI \bLoc\GETS2)$.
+This has semantics including:
 \[
   (1=1 \mid \DW x1) \prefix
     (2=2 \mid \DW y2) \prefix
@@ -169,18 +168,18 @@ and:
   \po{wy2}{wx1}
 \end{tikzpicture}\]
 since there is no requirement that
-$(\DW{x}{1}) \le (\DW{y}{2})$.
+$(\DW{x}{1}) < (\DW{y}{2})$.
 
-Thus, the semantics of \verb|(x := 1; y := 2;)|
-is the same as the semantics of \verb|(y := 2; x := 1;)|.
+Thus, the semantics of $(\aLoc\GETS1\SEMI \bLoc\GETS2)$
+is the same as the semantics of $(\bLoc\GETS2\SEMI \aLoc\GETS1)$.
 
 \subsection{Independent reads and writes}
 
 Whereas write prefixing introduces weak dependencies on events which write
-the the same location, read prefixing introduces strong dependencies on
+to the same location, read prefixing introduces strong dependencies on
 preconditions which depend on the location being read. For example
 in \S\ref{sec:concurrent-memory} we saw that the program
-\verb|(r := x; y := r+1;)| includes the pomset:
+$(\bLoc\GETS\aLoc+1)$ includes the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
   \event{wy2}{\DW{y}{2}}{right=of rx1}
@@ -190,7 +189,7 @@ but since $(x+1=2)$ depends on $x$,
 we have the requirement that $(\DR{x}{1}) \le (\DW{y}{2})$.
 
 This is in contrast to the program 
-\verb|(r := x; y := r+2-r;)|.
+$(\aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+2-\aReg)$.
 Since $(x+2-x=2)$ is independent of $x$
 (at least for integer arithmetic)
 this contains:
@@ -198,8 +197,8 @@ this contains:
   \event{rx1}{\DR{x}{1}}{}
   \event{wy2}{\DW{y}{2}}{right=of rx1}
 \end{tikzpicture}\]
-and we can show the semantics of \verb|(r := x; y := r+2-r;)|
-is the same as the semantics of \verb|(y := 2; r := x;)|.
+and so the semantics of $(\aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+2-\aReg)$
+is the same as the semantics of $(\bLoc\GETS2\SEMI \aReg\GETS\aLoc)$.
 
 Note this this example shows that we are not just dealing
 with a syntactic notion of dependency, which is common
@@ -213,9 +212,10 @@ which can be interpreted semantically.
 \label{sec:control-dep}
 
 Conditionals introduce control dependencies, for example consider the program:
-\begin{verbatim}
-  r := z; if (r) { x := 1; } else { y := 2; }
-\end{verbatim}
+\[
+  \aReg\GETS\cLoc\SEMI
+  \IF(\aReg)\THEN \aLoc\GETS1 \ELSE \bLoc\GETS2 \FI
+\]
 This includes executions in which the false branch is taken:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz0}{\DR{z}{0}}{}
@@ -286,9 +286,10 @@ inside a conditional. In contrast, the notion in this model is
 semantic: if an action can occur on both sides of a conditional,
 there is no control dependency. Consider a variant of the example
 from \S\ref{sec:control-dep}:
-\begin{verbatim}
-  r := z; if (r) { x := 1; } else { x := 1; }
-\end{verbatim}
+\[
+  \aReg\GETS\cLoc\SEMI
+  \IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI
+\]
 This has the expected execution in which the control
 dependencies exist:
 \[\begin{tikzpicture}[node distance=1em]
@@ -304,10 +305,10 @@ of $1$ to $x$ are merged, resulting in no dependency:
   \event{rz0}{\DR{z}{0}}{}
   \event{wx1}{\DW{x}{1}}{right=of rz0}
 \end{tikzpicture}\]
-To see how this arises in the model,
+To see how this arises,
 consider the definition of $\sem{\IF(r)\THEN x\GETS1\SEMI\SKIP \ELSE x\GETS1\SEMI\SKIP \FI}$:
 \[
-   \aPSS_1 \sqcup \aPSS_2 \quad\mbox{where}\quad
+   \aPSS_1 \parallel \aPSS_2 \quad\mbox{where}\quad
    \aPSS_1 = (r\neq 0 \mid \sem{x\GETS1\SEMI\SKIP})  \quad\mbox{and}\quad
    \aPSS_2 = (r=0 \mid \sem{x\GETS1\SEMI\SKIP})
 \]
@@ -329,7 +330,7 @@ that is $\aPS_2$ where:
   \Event_2 = \{\aEv\} \quad
   \labelling_2(\aEv) = (r= 0, \DW x1)
 \]
-Crucuially, in the definition of $\aPSS_1 \sqcup \aPSS_2$
+Crucuially, in the definition of $\aPSS_1 \parallel \aPSS_2$
 there is \emph{no} requirement that $\Event_1$ and $\Event_2$ are disjoint,
 and in this case they overlap at $\aEv$. As a result, one pomset in
 $\aPSS_1\sqcup\aPSS_2$ is $\aPS_0$ where:
@@ -355,14 +356,18 @@ constant assignments out of loops.
 We can now see the counterintuitive behavior of conditionals
 in the presence of control dependencies.
 There are programs such as
-\verb|(r := z; if (r) { x := 1; } else { x := 1; })| with
+\(
+  \IF(\cLoc)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI
+\)
 executions in which  $(\DW x1)$ is independent of $(\DR z1)$:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz1}{\DR{z}{1}}{}
   \event{wx1}{\DW{x}{1}}{right=of rz1}
 \end{tikzpicture}\]
 while programs such as
-\verb|(r := z; if (r) { x := 1; } else { y := 2; })|
+\(
+  \IF(\cLoc)\THEN \aLoc\GETS1 \ELSE \bLoc\GETS2 \FI
+\)
 only have executions in which $(\DW x1)$ is dependent on $(\DR z1)$:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz1}{\DR{z}{1}}{}
@@ -385,30 +390,29 @@ We give a simplified model of Spectre attacks, ignoring the details of
 timing.  In this model, we extend programs with the ability to tell
 whether a memory location has been touched (in practice this is
 implemented using timing attacks on the cache). For example,
-we can write a \verb|SPECTRE| program as:
-\begin{verbatim}
-    var a;
-    if (canRead(SECRET)) { a[SECRET] := 1; }
-    else if (touched a[0]) { x := 0; }
-    else if (touched a[1]) { x := 1; }
-\end{verbatim}
+we can model Spectre by:
+\[\begin{array}{l}
+  \VAR a\SEMI \IF(\CANREAD(\SEC))\THEN a[\SEC]\GETS1
+  \brELIF(\TOUCHED a[0])\THEN x\GETS0
+  \brELIF(\TOUCHED a[1])\THEN x\GETS1 \FI
+\end{array}\]
 This is a low-security program, which is attempting to discover the
-value of a high-security variable \verb|SECRET|. The low-security program
+value of a high-security variable $\SEC$. The low-security program
 is allowed to attempt to escalate its privileges by checking that it is
 allowed to read a high-security variable:
-\begin{verbatim}
-    if (canRead(x)) { ... code allowed to read x ... }
-    else { ... fallback code ... }
-\end{verbatim}
-In this case, the \verb|canRead(SECRET)| is false, so the fallback code
+\[
+  \IF(\CANREAD(\SEC))\THEN \cdots\mbox{code allowed to read $\SEC$}\cdots
+  \ELSE \cdots \FI
+\]
+In this case, $\CANREAD(\SEC)$ is false, so the fallback code
 is executed. Unfortunately, the escalated code is speculatively
 evaluated, which allows information to leak by testing for which
 memory locations have been touched.
 
-We model the \verb|touched| test by introducing a new action
+We model the $\TOUCHED$ test by introducing a new action
 $(\DT{\aLoc})$ and defining:
 \begin{eqnarray*}
-  \sem{\IF \TOUCHED\aLoc\THEN \aCmd \ELSE \bCmd \FI} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
+  \sem{\IF (\TOUCHED\aLoc) \THEN \aCmd \ELSE \bCmd \FI} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
 \end{eqnarray*}
 The additional requirement we need to add for $\aLoc$-closure is:
 \begin{itemize}
@@ -417,7 +421,7 @@ The additional requirement we need to add for $\aLoc$-closure is:
   where $\bEv$ reads or writes $\aLoc$.
 \end{itemize}
 Note that there is no requirement that $\bEv$ be satisfiable,
-and indeed \verb|SPECTRE| has the execution:
+and indeed Spectre has the execution:
 \[\begin{tikzpicture}[node distance=1em]
   \nonevent{rs}{\DR{\SEC}{1}}{}
   \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
@@ -439,7 +443,7 @@ Putting this in parallel with a high-security write to \verb|SECRET| gives:
   \po{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
-but due the requirement of \verb|a|-closure we do \emph{not} have:
+but due the requirement of $a$-closure we do \emph{not} have:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ws}{\DW{\SEC}{0}}{}
   \nonevent{rs}{\DR{\SEC}{0}}{right=2.5em of ws}
@@ -454,7 +458,7 @@ but due the requirement of \verb|a|-closure we do \emph{not} have:
 Thus, the attacker has managed to leak the value of a high-security
 location to a low-security one.
 
-This shows how our model of speculative evaluation can express
+This shows how our model of speculation can express
 (very abstract, untimed) Spectre attacks.
 
 \subsection{Relaxed memory}
