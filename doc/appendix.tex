@@ -1,14 +1,35 @@
 \section{Memory model examples}
 \label{sec:appendix}
-\subsection{TC9}
+
+
+\subsection{Causality test cases}
+
+FROM THE LICS paper:
+
+In the process of revising the Java Memory Model, \citet{PughWebsite}
+developed a set of twenty \emph{causality test cases}.  Using hand
+calculation, we tested our semantics against eighteen of these cases (TC14
+and TC15 require loops).
+
+% Also by hand calculation, we found that our semantics gives the desired
+% results for all examples in \citet[\textsection
+% 4]{DBLP:conf/esop/BattyMNPS15} and all but one in \citet[\textsection
+% 5.3]{SevcikThesis}: redundant-write-after-read-elimination---this
+% counterexample applies to any sensible non-coherent semantics.
+
+A variation on TC1:
+\begin{verbatim}
+  x:=0; if(x<2){y:=1;}  ||  x:=y;
+\end{verbatim}
+Compiler can determine that x and y are both non-negative.
 
 Causality test cases 1, 6, 8, 9, 18, 20  (12?) require that the logic make
   assertions about the domain of variables
 
-\todo{A question:}
+  A variation on TC9:
 Here is an example that \cite{DBLP:conf/lics/JeffreyR16} fails on:
 \begin{verbatim}
-  r1:=x; y:=r1;   ||  r2:=y; if(r2<2){x:=1;}  || y:=2;
+  x:=0; if(x<2){y:=1;}  ||  x:=y;  || y:=2;
 \end{verbatim}
 This should allow \texttt{r1==r2==1}.  Hopefully this is allowed by our
 semantics...
