@@ -1,0 +1,241 @@
+\section{Memory model examples}
+\label{sec:appendix}
+\subsection{TC9}
+
+Causality test cases 1, 6, 8, 9, 18, 20  (12?) require that the logic make
+  assertions about the domain of variables
+
+\todo{A question:}
+Here is an example that \cite{DBLP:conf/lics/JeffreyR16} fails on:
+\begin{verbatim}
+  r1:=x; y:=r1;   ||  r2:=y; if(r2<2){x:=1;}  || y:=2;
+\end{verbatim}
+This should allow \texttt{r1==r2==1}.  Hopefully this is allowed by our
+semantics...
+
+
+\subsection{Thread inlining}
+
+One property one could ask of a model of shared memory is thread
+inlining: any execution of $\sem{P\SEMI Q}$ is an execution of $\sem{P
+  \PAR Q}$. This is \emph{not} a goal of our model, and indeed is not
+satisfied, due to the different semantics of concurrent and sequential
+memory accesses. We demonstrate this by considering an example from
+the Java Memory Model~\cite{Manson:2005:JMM:1047659.1040336}, which shows that Java does not
+satisfy thread inlining either.
+
+The lack of thread inlining is related to the different dependency
+relations introduced by sequential and concurrent access.
+Recall from \S\ref{sec:sequential-memory} that the program
+\verb`(x := 0; y := x+1;)` has execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wy1}{\DW{y}{1}}{right=of wx0}
+\end{tikzpicture}\]
+but that \verb`(x := 1; || y := x+1;)` has:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{rx1}{\DR{x}{1}}{right=2.5em of wx1}
+  \event{wy2}{\DW{y}{2}}{right=of rx1}
+  \rf{wx1}{rx1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+That is, in the sequential case there is no dependency from the
+write of $x$ to the write of $y$, but in the concurrent case there
+is such a dependency.
+
+This can be used to construct a counter-example to thread inlining, based on~\cite[Ex~11]{Manson:2005:JMM:1047659.1040336}:
+\begin{verbatim}
+  x := 0; if (x == 1) { z := 1; } else { x := 1; } || y := x; || x := y;
+\end{verbatim}
+This has no execution containing $(\DW z1)$. Any attempt to build such an execution
+results in a cycle:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1a}{\DR{x}{1}}{}
+  \event{wz1}{\DW{z}{1}}{right=of rx1a}
+  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
+  \event{rx1b}{\DR{x}{1}}{right=2.5em of wx1a}
+  \event{wy1}{\DW{y}{1}}{right=of rx1b}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{wx1b}{\DW{x}{1}}{right=of ry1}
+  \po{rx1a}{wz1}
+  \po[out=25, in=150]{rx1a}{wx1a}
+  \po{rx1b}{wy1}
+  \po{ry1}{wx1b}
+  \rf{wy1}{ry1}
+  \rf[out=160, in=30]{wx1b}{rx1a}
+  \rf[out=160, in=30]{wx1b}{rx1b}
+\end{tikzpicture}\]
+Inlining the thread \verb|(y := x)| gives~\cite[Ex~12]{Manson:2005:JMM:1047659.1040336}:
+\begin{verbatim}
+  x := 0; if (x == 1) { z := 1; } else { x := 1; } y := x; || x := y;
+\end{verbatim}
+with execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1a}{\DR{x}{1}}{}
+  \event{wz1}{\DW{z}{1}}{right=of rx1a}
+  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
+  \event{wy1}{\DW{y}{1}}{right=of wx1a}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{wx1b}{\DW{x}{1}}{right=of ry1}
+  \po{rx1a}{wz1}
+  \po[out=25, in=150]{rx1a}{wx1a}
+  \po{ry1}{wx1b}
+  \rf{wy1}{ry1}
+  \rf[out=160, in=30]{wx1b}{rx1a}
+\end{tikzpicture}\]
+To see why this execution exists, consider the program fragment:
+\begin{verbatim}
+  if (x == 1) { z := 1; } else { x := 1; } y := x;
+\end{verbatim}
+Removing the syntax sugar, this is:
+\begin{verbatim}
+  r1 := x; if (r1 == 1) {
+    z := 1; r2 := x; y := r2; skip
+  } else {
+    x := 1; r3 := x; y := r3; skip
+  }
+\end{verbatim}
+Now, $\sem{z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP}$
+includes pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
+  \event{wy1}{r_1=x=1 \mid \DW{y}{1}}{right=of wz1}
+\end{tikzpicture}\]
+and $\sem{x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP}$
+includes pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1a}{r_1\neq 1 \mid \DW{x}{1}}{}
+  \event{wy1}{r_1\neq 1 \mid \DW{y}{1}}{right=of wx1a}
+\end{tikzpicture}\]
+so  $\sem{\IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}$ includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
+  \event{wx1a}{r_1\neq1 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{(r_1=x=1) \lor (r_1\neq1) \mid \DW{y}{1}}{right=of wx1a}
+\end{tikzpicture}\]
+which means $\sem{\IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}[x/r_1]$ includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wz1}{x=1 \mid \DW{z}{1}}{}
+  \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{(x=x=1) \lor (x\neq1)) \mid \DW{y}{1}}{right=of wx1a}
+\end{tikzpicture}\]
+Now $(x=x=1) \lor (x\neq1)$ is a tautology, so this is just:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wz1}{x=1 \mid \DW{z}{1}}{}
+  \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{\DW{y}{1}}{right=of wx1a}
+\end{tikzpicture}\]
+and so $\sem{r_1 \GETS x\SEMI \IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}$ includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1a}{\DR{x}{1}}{}
+  \event{wz1}{1=1 \mid \DW{z}{1}}{right=of rx1a}
+  \event{wx1a}{1\neq1 \mid \DW{x}{1}}{right=of wz1}
+  \event{wy1}{\DW{y}{1}}{right=of wx1a}
+  \po{rx1a}{wz1}
+  \po[out=25, in=150]{rx1a}{wx1a}
+\end{tikzpicture}\]
+which simplifies to:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1a}{\DR{x}{1}}{}
+  \event{wz1}{\DW{z}{1}}{right=of rx1a}
+  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
+  \event{wy1}{\DW{y}{1}}{right=of wx1a}
+  \po{rx1a}{wz1}
+  \po[out=25, in=150]{rx1a}{wx1a}
+\end{tikzpicture}\]
+as required. The rest of the example is straightforward, and shows that our semantics
+agrees with the JMM in not supporting thread inlining.
+
+
+
+% \subsection{Word tearing}
+
+% \todo{Remove this section, since it's not needed for transactions?}
+
+% In \S\ref{sec:transactions}, we shall be considering transactional memory,
+% and in \S\ref{sec:transactions} show that we can model a simplified version
+% of an information flow attack on transactions. In order to model transactions,
+% we need to consider actions that can write many memory locations at once,
+% since this is part of the semantics of commitment. To lead up to this, we first
+% consider a simpler scenario of many-location writes and reads, which is word
+% tearing.
+
+% In word tearing, a program contains a write instruction with data larger
+% than the hardware word size, for example copying a byte array, or assigning
+% a 64-bit float on a 32-bit architecture. For example, consider the program:
+% \begin{verbatim}
+%   (x := [0, 0];) || (x := [1, 1];) || (r := x;)
+% \end{verbatim}
+% This has executions in which the read of $x$ only reads from one of the writes,
+% for example:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{wx00}{\DW{x}{[0,0]}}{}
+%   \event{wx11}{\DW{x}{[1,1]}}{right=2.5em of wx00}
+%   \event{rx00}{\DR{x}{[0,0]}}{right=2.5em of wx11}
+%   \rf[out=20, in=160]{wx00}{rx00}
+% \end{tikzpicture}\]
+% but also has executions in which the read of $x$ reads from both writes,
+% for example:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{wx00}{\DW{x}{[0,0]}}{}
+%   \event{wx11}{\DW{x}{[1,1]}}{right=2.5em of wx00}
+%   \event{rx01}{\DR{x}{[0,1]}}{right=2.5em of wx11}
+%   \rfx[out=20, in=160]{wx00}{x[0]}{rx01}
+%   \rfx[out=-20, in=-160]{wx11}{x[1]}{rx01}
+% \end{tikzpicture}\]
+% Word tearing can occur, for example, in Java extended floating point~\cite{jmm},
+% LLVM 64-bit instructions on 32-bit hardware~\cite{llvm}, or in
+% JavaScript SharedArrayBuffers~\cite{js-sab}.
+
+% \newcommand{\rfControl}[4][]{\draw[rf,#1](#2) .. controls (#3) .. (#4);}
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{wx0}{\DW{x}{0}}{}
+%   \event{wx1}{\DW{x}{1}}{right=of wx0}
+%   \event{wy0}{\DW{y}{0}}{right=2.5em of wx1}
+%   \event{wy1}{\DW{y}{1}}{right=of wy0}
+%   \event{rx1}{\DR{x}{1}}{right=2.5 em of wy1}
+%   \event{ry0}{\DR{y}{0}}{right=of rx1}
+%   \event{ry1}{\DR{y}{1}}{right=2.5 em of ry0}
+%   \event{rx0}{\DR{x}{0}}{right=of ry1}
+%   \rf[out=20,in=160]{wx1}{rx1}
+%   \rf[out=20,in=160]{wy0}{ry0}
+%   \rf[out=340,in=200]{wy1}{ry1}
+%   \coordinate (a) [below=of wy1];
+%   \rfControl[out=340,in=200]{wx0}{a}{rx0}
+%   \wk{wx0}{wx1}
+%   \wk{wy0}{wy1}
+%   \po{rx1}{ry0}
+%   \po{ry1}{rx0}
+% \end{tikzpicture}\]
+
+
+% Batty section 4:
+% \cite[\S4]{DBLP:conf/esop/BattyMNPS15},
+% Example LB+ctrldata+ctrl-double (language must allow)
+% r1=loadrlx(x) //reads 42
+% if (r1 == 42)
+%   storerlx(y,r1)
+
+% r2=loadrlx(y) //reads 42
+% if (r2 == 42)
+%   storerlx (x,42)
+% else
+% storerlx (x,42)
+
+% a:RRLX x=42 sb,dd,cd
+% c:RRLX y=42 sb,cd
+%   This is forbidden on hardware if compiled naively, as the architectures respect read-to-write control dependencies, but in practice compilers will collapse con- ditionals like that of the second thread, removing the control dependencies from the read of y to the writes of x and making the code identical to the previous example. As that example is allowed and observable on hardware (and we pre- sume that it would be impractical to outlaw such optimisation for C or C++), the language must also allow this execution. But this execution has a cycle in the union of reads-from and dependency, so we cannot simply exclude all those.
+% Then one might hope for some other adaptation of the C/C++11 model, but the following example shows at least that there is no per-candidate-execution solution.
+% Example LB+ctrldata+ctrl-single (language can and should forbid)
+% r1=loadrlx(x) //reads 42 if (r1 == 42)
+% storerlx (y,r1) r2=loadrlx (y) //reads 42 if (r2 == 42)
+% a:RRLX x=42 sb,dd,cd
+% rf
+% b:WRLX y=42
+% c:RRLX y=42 sb,cd
+% rf
+% d:WRLX x=42
+% rf rf
+% b:WRLX y=42 d:WRLX x=42
+%   storerlx (x,42)
