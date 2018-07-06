@@ -167,10 +167,15 @@ closed if $\mods{(\afo)}$ is prefix-closed\footnote{$\aPS'$ is a prefix of
 \end{proof}
 
 We now turn to the example program, which is a variant of \cite[Figure 8]{DBLP:journals/toplas/Lochbihler13}:
-\begin{verbatim}
-  var x,y,z;
-  y:=0; y:=x  ||  x:=0; if(~z){x:=1;}else{x:=y;a:=y;}  ||  z:=0; z:=1
-\end{verbatim}
+\[
+  \VAR x,y,z\SEMI (
+    y\GETS0\SEMI y\GETS x
+  \PAR
+    x\GETS0\SEMI \IF(z)\THEN x\GETS1 \ELSE x\GETS y\SEMI a\GETS y \FI
+  \PAR
+    z\GETS0\SEMI z\GETS1
+  )
+\]
 This program is allowed to write $1$ to $a$ under many speculative
 memory models
 \cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17},
@@ -191,11 +196,15 @@ Closing $y$, we have,
 \begin{math}
   \once(\DR{y}{1}) \Rightarrow \once(\DW{y}{1}) % \Rightarrow \once(\DR{x}{1})
 \end{math}
-and thus, using the left conjunct, we have:
+which we substitute into the left conjunct to get:
+\begin{displaymath}
+  \once(\DR{y}{1}) \Rightarrow \once(\DR{x}{1})
+\end{displaymath}
+which in turn we sustitute into the right conject to get:
 \begin{displaymath}
   \once(\DW{a}{1}) \Rightarrow (\once(\DR{x}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DR{x}{1})))
 \end{displaymath}
-By closing $x$, we can replace $\once(\DR{x}{1})$ with $\once(\DW{x}{1})$:
+Closing $x$, we can replace $\once(\DR{x}{1})$ with $\once(\DW{x}{1})$:
 \begin{displaymath}
   \once(\DW{a}{1}) \Rightarrow (\once(\DW{x}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DW{x}{1})))
 \end{displaymath}
