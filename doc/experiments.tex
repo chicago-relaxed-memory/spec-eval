@@ -98,7 +98,13 @@ register first (before writing to \verb|x|), regardless of the value of
 \verb|SECRET|.
 However, we did find a related pattern in which \verb|gcc| will emit a
 different ordering of the read of \verb|y| and the write of \verb|x| depending
-on the value of a \verb|SECRET|:
+on the value of a \verb|SECRET|\footnote{
+Here and for the remainder of Section~\ref{sec:experiments}, our
+implementation uses a \texttt{volatile bool} of value \texttt{false} in place of
+an actual function call to \texttt{canRead(SECRET)}.
+This is sufficient to prevent \texttt{gcc} from inferring the outcome of the
+conditional at compile time.}
+:
 \begin{verbatim}
     y := 0;
     (
@@ -125,10 +131,9 @@ a compile-time \verb|SECRET|.
 
 We extend this attack to leak a secret consisting of an arbitrary number
 \verb|N| of bits.
-
 To do this, we simply compile \verb|N| copies of the test function, each
 performing a boolean test on a single bit of the secret.
-The function used for eading the \verb|k|th bit is as follows (for
+The function used for reading the \verb|k|th bit is as follows (for
 \verb|N <= 64|):
 \begin{verbatim}
     (

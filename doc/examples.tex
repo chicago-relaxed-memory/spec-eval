@@ -456,7 +456,8 @@ but due the requirement of $a$-closure we do \emph{not} have:
   \po{ta}{wx}
 \end{tikzpicture}\]
 Thus, the attacker has managed to leak the value of a high-security
-location to a low-security one.
+location to a low-security one: if $(\DW x1)$ is observed, the \verb|SECRET|
+must have been 1.
 
 This shows how our model of speculation can express
 (very abstract, untimed) Spectre attacks.
