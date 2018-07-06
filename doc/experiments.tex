@@ -5,28 +5,28 @@ One theme of this paper is that optimizations not typically part of formal
 abstractions can result in information-flow leaks.
 This is typified by the Spectre attack, which leverages speculative execution,
 a hardware optimization.
-Sections~\ref{sec:info-flow-attack} and~\ref{sec:dse} presented other attacks
-along this same theme, which leverage relaxed memory models and dead store
+\S\ref{sec:info-flow-attack} and~\S\ref{sec:dse} presented other attacks
+along the same line, which leverage relaxed memory models and dead store
 elimination respectively.
-In particular, the latter attack (and, to a degree, the former attack), result
+These attacks may result,
 not from hardware optimizations, but from common \emph{compiler} optimizations.
 These attacks also, unlike Spectre, do not rely on timing side channels, or
 indeed timers of any kind, bypassing many common Spectre mitigations~\cite{???}.
 %%%%% FuzzyFox, Chrome's and Firefox's restrictions on precise timers, etc.
 
-In this section we present concrete implementations of the attacks outlined in
-Sections~\ref{sec:info-flow-attack} and~\ref{sec:dse}, in both cases
-leveraging compiler optimizations to construct an information-flow attack.
-The attacker model for these attacks (detailed in
-Section~\ref{subsec:attacker-model}) is currently unrealistic in a
+In this section we present concrete implementations of the attacks outlined
+in~\S\ref{sec:info-flow-attack} and~\S\ref{sec:dse}, in both cases
+leveraging compiler optimizations to construct an information flow attack.
+The attacker model for these attacks (detailed in~\S\ref{subsec:attacker-model})
+is currently unrealistic in a
 real-world sense, rendering these attacks proof-of-concepts rather than
 immediately exploitable vulnerabilities.
 However, we believe the novelty of their general mechanisms may lead to
 interesting discussion; and with much more development, these attacks may
 evolve into genuine threats against real-world targets such as JIT compilers.
 We demonstrate the efficacy of both of our concrete proof-of-concept
-attacks against modern compilers and hardware (under our attacker model),
-including both the \verb|clang| and \verb|gcc| C compilers.
+attacks against
+the \verb|clang| and \verb|gcc| C compilers.
 
 All of our experiments are performed on a \todo{describe machine} with
 \verb|clang| version \todo{clang version} and \verb|gcc| version \todo{gcc
@@ -38,49 +38,45 @@ version}.
 In our attacker model, we assume that there is a \verb|SECRET| which an
 attacker wishes to learn; for instance, \verb|SECRET| may be a cryptographic
 key hardcoded into the application.
-This \verb|SECRET| is known to the compiler at compile time, but may not be
+This \verb|SECRET| is known at compile time, but may not be
 accessed except behind a security check.
-We assume that the security check always evaluates to \verb|false| at runtime
-for the attacker, but that the attacker is allowed to write (compile and
-execute) arbitrary code subject to the above restrictions.
+Since the attacker is running with low security privileges,
+the security check always fails,
+so the attacker can only access \verb|SECRET| in dead code.
 The attacker has no capabilities other than writing and executing code --- in
 particular the attacker may not disassemble the compiler or libraries to learn
 the \verb|SECRET| directly; may not examine the internal state of the compiler;
 may not access timers of any kind; and may not leverage hardware side channels.
-The attacker's goal is to learn the value of the \verb|SECRET| despite only
-being allowed to use it inside dead code, that is, code that can never be
-executed at runtime.
+The attacker's goal is to learn the value of the \verb|SECRET|.
 
 As a hypothetical concrete example, suppose there is a library which contains
-a hardcoded \verb|SECRET| but does not allow library users unrestricted access
-to this \verb|SECRET|.
-Instead, library users must call an (arbitrarily complex) library function as
-a guard before using the \verb|SECRET| in code.
-In this hypothetical example, a static compiler pass ensures that the
-attacker's code only accesses the \verb|SECRET| inside an \verb|if| statement
-after calling the library's guard function; that is, the static pass ensures
-that the \verb|SECRET| is only accessed at program points where it can be
-proven that the guard function returned \verb|true|.
-
-As noted above, this is not necessarily a realistic attacker model in the
-real-world sense, which means that the attacks presented in this section
-are more of theoretical interest than practical concern; few environments
-allow attackers to write nearly-arbitrary C code that touches secrets in any
-way.
+a hardcoded \verb|SECRET| such as an API or signing key, which cannot be accessed
+directly, only through a function guarded by a security check:
+\begin{verbatim}
+  private static uint SECRET = 0x1234;
+  public uint get_secret() {
+    if (canRead(SECRET)) { return SECRET; }
+    else { return 0; }
+  }
+\end{verbatim}
+As noted above, this is not necessarily a realistic attacker model,
+since in most cases secrets are only known at run time rather than compile time,
+which means that the attacks presented in this section
+are more of theoretical interest than practical concern.
 However, the mechanism of the attack is novel and could potentially be applied
 in other contexts.
-For instance, many real-world contexts allow ``attackers'' (untrusted or
+For instance, many real-world contexts allow attackers (untrusted or
 third-party entities) to write code in a scripting language which is then
-compiled alongside and integrated into a larger application, often in a
-just-in-time (JIT) manner.
+compiled alongside and integrated into a larger application, often
+using a just-in-time (JIT) compiler.
 JavaScript code from third-party websites running in a browser is a common
 example of this.
-Our attack gives an attacker similar ``scripting'' capabilities against a
+Our attack gives an attacker similar capabilities against a
 compiler, except it considers the simpler setting of using C code against a C
 compiler.
 One could imagine a similar attack using JavaScript against browser JIT
 compilers, where the compiler may have access to interesting secrets in the
-browser itself, and may be more liberal with what it considers a ``constant''.
+browser itself, and may be able to optimize based on those secrets.
 We plan to explore JavaScript attacks of this type as future work.
 
 \subsection{Load-store reordering attack}
