@@ -186,7 +186,7 @@ static void printUsage(char* progname) {
 }
 
 // how long to run trials for, in milliseconds
-#define DURATION_MS 4000
+#define DURATION_MS 15000
 int main(int argc, char* argv[]) {
   bool tuning;
   unsigned error_runs;
@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
   struct manyTrials_res res;
 
   if(tuning) {
-    const unsigned error_runs_vals[] = {1, 2, 3, 4, 5, 7, 10, 20, 50};
+    const unsigned error_runs_vals[] = {1, 2, 3, 4, 5, 7, 10, 15, 20};
     const unsigned length_error_runs_vals = 9;
     printf("\n error_runs  leaked bits/sec  %% of bits correct  %% of trials correct\n");
 
@@ -243,7 +243,7 @@ int main(int argc, char* argv[]) {
       double leakedBitsPerSec = leakedBits/(double)res.elapsedNanoseconds*(double)1e9;
       double bitAccuracy = res.totalBitsCorrect/(double)leakedBits;
       double trialsAccuracy = res.numOffBy[0]/(double)res.numTrials;
-      printf("   %10.1f         %7.5f%%          %5.1f%%\n", leakedBitsPerSec, 100*bitAccuracy, 100*trialsAccuracy);
+      printf("   %10.1f         %8.6f%%         %5.1f%%\n", leakedBitsPerSec, 100*bitAccuracy, 100*trialsAccuracy);
     }
 
   } else {  // not tuning
