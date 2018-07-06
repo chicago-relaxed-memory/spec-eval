@@ -132,7 +132,7 @@ In summary, the features we need of the underlying data model are:
 from which we can define the operations used in defining the semantics of programs,
 which include:
 \begin{itemize}
-\item \emph{prefixing} $(\aForm\mid\aAct)\prefix\aPSS$, which adds an event
+\item \emph{prefixing} $\aAct\prefix\aPSS$, which adds an event
   with precondition $\aForm$ and action $\aAct$ to pomsets in $\aPSS$,
 \item \emph{substitution} $\aPSS[\aExp/\aLoc]$, which performs a substitution
   on every precondition in $\aPSS$, and
@@ -519,13 +519,13 @@ then $\aPSS_1 \parallel \aPSS_2$ contains:
 \end{tikzpicture}\]
 
 \begin{definition}
-Let $(\phi \mid \aAct) \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
+Let $\aAct \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
 \item $\Event' = \Event \cup \{\cEv\}$,
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
 \item if $\bEv \ltN \aEv$ then $\bEv \ltN' \aEv$,
-\item $\labelling'(\cEv) = (\aForm', \aAct)$, where $\aForm'$ implies $\aForm$, and
+\item $\labelling'(\cEv) = (\aForm, \aAct)$, and
 \item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then:
   \begin{itemize}
   \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
@@ -595,7 +595,7 @@ semantics of a simple concurrent imperative programming language.
 \begin{definition}
 \begin{eqnarray*}
   \sem{\SKIP} & = & \{ \emptyset \} \\
-  \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
+  \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid (\DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]) \\
   \sem{\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\DR\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
   \sem{\IF (\aExp) \THEN \aCmd \ELSE \bCmd \FI} & = & (\aExp \neq 0 \mid \sem{\aCmd}) \parallel (\aExp=0 \mid \sem{\bCmd}) \\
   \sem{\aCmd \PAR \bCmd} & = & \sem{\aCmd} \parallel \sem{\bCmd} \\

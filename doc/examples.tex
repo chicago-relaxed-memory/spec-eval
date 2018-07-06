@@ -24,7 +24,7 @@ $(\aLoc\GETS0\SEMI \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$
 Now $\sem{\SKIP}$ is just $\{\emptyset\}$, and
 $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
-   (r+1=1 \mid \DW y1) \prefix \sem{\SKIP}[1/y]
+   (r+1=1 \mid (\DW y1) \prefix \sem{\SKIP}[1/y])
 \]
 which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -48,7 +48,7 @@ In this pomset, the precondition is $(x+1=1)$, which specifies a property
 of the thread-local value of $x$.
 Finally $\sem{x \GETS 0\SEMI r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ includes:
 \[
-   (0=0 \mid \DW x0) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[0/x]
+   (0=0 \mid (\DW x0) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[0/x])
 \]
 which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -94,7 +94,7 @@ expand out the syntax sugar to get the program
 $(\aLoc\GETS1\SEMI\SKIP \PAR \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$.
 As before, $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
-   (r+1=2 \mid \DW y2) \prefix \sem{\SKIP}[2/y]
+   (r+1=2 \mid (\DW y2) \prefix \sem{\SKIP}[2/y])
 \]
 which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -146,8 +146,8 @@ Consider an example with two independent writes
 $(\aLoc\GETS1\SEMI \bLoc\GETS2)$.
 This has semantics including:
 \[
-  (1=1 \mid \DW x1) \prefix
-    (2=2 \mid \DW y2) \prefix
+  (\DW x1) \prefix
+    (\DW y2) \prefix
       \{\emptyset\}
 \]
 One of the executions this contains is:
