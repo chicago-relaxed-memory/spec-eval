@@ -6,6 +6,4 @@
 **/.DS_Store
 **/*.synctex.*
 src/dse/dseattack
-src/relaxedmem/relaxedmemattack
-src/relaxedmem/matchguess*
-src/relaxedmem/wrongguess*
+src/lsr/lsrattack
