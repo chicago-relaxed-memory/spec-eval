@@ -19,7 +19,7 @@ implementation.
 A key parameter in the definitions cited above is the notion of
 the \emph{observational power} of the attacker model. Whereas the classical
 input-output behavior is often an adequate foundation,
-it has long been known that side-channels that leak
+it has long been known~\cite{???} that side-channels that leak
 information arise from other observables such as execution time and
 power consumption.
 
@@ -31,22 +31,20 @@ $(\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI)$ to depend on the behaviour
 of $\bCmd$ even when the condition $\aExp$ is true.
 
 Our study addresses several sources of speculation in the concurrent
-execution of programs on modern microprocessors.
+execution of programs.
 \begin{itemize}
 
-\item Pipelined microprocessors use predictive schemes to utilize
-  resources more efficiently and improve performance. Informally,
-  these schemes use the prior history to predict the path of a
-  program, e.g. by guessing memory dependencies, or the outcome of
+\item Pipelined microprocessors use heuristics to predict the path of a
+  program, for example by guessing memory dependencies, or the outcome of
   conditionals. Execution proceeds along the predicted path until it
   is possible to validate the prediction; the execution is committed
-  if the prediction is correct; otherwise, the execution is rolled
+  if the prediction is correct; otherwise it is rolled
   back.  The speculation does not affect the observable input-output
   behavior of the program, thus ensuring correctness with respect to
   the usual intended semantics of the program. However, since there is
   clear timing differences between the cases where the prediction is
   and is not successful, it raises the concern that the predictive
-  mechanisms themselves could cause information-leaks via timing
+  mechanisms themselves could cause information leaks via timing
   side-channels; a fear that is realized with devastating impact by
   the Spectre family of attacks~\cite{DBLP:journals/corr/abs-1801-01203}.
 
@@ -84,7 +82,7 @@ execution of programs on modern microprocessors.
   we investigate in this paper.
 
   Whereas information flows caused by speculation in hardware,
-  or by transactional memory are known~\cite{???,???},
+  or by transactional memory are known~\cite{DBLP:journals/corr/abs-1801-01203,DBLP:conf/uss/DisselkoenKPT17},
   these attacks on compiler optimizations, and the relaxed memory
   models that justify them, is new. In this paper we provide
   both a formal model for such attacks, and experimental evidence
@@ -92,13 +90,13 @@ execution of programs on modern microprocessors.
 
 \end{itemize}
 Information flow attacks motivate the main technical development of this
-paper.  This line of research was initiated by~\citet{Zhang:2012:LCM:2345156.2254078}.  
-Whereas they explore static annotations to address sidechannels in the context of hardware description languages, we explore a model of programs
-that captures enough detail to reveal and analyze the presence of side
-channels revealed by speculative execution.  
-
-
-The model is based on \emph{partially ordered multisets}~\cite{Plotkin:1997:TSP:266557.266600}
+paper.
+%% This line of research was initiated by~\citet{Zhang:2012:LCM:2345156.2254078}.  
+%% Whereas they explore static annotations to address sidechannels in the context of hardware description languages, we explore a model of programs
+%% that captures enough detail to reveal and analyze the presence of side
+%% channels revealed by speculative execution.  
+%
+Our model is based on \emph{partially ordered multisets}~\cite{GISCHER1988199,Plotkin:1997:TSP:266557.266600}
 (``pomsets''), whose labels are given by read and write actions. These can be
 visualized as a graph where the edges indicate dependencies, for example
 $(\aReg\GETS\aLoc\SEMI \bLoc\GETS1\SEMI \cLoc\GETS\aReg+1)$
@@ -111,8 +109,7 @@ has an execution modelled by the pomset:
 \end{tikzpicture}\]
 The edge from $(\DR{\aLoc}{1})$ to $(\DW{\cLoc}{2})$ indicates a
 data dependency. The novel aspect of the model is that events have
-\emph{preconditions} which may be false (and are visualized
-by crossing out the event). These are used in giving the
+\emph{preconditions} which may be false. These are used in giving the
 semantics of conditionals, for example
 $(\IF(\aLoc)\THEN \bLoc\GETS1\SEMI\cLoc\GETS1 \ELSE \bLoc\GETS2\SEMI\cLoc\GETS1\FI)$
 has an execution:
@@ -126,7 +123,7 @@ has an execution:
 \end{tikzpicture}\]
 Th edges from $(\DR{\aLoc}{1})$ to $(\DW{\bLoc}{1})$ and
 $(\DW{\bLoc}{2})$ indicate control dependencies. The presence of
-a crossed out $(\DW{\bLoc}{2})$ indicates a failed speculation.
+a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precondition,
 
 The novel contributions of this paper are:
 \begin{itemize}
@@ -141,5 +138,3 @@ The novel contributions of this paper are:
   the new class of attacks (\S\ref{sec:experiments}).
 
 \end{itemize}
-The information flow attacks against optimizing compilers were developed
-as a direct result of building the formal model.

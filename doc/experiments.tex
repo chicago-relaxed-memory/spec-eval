@@ -5,41 +5,110 @@ One theme of this paper is that optimizations not typically part of formal
 abstractions can result in information-flow leaks.
 This is typified by the Spectre attack, which leverages speculative execution,
 a hardware optimization.
-Sections \ref{sec:info-flow-attack} and \ref{sec:dse} presented other attacks
+Sections~\ref{sec:info-flow-attack} and~\ref{sec:dse} presented other attacks
 along this same theme, which leverage relaxed memory models and dead store
 elimination respectively.
 In particular, the latter attack (and, to a degree, the former attack), result
 not from hardware optimizations, but from common \emph{compiler} optimizations.
 These attacks also, unlike Spectre, do not rely on timing side channels, or
 indeed timers of any kind, bypassing many common Spectre mitigations
-\cite{TODO}.
-Here we demonstrate the efficacy of each of these attacks against modern
-compilers and hardware, including both the \verb|clang| and \verb|gcc|
-compilers.
+\cite{???}. %%%%% FuzzyFox, Chrome's and Firefox's restrictions on precise timers, etc.
+
+In this section we present concrete implementations of the attacks outlined in
+Sections~\ref{sec:info-flow-attack} and~\ref{sec:dse}, in both cases
+leveraging compiler optimizations to construct an information-flow attack.
+The attacker model for these attacks (detailed in
+Section~\ref{subsec:attacker-model}) is currently unrealistic in a
+real-world sense, rendering these attacks proof-of-concepts rather than
+immediately exploitable vulnerabilities.
+However, we believe the novelty of their general mechanisms may lead to
+interesting discussion; and with much more development, these attacks may
+evolve into genuine threats against real-world targets such as JIT compilers.
+We demonstrate the efficacy of both of our concrete proof-of-concept
+attacks against modern compilers and hardware (under our attacker model),
+including both the \verb|clang| and \verb|gcc| C compilers.
 
 All of our experiments are performed on a \todo{describe machine} with
 \verb|clang| version \todo{clang version} and \verb|gcc| version \todo{gcc
 version}.
 
-\subsection{Relaxed memory attack}
-\label{subsec:exp-rel-mem}
+\subsection{Attacker model}
+\label{subsec:attacker-model}
 
-\subsection{Dead store elimination attack}
-In this section we return to the attack in Section \ref{sec:dse} based on
-dead store elimination.
-
-As in Section \ref{subsec:exp-rel-mem}, we assume that there is a
-\verb|SECRET| which an attacker wishes to learn.
-For instance, \verb|SECRET| may be a cryptographic key hardcoded into the
-application.
+In our attacker model, we assume that there is a \verb|SECRET| which an
+attacker wishes to learn; for instance, \verb|SECRET| may be a cryptographic
+key hardcoded into the application.
 This \verb|SECRET| is known to the compiler at compile time, but may not be
 accessed except behind a security check.
 We assume that the security check always evaluates to \verb|false| at runtime
-for the attacker, but that the attacker is allowed to write arbitrary code
-subject to the above restrictions.
-Despite the attacker's apparent inability to access \verb|SECRET|, we show
-that the attacker can learn its value using the idea in Section \ref{sec:dse}.
-This attack was tested and works on both \verb|clang| and \verb|gcc|.
+for the attacker, but that the attacker is allowed to write (compile and
+execute) arbitrary code subject to the above restrictions.
+The attacker has no capabilities other than writing and executing code -- in
+particular the attacker may not disassemble the compiler or libraries to learn
+the \verb|SECRET| directly; may not examine the internal state of the compiler;
+may not access timers of any kind; and may not leverage hardware side channels.
+The attacker's goal is to learn the value of the \verb|SECRET| despite only
+being allowed to use it inside dead code, that is, code that can never be
+executed at runtime.
+
+As a hypothetical concrete example, suppose there is a library which contains
+a hardcoded \verb|SECRET| but does not allow library users unrestricted access
+to this \verb|SECRET|.
+Instead, library users must call an (arbitrarily complex) library function as
+a guard before using the \verb|SECRET| in code.
+In this hypothetical example, a static compiler pass ensures that the
+attacker's code only accesses the \verb|SECRET| inside an \verb|if| statement
+after calling the library's guard function; the static pass ensures that
+the \verb|SECRET| is only accessed at program points where it can be proven
+that the guard function returned \verb|true|.
+
+As noted above, this is not necessarily a realistic attacker model in the
+real-world sense, which means that the attacks presented in this section
+are more of theoretical interest than practical concern; few environments
+allow attackers to write nearly-arbitrary C code that touches secrets in any
+way.
+However, the mechanism of the attack is novel and could potentially be applied
+in other contexts.
+For instance, many real-world contexts allow ``attackers'' (untrusted or
+third-party entities) to write code in a scripting language which is then
+compiled alongside and integrated into a larger application, often in a
+just-in-time (JIT) manner.
+JavaScript code from third-party websites running in a browser is a common
+example of this.
+Our attack gives an attacker similar ``scripting'' capabilities against a
+compiler, except it considers the simpler setting of using C code against a C
+compiler.
+One could imagine a similar attack using JavaScript against browser JIT
+compilers, where the compiler may have access to interesting secrets in the
+browser itself, and may be more liberal with what it considers a ``constant''.
+We plan to explore JavaScript attacks of this type as future work.
+
+\subsection{Load-store reordering attack}
+\label{subsec:exp-rel-mem}
+
+We begin by examining the attack in Section~\ref{sec:info-flow-attack} in
+more detail, subject to the attacker model given above.
+In particular, we show that by exploiting compiler optimizations which perform
+load-store reordering, an attacker can learn the value of a compile-time
+\verb|SECRET| despite only being allowed to use it inside dead code, that is,
+code that can never be executed at runtime.
+This attack was tested and works against \verb|gcc| version \todo{gcc version}.
+
+\todo{finish this section with more description and results}
+
+\subsection{Dead store elimination attack}
+\label{subsec:exp-dse}
+
+In this section we return to the attack in Section~\ref{sec:dse} based on
+dead store elimination.
+We show that in our attacker model (given in
+Section~\ref{subsec:attacker-model}), the attacker is able to exploit dead
+store elimination to again learn the value of a compile-time \verb|SECRET|
+despite only being allowed to use it inside dead code, that is, code that can
+never be executed at runtime.
+This attack is even more efficient than the attack on load-store reordering,
+and further, we were able to demonstrate its effectiveness against both
+\verb|gcc| and \verb|clang|.
 
 \ignore{
 In this simple example, the \verb|SECRET| is one bit.
@@ -58,11 +127,11 @@ must have been \verb|false|, whereas if it only observes \verb|r := 2|, then
 the \verb|SECRET| is highly likely to be true.
 }
 
-First, we start from the simple form of the attack presented in Section
-\ref{sec:dse}, and extend it to leak a secret consisting of an arbitrary
-number \verb|N| of bits.
-To do this, we simply compile \verb|N| copies of the function above, each
-performing a boolean test on a single bit of the secret.
+We start from the simple form of the attack presented in
+Section~\ref{sec:dse}, and extend it to leak a secret consisting of an
+arbitrary number \verb|N| of bits.
+To do this, we simply compile \verb|N| copies of the test function,
+each performing a boolean test on a single bit of the secret.
 The function used for reading the \verb|k|th bit is as follows (for
 \verb|N <= 64|):
 \begin{verbatim}
@@ -87,26 +156,7 @@ respectively.
 We make three additional tweaks to improve the reliability so that the attacker
 can confidently infer the value of \verb|SECRET| based on the observed values
 of \verb|r|.
-First, we insert additional time-consuming computation immediately following
-the \verb|x := 1| operation.
-This lengthens the timing window in which \verb|x| has the value \verb|1|,
-increasing the likelihood that the other thread will be able to observe
-\verb|x == 1| (unless the \verb|x := 1| write was eliminated, of course).
-Inserting this computation can be done without interfering with the dead store
-elimination process itself, so that the compiler will continue to eliminate
-the \verb|x := 1| write if and only if the appropriate bit of \verb|SECRET|
-was 1.
-For \verb|gcc|, we have a fair amount of freedom with the time-consuming
-computation (for instance, we can use an arbitrarily long loop), but with
-\verb|clang|, the computation must be branch-free, and furthermore not consist
-of too many instructions.
-This is because \verb|clang|'s dead store elimination pass operates only
-within basic blocks, and uses a heuristic to stop scanning the basic block
-early if it is too large.
-Nonetheless, we find that even with these restrictions, we are able to
-construct a reliable and fast attack against both \verb|clang| and \verb|gcc|.
-
-Second, rather than simply observing \verb|x| with \verb|r := x| in the
+First, rather than simply observing \verb|x| with \verb|r := x| in the
 `listening' thread, we continuously load \verb|x| in a loop until a
 nonzero value is observed -- i.e., we perform
 \begin{verbatim}
@@ -116,6 +166,32 @@ nonzero value is observed -- i.e., we perform
 \end{verbatim}
 This remedies the case where \verb|r := x| could observe a value of \verb|x|
 from `before' either of the two possible writes performed by the other thread.
+\todo{do we need to explicitly say that we ensure x is initialized to 0 -- and
+coherently seen as such by both threads -- before starting the attack?}
+
+Second, we insert additional time-consuming computation immediately following
+the \verb|x := 1| operation in the `main' thread.
+This lengthens the timing window in which \verb|x| has the value \verb|1|,
+increasing the likelihood that the `listening' thread will be able to observe
+\verb|x == 1| (unless the \verb|x := 1| write was eliminated, of course).
+Inserting this computation can be done without interfering with the dead store
+elimination process itself, so that the compiler will continue to eliminate
+the \verb|x := 1| write if and only if the appropriate bit of \verb|SECRET|
+was 1.
+For \verb|gcc|, we have a fair amount of freedom with the time-consuming
+computation -- for instance, we can use an arbitrarily long loop.
+In fact, we can perform a further optimization by monitoring the value of the
+variable \verb|r| (written to by the listening thread) and breaking out of the
+loop early if we see that the listening thread has already observed
+\verb|x == 1|.
+However, with \verb|clang|, we cannot use a loop at all -- the time-consuming
+computation must be branch-free, and furthermore must not consist of too many
+instructions.
+This is because \verb|clang|'s dead store elimination pass operates only
+within basic blocks, and uses a heuristic to stop scanning the basic block
+early if it is too large.
+Nonetheless, we find that even with these restrictions, we are able to
+construct a reliable and fast attack against both \verb|clang| and \verb|gcc|.
 
 Finally, we redundantly execute the entire attack several times, noting the
 final value of \verb|r| (the first observed nonzero value of \verb|x|) in each

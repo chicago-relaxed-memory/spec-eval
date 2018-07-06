@@ -41,6 +41,22 @@
 \email{jriely@cs.depaul.edu}
 
 \begin{abstract}
+  This paper studies information flow caused by speculation mechanisms
+  in hardware and software.  The Spectre attack shows that there are
+  practical information flow attacks which use an interaction of
+  dynamic security checks, speculative evaluation and cache timing.
+  Previous formal models of program execution have not been designed
+  to model speculative evalutation, and so do not capture attacks such
+  as Spectre. In this paper, we propose a model based on pomsets which
+  is designed to model speculative evaluation. The model provides a
+  compositional semantics for a simple shared-memory concurrent
+  language, which captures features such as data and control
+  dependencies, relaxed memory and transactions. We provide models for
+  existing information flow attacks based on speculative evaluation
+  and transactions, and new information flow attacks on compiler
+  optimizations. The new attacks are experimentally validated against
+  gcc and clang.  A simple temporal logic provides reasoning principals,
+  including composition and proofs using invariants.
 \end{abstract}
 
 \maketitle
