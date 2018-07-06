@@ -11,8 +11,8 @@ elimination respectively.
 In particular, the latter attack (and, to a degree, the former attack), result
 not from hardware optimizations, but from common \emph{compiler} optimizations.
 These attacks also, unlike Spectre, do not rely on timing side channels, or
-indeed timers of any kind, bypassing many common Spectre mitigations
-\cite{???}. %%%%% FuzzyFox, Chrome's and Firefox's restrictions on precise timers, etc.
+indeed timers of any kind, bypassing many common Spectre mitigations~\cite{???}.
+%%%%% FuzzyFox, Chrome's and Firefox's restrictions on precise timers, etc.
 
 In this section we present concrete implementations of the attacks outlined in
 Sections~\ref{sec:info-flow-attack} and~\ref{sec:dse}, in both cases
@@ -43,7 +43,7 @@ accessed except behind a security check.
 We assume that the security check always evaluates to \verb|false| at runtime
 for the attacker, but that the attacker is allowed to write (compile and
 execute) arbitrary code subject to the above restrictions.
-The attacker has no capabilities other than writing and executing code -- in
+The attacker has no capabilities other than writing and executing code --- in
 particular the attacker may not disassemble the compiler or libraries to learn
 the \verb|SECRET| directly; may not examine the internal state of the compiler;
 may not access timers of any kind; and may not leverage hardware side channels.
@@ -58,9 +58,9 @@ Instead, library users must call an (arbitrarily complex) library function as
 a guard before using the \verb|SECRET| in code.
 In this hypothetical example, a static compiler pass ensures that the
 attacker's code only accesses the \verb|SECRET| inside an \verb|if| statement
-after calling the library's guard function; the static pass ensures that
-the \verb|SECRET| is only accessed at program points where it can be proven
-that the guard function returned \verb|true|.
+after calling the library's guard function; that is, the static pass ensures
+that the \verb|SECRET| is only accessed at program points where it can be
+proven that the guard function returned \verb|true|.
 
 As noted above, this is not necessarily a realistic attacker model in the
 real-world sense, which means that the attacks presented in this section
@@ -284,7 +284,7 @@ load-store reordering attack and differ only in a few details.
 
 First, rather than simply observing \verb|x| with \verb|r := x| in the
 `listening' thread, we continuously load \verb|x| in a loop until a
-nonzero value is observed -- i.e., we perform
+nonzero value is observed --- i.e., we perform
 \begin{verbatim}
     do {
       r := x;
@@ -292,8 +292,8 @@ nonzero value is observed -- i.e., we perform
 \end{verbatim}
 This remedies the case where \verb|r := x| could observe a value of \verb|x|
 from `before' either of the two possible writes performed by the other thread.
-\todo{do we need to explicitly say that we ensure x is initialized to 0 -- and
-coherently seen as such by both threads -- before starting the attack?}
+\todo{do we need to explicitly say that we ensure x is initialized to 0 --- and
+coherently seen as such by both threads --- before starting the attack?}
 
 Second, we insert additional time-consuming computation immediately following
 the \verb|x := 1| operation in the `main' thread.
@@ -305,12 +305,12 @@ elimination process itself, so that the compiler will continue to eliminate
 the \verb|x := 1| write if and only if the appropriate bit of \verb|SECRET|
 was 1.
 For \verb|gcc|, we have a fair amount of freedom with the time-consuming
-computation -- for instance, we can use an arbitrarily long loop.
+computation --- for instance, we can use an arbitrarily long loop.
 In fact, we can perform a further optimization by monitoring the value of the
 variable \verb|r| (written to by the listening thread) and breaking out of the
 loop early if we see that the listening thread has already observed
 \verb|x == 1|.
-However, with \verb|clang|, we cannot use a loop at all -- the time-consuming
+However, with \verb|clang|, we cannot use a loop at all --- the time-consuming
 computation must be branch-free, and furthermore must not consist of too many
 instructions.
 This is because \verb|clang|'s dead store elimination pass operates only
