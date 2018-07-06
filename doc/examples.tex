@@ -488,8 +488,8 @@ which includes the execution:
   \event{ry0}{\DR{y}{0}}{right=of rx1}
   \event{ry1}{\DR{y}{1}}{right=2.5 em of ry0}
   \event{rx0}{\DR{x}{0}}{right=of ry1}
-  \rf[out=30,in=150]{wx1}{rx1}
-  \rf[out=30,in=150]{wy0}{ry0}
+  \rf[out=20,in=160]{wx1}{rx1}
+  \rf[out=20,in=160]{wy0}{ry0}
   \rf[out=340,in=200]{wy1}{ry1}
   \rf[out=340,in=200]{wx0}{rx0}
   \wk{wx0}{wx1}
@@ -503,8 +503,9 @@ for example the TAR pit program is:
   x := y; || y := x;
 \end{verbatim}
 but an attempt to produce a value from thin air fails,
-for the usual reason of producing a cycle in $\le$:
-\[\begin{tikzpicture}[node distance=1em]
+for the usual reason of producing a cycle in $\le$, as shown on the left below.
+\begin{align*}
+\begin{tikzpicture}[node distance=1em]
   \event{ry42}{\DR{y}{42}}{}
   \event{wx42}{\DW{x}{42}}{below=of ry42}
   \event{rx42}{\DR{x}{42}}{right=2.5em of ry42}
@@ -513,13 +514,9 @@ for the usual reason of producing a cycle in $\le$:
   \po{rx42}{wy42}
   \rf{wx42}{rx42}
   \rf{wy42}{ry42}
-\end{tikzpicture}\]
-This cycle can be broken if one of the writes does not depend on the read, for example:
-\begin{verbatim}
-  x := y; || r := x; y := r+1-r;
-\end{verbatim}
-has execution:
-\[\begin{tikzpicture}[node distance=1em]
+\end{tikzpicture}
+&&
+\begin{tikzpicture}[node distance=1em]
   \event{ry1}{\DR{y}{1}}{}
   \event{wx1}{\DW{x}{1}}{below=of ry1}
   \event{rx1}{\DR{x}{1}}{right=2.5em of ry1}
@@ -527,15 +524,46 @@ has execution:
   \po{ry1}{wx1}
   \rf{wx1}{rx1}
   \rf{wy1}{ry1}
-\end{tikzpicture}\]
+\end{tikzpicture}
+\end{align*}
+This cycle can be broken if one of the writes does not depend on the read, for example:
+\begin{verbatim}
+  x := y; || r := x; y := r+1-r;
+\end{verbatim}
+has the execution on the right above.
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{ry1}{\DR{y}{1}}{}
+%   \event{wx1}{\DW{x}{1}}{below=of ry1}
+%   \event{rx1}{\DR{x}{1}}{right=2.5em of ry1}
+%   \event{wy1}{\DW{y}{1}}{below=of rx1}
+%   \po{ry1}{wx1}
+%   \rf{wx1}{rx1}
+%   \rf{wy1}{ry1}
+% \end{tikzpicture}\]
 Note that $(\DR x1) \not\le (\DW y1)$, so this does not introduce a cycle.
 
-\todo{We get around the no-per-candidate result of
-\cite{DBLP:conf/esop/BattyMNPS15} by modeling dependency more precisely.}
+Although it is not the primary focus of this paper, our model may be an
+attractive model of relaxed memory.  Many prior models either permit
+thin-air executions that our model forbids or forbid desirable executions
+that our model permits.
 
-\todo{We handle all of the causality test cases \cite{PughWebsite} that are
-expressible in our language (TC15-16 require loops).  This includes TC9,
-which fails for \cite{DBLP:conf/lics/JeffreyR16}.  See appendix.}
+In \S\ref{sec:logic}, we develop a logic which allows us to prove that our
+semantics forbids thin air examples that are permitted by prior speculative
+models
+\cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17}.
+
+Our model passes all of the expressible causality test cases
+\cite{PughWebsite} (two test cases require loops).  Significantly, this
+includes test case 9, which is forbidden by \cite{DBLP:conf/lics/JeffreyR16},
+one of the few models that disallows the thin air example from
+\S\ref{sec:logic}.  We present this test case in the appendix, where we also
+discuss the thread inlining examples from
+\cite{Manson:2005:JMM:1047659.1040336}.
+
+In \cite{DBLP:conf/esop/BattyMNPS15},
+\citeauthor{DBLP:conf/esop/BattyMNPS15} showed that the thin-air problem has
+no per-candidate-execution solution for C++.  This result does not apply to
+our model, which tracks dependencies more precisely than C++.
 
 \subsection{Information flow attacks on relaxed memory}
 \label{sec:info-flow-attack}
@@ -633,8 +661,14 @@ After these optimizations, a sequentially consistent execution
 exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
 further in \S\ref{sec:experiments}.
 
-\todo{Cite work on noninterference with two executions.  Perhaps
-\cite{Devriese:2010:NTS:1849417.1849969}.}
+This approach can be generalized to detect information flows in arbitrary
+code.  If we replace the code fragment above with:
+\begin{verbatim}
+  if (y == 0) { x:=P(0); } else { x:=P(1); z:=1; }
+\end{verbatim}
+then $(\DW{z}{1})$ is possible only if \texttt{P} is independent of its
+input.  The conditional is able to capture multiple executions, as in
+\cite{Capizzi:2008:PIL:1468162.1468220,Devriese:2010:NTS:1849417.1849969}.
 
 \subsection{Dead store elimination}
 \label{sec:dse}
@@ -703,177 +737,6 @@ elimination taking place, this is an information flow: if the attacker observes
 $x$ to be $1$, then they know \verb|SECRET| is $0$. We return to this attack
 in \S\ref{sec:experiments}.
 
-\subsection{Thread inlining}
-
-One property one could ask of a model of shared memory is thread
-inlining: any execution of $\sem{P\SEMI Q}$ is an execution of $\sem{P
-  \PAR Q}$. This is \emph{not} a goal of our model, and indeed is not
-satisfied, due to the different semantics of concurrent and sequential
-memory accesses. We demonstrate this by considering an example from
-the Java Memory Model~\cite{jmm}, which shows that Java does not
-satisfy thread inlining either.
-
-The lack of thread inlining is related to the different dependency
-relations introduced by sequential and concurrent access.
-Recall from \S\ref{sec:sequential-memory} that the program
-\verb`(x := 0; y := x+1;)` has execution:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx0}{\DW{x}{0}}{}
-  \event{wy1}{\DW{y}{1}}{right=of wx0}
-\end{tikzpicture}\]
-but that \verb`(x := 1; || y := x+1;)` has:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{x}{1}}{}
-  \event{rx1}{\DR{x}{1}}{right=2.5em of wx1}
-  \event{wy2}{\DW{y}{2}}{right=of rx1}
-  \rf{wx1}{rx1}
-  \po{rx1}{wy2}
-\end{tikzpicture}\]
-That is, in the sequential case there is no dependency from the
-write of $x$ to the write of $y$, but in the concurrent case there
-is such a dependency.
-
-This can be used to construct a counter-example to thread inlining, based on~\cite[Ex~11]{jmm}:
-\begin{verbatim}
-  x := 0; if (x == 1) { z := 1; } else { x := 1; } || y := x; || x := y;
-\end{verbatim}
-This has no execution containing $(\DW z1)$. Any attempt to build such an execution
-results in a cycle:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1a}{\DR{x}{1}}{}
-  \event{wz1}{\DW{z}{1}}{right=of rx1a}
-  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
-  \event{rx1b}{\DR{x}{1}}{right=2.5em of wx1a}
-  \event{wy1}{\DW{y}{1}}{right=of rx1b}
-  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
-  \event{wx1b}{\DW{x}{1}}{right=of ry1}
-  \po{rx1a}{wz1}
-  \po[out=25, in=150]{rx1a}{wx1a}
-  \po{rx1b}{wy1}
-  \po{ry1}{wx1b}
-  \rf{wy1}{ry1}
-  \rf[out=160, in=30]{wx1b}{rx1a}
-  \rf[out=160, in=30]{wx1b}{rx1b}
-\end{tikzpicture}\]
-Inlining the thread \verb|(y := x)| gives~\cite[Ex~12]{jmm}:
-\begin{verbatim}
-  x := 0; if (x == 1) { z := 1; } else { x := 1; } y := x; || x := y;
-\end{verbatim}
-with execution:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1a}{\DR{x}{1}}{}
-  \event{wz1}{\DW{z}{1}}{right=of rx1a}
-  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
-  \event{wy1}{\DW{y}{1}}{right=of wx1a}
-  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
-  \event{wx1b}{\DW{x}{1}}{right=of ry1}
-  \po{rx1a}{wz1}
-  \po[out=25, in=150]{rx1a}{wx1a}
-  \po{ry1}{wx1b}
-  \rf{wy1}{ry1}
-  \rf[out=160, in=30]{wx1b}{rx1a}
-\end{tikzpicture}\]
-To see why this execution exists, consider the program fragment:
-\begin{verbatim}
-  if (x == 1) { z := 1; } else { x := 1; } y := x;
-\end{verbatim}
-Removing the syntax sugar, this is:
-\begin{verbatim}
-  r1 := x; if (r1 == 1) {
-    z := 1; r2 := x; y := r2; skip
-  } else {
-    x := 1; r3 := x; y := r3; skip
-  }
-\end{verbatim}
-Now, $\sem{z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP}$
-includes pomset:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
-  \event{wy1}{r_1=x=1 \mid \DW{y}{1}}{right=of wz1}
-\end{tikzpicture}\]
-and $\sem{x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP}$
-includes pomset:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1a}{r_1\neq 1 \mid \DW{x}{1}}{}
-  \event{wy1}{r_1\neq 1 \mid \DW{y}{1}}{right=of wx1a}
-\end{tikzpicture}\]
-so  $\sem{\IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}$ includes:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
-  \event{wx1a}{r_1\neq1 \mid \DW{x}{1}}{right=of wz1}
-  \event{wy1}{(r_1=x=1) \lor (r_1\neq1) \mid \DW{y}{1}}{right=of wx1a}
-\end{tikzpicture}\]
-which means $\sem{\IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}[x/r_1]$ includes:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wz1}{x=1 \mid \DW{z}{1}}{}
-  \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
-  \event{wy1}{(x=x=1) \lor (x\neq1)) \mid \DW{y}{1}}{right=of wx1a}
-\end{tikzpicture}\]
-Now $(x=x=1) \lor (x\neq1)$ is a tautology, so this is just:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wz1}{x=1 \mid \DW{z}{1}}{}
-  \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
-  \event{wy1}{\DW{y}{1}}{right=of wx1a}
-\end{tikzpicture}\]
-and so $\sem{r_1 \GETS x\SEMI \IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}$ includes:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1a}{\DR{x}{1}}{}
-  \event{wz1}{1=1 \mid \DW{z}{1}}{right=of rx1a}
-  \event{wx1a}{1\neq1 \mid \DW{x}{1}}{right=of wz1}
-  \event{wy1}{\DW{y}{1}}{right=of wx1a}
-  \po{rx1a}{wz1}
-  \po[out=25, in=150]{rx1a}{wx1a}
-\end{tikzpicture}\]
-which simplifies to:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1a}{\DR{x}{1}}{}
-  \event{wz1}{\DW{z}{1}}{right=of rx1a}
-  \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
-  \event{wy1}{\DW{y}{1}}{right=of wx1a}
-  \po{rx1a}{wz1}
-  \po[out=25, in=150]{rx1a}{wx1a}
-\end{tikzpicture}\]
-as required. The rest of the example is straightforward, and shows that our semantics
-agrees with the JMM in not supporting thread inlining.
-
-% \subsection{Word tearing}
-
-% \todo{Remove this section, since it's not needed for transactions?}
-
-% In \S\ref{sec:transactions}, we shall be considering transactional memory,
-% and in \S\ref{sec:transactions} show that we can model a simplified version
-% of an information flow attack on transactions. In order to model transactions,
-% we need to consider actions that can write many memory locations at once,
-% since this is part of the semantics of commitment. To lead up to this, we first
-% consider a simpler scenario of many-location writes and reads, which is word
-% tearing.
-
-% In word tearing, a program contains a write instruction with data larger
-% than the hardware word size, for example copying a byte array, or assigning
-% a 64-bit float on a 32-bit architecture. For example, consider the program:
-% \begin{verbatim}
-%   (x := [0, 0];) || (x := [1, 1];) || (r := x;)
-% \end{verbatim}
-% This has executions in which the read of $x$ only reads from one of the writes,
-% for example:
-% \[\begin{tikzpicture}[node distance=1em]
-%   \event{wx00}{\DW{x}{[0,0]}}{}
-%   \event{wx11}{\DW{x}{[1,1]}}{right=2.5em of wx00}
-%   \event{rx00}{\DR{x}{[0,0]}}{right=2.5em of wx11}
-%   \rf[out=20, in=160]{wx00}{rx00}
-% \end{tikzpicture}\]
-% but also has executions in which the read of $x$ reads from both writes,
-% for example:
-% \[\begin{tikzpicture}[node distance=1em]
-%   \event{wx00}{\DW{x}{[0,0]}}{}
-%   \event{wx11}{\DW{x}{[1,1]}}{right=2.5em of wx00}
-%   \event{rx01}{\DR{x}{[0,1]}}{right=2.5em of wx11}
-%   \rfx[out=20, in=160]{wx00}{x[0]}{rx01}
-%   \rfx[out=-20, in=-160]{wx11}{x[1]}{rx01}
-% \end{tikzpicture}\]
-% Word tearing can occur, for example, in Java extended floating point~\cite{jmm},
-% LLVM 64-bit instructions on 32-bit hardware~\cite{llvm}, or in
-% JavaScript SharedArrayBuffers~\cite{js-sab}.
 
 % Local Variables:
 % TeX-master: "paper"

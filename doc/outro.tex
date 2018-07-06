@@ -25,66 +25,41 @@ leave the elaboration of this idea as future work.
 \item Definition of rf can use $\not<$ in first clause, rather than $\leq$.
   We chose the stronger definition because it makes some of the examples
   simpler: in particular, the example motivating rf needs a volatile in the
-  other thread if you don't have rf-implies-hb. Old text: The notion
-  rf-pomset is sufficient to capture hardware models and release/acquire
-  access in C++, where reads-from implies happens-before \cite{alglave}.  To
-  model C++ relaxed access, it would be necessary to use a more general
-  notion of rf-pomset, where $(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily
-  imply $\bEv < \aEv$, instead requiring that $(\mathord< \cup \mathord\RF)$
-  be acyclic.
+  other thread if you don't have rf-implies-hb.
+
+  Old text: The notion rf-pomset is sufficient to capture hardware models and
+  release/acquire access in C++, where reads-from implies happens-before
+  \cite{alglave}.  To model C++ relaxed access, it would be necessary to use
+  a more general notion of rf-pomset, where $(\bEv,\aLoc,\aEv) \in \RF$ does
+  not necessarily imply $\bEv < \aEv$, instead requiring that
+  $(\mathord< \cup \mathord\RF)$ be acyclic.
 
 \item The design space for transactions is very rich
   \cite{DBLP:journals/pacmpl/DongolJR18}.  We have only presented one option.
   we pun between abort and false commit
   
-\item causality test cases 1, 6, 8, 9, 18, 20  (12?) require that the logic make
-  assertions about the domain of variables
-
 \end{itemize}
 
 
-\todo{A question:}
-Here is an example that \cite{DBLP:conf/lics/JeffreyR16} fails on:
-\begin{verbatim}
-  r1:=x; y:=r1;   ||  r2:=y; if(r2<2){x:=1;}  || y:=2;
-\end{verbatim}
-This should allow \texttt{r1==r2==1}.  Hopefully this is allowed by our
-semantics...
 
-\todo{Integrate this example on information flow?}
+% \todo{Integrate this example on information flow?}
 
-Let {\tt P(hi)} be a function with domain $\{0, . . . ,n \}$  and codomain $\{1, . . . ,n \}$. Our aim is to write a
-program that tests whether there is information flow from input {\tt  hi} to the return value {\tt lo}. Consider:
-\begin{alltt}
-  
-[Initial value of m is $0$ , {\tt noflow} is {\tt false}. ]
-T1: r = z; m =r;
-T2: s=m; if (s!=0) { z=P(s); noflow=true; } else { z=P(0); }
-% T2:  s = m;
-%      switch(s):
-%          case 0: z = P(0);
-%          case 1: z = P(1); noflow = {\tt true};
-%           ...
-%          case n: z = P(n); noflow = {\tt true};
-\end{alltt}
-When there is a dependency of the output on the input, there are at least two different possible
-assignments to {\tt z}. In this case, the only possible execution, as validated by our model, of the above
-program is the SC execution that reads {\tt m} as $0$ and leaves {\tt noflow} untouched.
-When there is no dependency from input to output the value of {\tt z} is the same, say {\tt k} in all cases,
-non-zero by assumption. In this case, the compiler can hoist the assignment of  to  {\tt z} outside the
-conditional and swap with the independent asignment to {\tt hi}, 
-thus rewriting T2 to:
-\begin{alltt}
-T2: z=k; s=m; if (s!=0) { noflow=true; }
-% T2:  z = k;
-%      s= m;
-%      switch(s):
-%      case 0: z = P(0);
-%      case 1: noflow = {\tt true};
-%      ...
-%      case n: noflow = {\tt true};
-\end{alltt}
-In this case, the program has an execution, validated by our model, that sets {\tt noflow} to {\tt true}.
+% Let {\tt P(hi)} be a function with domain $\{0, . . . ,n \}$  and codomain $\{1, . . . ,n \}$. Our aim is to write a
+% program that tests whether there is information flow from input {\tt  hi} to the return value {\tt lo}. Consider:
+% \begin{alltt}
+%  s:=y; if (s!=0) { x=P(s); z:=1; } else { x=P(0); }
+% \end{alltt}
+% When there is a dependency of the output on the input, there are at least two different possible
+% assignments to {\tt z}. In this case, the only possible execution, as validated by our model, of the above
+% program is the SC execution that reads {\tt m} as $0$ and leaves {\tt noflow} untouched.
+% When there is no dependency from input to output the value of {\tt z} is the same, say {\tt k} in all cases,
+% non-zero by assumption. In this case, the compiler can hoist the assignment of  to  {\tt z} outside the
+% conditional and swap with the independent asignment to {\tt hi}, 
+% thus rewriting T2 to:
+% \begin{alltt}
+% T2: z=k; s=m; if (s!=0) { noflow=true; }
+% \end{alltt}
+% In this case, the program has an execution, validated by our model, that sets {\tt noflow} to {\tt true}.
 
-In the parlance
-of information flow, the humble conditional suffices to construct a composition operator to detect information flow  in the presence of speculation.
+% In the parlance
+% of information flow, the humble conditional suffices to construct a composition operator to detect information flow  in the presence of speculation.

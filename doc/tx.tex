@@ -163,10 +163,12 @@ with a plain read, then the outcome $(\DR f1)$ and $(\DR x0)$ is possible.
 \subsection{Transactions}
 \label{sec:transactions}
 
-We present a simple model of serializable transactions that is sufficient to
-capture \textsc{Prime+Abort} attacks \cite{DBLP:conf/uss/DisselkoenKPT17}.
-We assume that the set of locations $\Loc$ is partitioned into \emph{cache
-  sets}.
+We present a model of serializable transactions that is sufficient to capture
+\textsc{Prime+Abort} attacks \cite{DBLP:conf/uss/DisselkoenKPT17}.  We make
+several simplifying assumptions: transactions are serializable, strongly
+isolated \cite{Larus:2007:TM:1207012}, and only abort due to cache conflicts.
+To model the latter, we assume that the set of locations $\Loc$ is
+partitioned into \emph{cache sets}.
 
 The action $(\DB{\aVal})\in\Acq$ represents the begin of a transaction with
 id $\aVal$ and $(\DC{\aVal})\in \Rel$ represents the corresponding commit,
@@ -238,7 +240,7 @@ cache sets, then such an honest agent is:
 \begin{verbatim}
   a[SECRET] := 1
 \end{verbatim}
-The attack relies on discovery of some $x$ which belongs to the cache-set of $a[1]$.
+The attack relies on discovery of some $y$ which belongs to the cache-set of $a[1]$.
 Then the program
 \begin{verbatim}
   begin; y:=0; r:=commit; x:=r+1;
