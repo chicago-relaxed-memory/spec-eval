@@ -87,14 +87,17 @@
 \newcommand{\REL}{\mathsf{rel}\,}
 \newcommand{\ACQ}{\mathsf{acq}\,}
 %\newcommand{\FENCE}{\texttt{fence}}
-\newcommand{\BEGIN}{\texttt{begin}\,}
-\newcommand{\COMMIT}{\texttt{commit}\,}
+\newcommand{\BEGIN}{\texttt{begin}}
+\newcommand{\COMMIT}{\texttt{commit}}
+\newcommand{\BEGINVAL}{\BEGIN\,\aVal}
+\newcommand{\COMMITVAL}{\COMMIT\,\aVal}
 \newcommand{\END}{\texttt{end}}
 \newcommand{\SKIP}{\texttt{skip}}
 \newcommand{\GETS}{\texttt{:}\mkern-1mu\texttt{=}\,}
 \newcommand{\SEMI}{\texttt{;}\,}
 \newcommand{\IF}{\texttt{if}\,}
 \newcommand{\WHILE}{\texttt{while}\,}
+\newcommand{\DO}[1]{\texttt{do}\,\{#1\}\,}
 \newcommand{\THEN}{\,\{\,}
 \newcommand{\ELSE}{\,\}\,\texttt{else}\,\{\,}
 \newcommand{\ELIF}{\,\}\,\texttt{else if}\,}
@@ -107,6 +110,13 @@
 
 \newcommand{\CANREAD}{\texttt{canRead}}
 \newcommand{\SEC}{\texttt{SECRET}}
+\newcommand{\RETURN}{\texttt{return}\,}
+
+\newcommand{\EQ}{\,\texttt{==}\,}
+\newcommand{\NOTEQ}{\,\texttt{!=}\,}
+
+\newcommand{\GCC}{\texttt{gcc}}
+\newcommand{\CLANG}{\texttt{clang}}
 
 \usepackage{amsmath}
 \usepackage{alltt}

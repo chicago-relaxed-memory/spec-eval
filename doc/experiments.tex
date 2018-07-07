@@ -26,31 +26,31 @@ interesting discussion; and with much more development, these attacks may
 evolve into genuine threats against real-world targets such as JIT compilers.
 We demonstrate the efficacy of both of our concrete proof-of-concept
 attacks against
-the \verb|clang| and \verb|gcc| C compilers.
+the {\CLANG} and {\GCC} C compilers.
 
 All of our experiments are performed on a \todo{describe machine} with
-\verb|clang| version \todo{clang version} and \verb|gcc| version \todo{gcc
+{\CLANG} version \todo{clang version} and {\GCC} version \todo{gcc
 version}.
 
 \subsection{Attacker model}
 \label{subsec:attacker-model}
 
-In our attacker model, we assume that there is a \verb|SECRET| which an
-attacker wishes to learn; for instance, \verb|SECRET| may be a cryptographic
+In our attacker model, we assume that there is a {\SEC} which an
+attacker wishes to learn; for instance, {\SEC} may be a cryptographic
 key hardcoded into the application.
-This \verb|SECRET| is known at compile time, but may not be
+This {\SEC} is known at compile time, but may not be
 accessed except behind a security check.
 Since the attacker is running with low security privileges,
 the security check always fails,
-so the attacker can only access \verb|SECRET| in dead code.
+so the attacker can only access {\SEC} in dead code.
 The attacker has no capabilities other than writing and executing code --- in
 particular the attacker may not disassemble the compiler or libraries to learn
-the \verb|SECRET| directly; may not examine the internal state of the compiler;
+the {\SEC} directly; may not examine the internal state of the compiler;
 may not access timers of any kind; and may not leverage hardware side channels.
-The attacker's goal is to learn the value of the \verb|SECRET|.
+The attacker's goal is to learn the value of the {\SEC}.
 
 As a hypothetical concrete example, suppose there is a library which contains
-a hardcoded \verb|SECRET| such as an API or signing key, which cannot be accessed
+a hardcoded {\SEC} such as an API or signing key, which cannot be accessed
 directly, only through a function guarded by a security check:
 \begin{verbatim}
   private static uint SECRET = 0x1234;
@@ -82,25 +82,35 @@ We plan to explore JavaScript attacks of this type as future work.
 \subsection{Load-store reordering attack}
 \label{subsec:exp-rel-mem}
 
-We begin by examining the attack in Section~\ref{sec:info-flow-attack} in
+We begin by examining the attack in~\S\ref{sec:info-flow-attack} in
 more detail, subject to the attacker model given above.
 In particular, we show that by exploiting compiler optimizations which perform
 load-store reordering, an attacker can learn the value of a compile-time
-\verb|SECRET| despite only being allowed to use it inside dead code, that is,
+{\SEC} despite only being allowed to use it inside dead code, that is,
 code that can never be executed at runtime.
-This attack was tested and works against \verb|gcc| version \todo{gcc version}.
+This attack was tested and works against {\GCC} version \todo{gcc version}.
 
-The form of the attack presented in Section~\ref{sec:info-flow-attack} works in
+The form of the attack presented in~\S\ref{sec:info-flow-attack} works in
 theory, but in practice, just because a compiler is \emph{allowed} to perform a
 load-store reordering doesn't mean that it \emph{will}.
-We found that \verb|gcc| and \verb|clang| chose to read \verb|y| into a
-register first (before writing to \verb|x|), regardless of the value of
-\verb|SECRET|.
-However, we did find a related pattern in which \verb|gcc| will emit a
-different ordering of the read of \verb|y| and the write of \verb|x| depending
-on the value of a \verb|SECRET|:
+We found that {\GCC} and {\CLANG} chose to read $y$ into a
+register first (before writing to $x$), regardless of the value of
+{\SEC}.
+However, we did find a related pattern in which {\GCC} will emit a
+different ordering of the read of $y$ and the write of $x$ depending
+on the value of a {\SEC}:
+\[\begin{array}[t]{@{}l}
+  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI\\\quad
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    x\GETS 1\SEMI\\
+    \IF(\CANREAD(\SEC))\THEN x\GETS\SEC\SEMI\FI\\
+    \IF(y > 0)\THEN \RETURN 0
+    \brELSE \RETURN 1\FI
+\end{array}\end{array}\]
+\ignore{
 \begin{verbatim}
-    y := 0;
+    x := 0; y := 0;
     (
       y := x;
     ) || (
@@ -110,19 +120,21 @@ on the value of a \verb|SECRET|:
       else { return 1; }
     )
 \end{verbatim}
-Figure~\ref{fig:lsr-asm} shows the assembly output of \verb|gcc| in the cases
-where \verb|SECRET| is 0 and 1 respectively.
-In the case that \verb|SECRET| is \verb|1|, \verb|gcc| removes the \verb|if|
-statement entirely, and moves the read of \verb|y| above the write of \verb|x|.
-However, when \verb|SECRET| is \verb|0|, the \verb|if| statement must remain
-intact, and \verb|gcc| does not move the read of \verb|y|.
-This means that if \verb|SECRET| is \verb|1|, the second thread will always
-read \verb|y == 0| and always return \verb|1|.
-However, if \verb|SECRET| is \verb|0|, it is possible that the first thread
-may observe \verb|x == 1| and write \verb|y := 1| in time for the second thread
-to observe \verb|y == 1| and thus return \verb|0|.
+}
+
+Figure~\ref{fig:lsr-asm} shows the assembly output of {\GCC} in the cases
+where {\SEC} is 0 and 1 respectively.
+In the case that {\SEC} is $1$, {\GCC} removes the \IF
+statement entirely, and moves the read of $y$ above the write of $x$.
+However, when {\SEC} is $0$, the \IF statement must remain
+intact, and {\GCC} does not move the read of $y$.
+This means that if {\SEC} is $1$, the second thread will always
+read $y\EQ0$ and always return $1$.
+However, if {\SEC} is $0$, it is possible that the first thread
+may observe $x\EQ1$ and write $y\GETS1$ in time for the second thread
+to observe $y\EQ1$ and thus return $0$.
 In this way, we leverage compiler load-store reordering to learn the value of
-a compile-time \verb|SECRET|.
+a compile-time {\SEC}.
 
 \begin{figure}
   \begin{tabular}[fragile]{p{3cm} | p{3cm}}
@@ -170,7 +182,18 @@ To do this, we simply compile \verb|N| copies of the test function, each
 performing a boolean test on a single bit of the secret.
 The function used for reading the \verb|k|th bit is as follows (for
 \verb|N <= 64|):
+\[\begin{array}[t]{@{}l}
+  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI\\\quad
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    x\GETS 1\SEMI\\
+    \IF(\CANREAD(\SEC))\THEN x\GETS\texttt{(\SEC\, \& (1 << k)) ? 1 : 0}\SEMI\FI\\
+    \IF(y > 0)\THEN \RETURN 0
+    \brELSE \RETURN 1\FI
+\end{array}\end{array}\]
+\ignore{
 \begin{verbatim}
+    x := 0; y := 0;
     (
       y := x;
     ) || (
@@ -180,64 +203,56 @@ The function used for reading the \verb|k|th bit is as follows (for
       else { return 1; }
     )
 \end{verbatim}
-Following the same analysis as above, this function will always return \verb|1|
-if the appropriate bit of \verb|SECRET| is \verb|1|, but may return \verb|0| if
-the appropriate bit of \verb|SECRET| is \verb|0|.
+}
+Following the same analysis as above, this function will always return $1$
+if the appropriate bit of {\SEC} is $1$, but may return $0$ if
+the appropriate bit of {\SEC} is $0$.
 The extension of the attack to the general case with truly arbitrary \verb|N|
-is straightforward; \verb|SECRET| becomes an array of 64-bit values, and we use
+is straightforward; {\SEC} becomes an array of 64-bit values, and we use
 \verb|k / 64| and \verb|1 << (k & 63)| as the array index and bitmask
 respectively.
 
 We make three additional tweaks to improve the reliability so that the attacker
-can confidently infer the value of \verb|SECRET| based on the observed return
+can confidently infer the value of {\SEC} based on the observed return
 values of the function.
-First, rather than performing \verb|y := x| only once in the first thread, we
-perform \verb|y := x| continuously in a loop.
-This maximizes the probability that, once \verb|x := 1| occurs in the second
-thread, \verb|y| will be immediately assigned \verb|1| by the first thread
-and the second thread will be able to read \verb|y == 1|.
+First, rather than performing $y\GETS x$ only once in the first thread, we
+perform $y\GETS x$ continuously in a loop.
+This maximizes the probability that, once $x\GETS 1$ occurs in the second
+thread, $y$ will be immediately assigned $1$ by the first thread
+and the second thread will be able to read $y\EQ 1$.
 
-Second, we wish to lengthen the timing window between \verb|x := 1| and the
-read of \verb|y| in the second thread (in the case where the appropriate bit of
-\verb|SECRET| is \verb|0| and the read of \verb|y| remains below
-\verb|x := 1|).
+Second, we wish to lengthen the timing window between $x\GETS 1$ and the
+read of $y$ in the second thread (in the case where the appropriate bit of
+{\SEC} is $0$ and the read of $y$ remains below $x\GETS 1$).
 However, we wish to do this in a way that does not block the reordering of the
-read of \verb|y| upwards in the case where the appropriate bit of \verb|SECRET|
-is \verb|1|.
+read of $y$ upwards in the case where the appropriate bit of {\SEC}
+is $1$.
 We do this by inserting many copies of the line
 \begin{verbatim}
     if (canRead(SECRET)) { x := (SECRET & (1 << k)) ? 1 : 0; }
 \end{verbatim}
 instead of just one.
-In the case where the appropriate bit of \verb|SECRET| is \verb|0|, this
-results in many calls to \verb|canRead(SECRET)| and many conditional jumps,
+In the case where the appropriate bit of {\SEC} is $0$, this
+results in many calls to $\CANREAD(\SEC)$ and many conditional jumps,
 which in practice creates a timing window for the first thread to perform
-\verb|y := x|.
-However, in the case where the appropriate bit of \verb|SECRET| is \verb|1|,
+$y\GETS x$.
+However, in the case where the appropriate bit of {\SEC} is $1$,
 all of these inserted lines can be removed just as a single copy could be.
 In practice, we found that inserting too many copies of the line prevents
-\verb|gcc| from reordering the read of \verb|y| above the write to \verb|x| as
-desired; inserting \verb|30| copies was sufficient to create a timing window
+{\GCC} from reordering the read of $y$ above the write to $x$ as
+desired; inserting $30$ copies was sufficient to create a timing window
 while still allowing the desired reordering.
 
 Finally, we redundantly execute the entire attack several times, noting the
 return value of the function in each case.
 We note that if \emph{any} of the redundant runs produces a return value of
-\verb|0| for a particular bit position, we can be certain that the
-corresponding bit of \verb|SECRET| \emph{must} be \verb|0|, as it implies the
-read of \verb|y| was not reordered upwards in that particular function.
-On the other hand, the more runs that produce a return value of \verb|1| for a
-particular bit position, the more certain we can be that the read of \verb|y|
-was reordered above the \verb|x := 1| assignment, and the appropriate bit of
-\verb|SECRET| is \verb|1|.
-
-Figure~\ref{fig:load-store-perf} gives the performance results for this attack
-against \verb|gcc| version \todo{ver}.
-The attack can sustain hundreds of thousands of bits per second leaked with
-near-perfect accuracy, or millions of bits per second with error rates of a
-few percent.
-Note that this bandwidth assumes that all copies of the attack function are
-already compiled; the cost of compilation is not included here.
+$0$ for a particular bit position, we can be certain that the
+corresponding bit of {\SEC} \emph{must} be $0$, as it implies the
+read of $y$ was not reordered upwards in that particular function.
+On the other hand, the more runs that produce a return value of $1$ for a
+particular bit position, the more certain we can be that the read of $y$
+was reordered above the $x\GETS 1$ assignment, and the appropriate bit of
+{\SEC} is $1$.
 
 \begin{figure}
   \begin{tabular}{ r | l | l | l }
@@ -267,28 +282,45 @@ already compiled; the cost of compilation is not included here.
   \label{fig:load-store-perf}
 \end{figure}
 
+Figure~\ref{fig:load-store-perf} gives the performance results for this attack
+against {\GCC} version \todo{ver}.
+The attack can sustain hundreds of thousands of bits per second leaked with
+near-perfect accuracy, or millions of bits per second with error rates of a
+few percent.
+Note that this bandwidth assumes that all copies of the attack function are
+already compiled; the cost of compilation is not included here.
+
 \subsection{Dead store elimination attack}
 \label{subsec:exp-dse}
 
-In this section we return to the attack in Section~\ref{sec:dse} based on
+In this section we return to the attack in~\S\ref{sec:dse} based on
 dead store elimination.
-We show that in our attacker model (given in
-Section~\ref{subsec:attacker-model}), the attacker is able to exploit dead
-store elimination to again learn the value of a compile-time \verb|SECRET|
+We show that in our attacker model (given in~\S\ref{subsec:attacker-model}),
+the attacker is able to exploit dead
+store elimination to again learn the value of a compile-time {\SEC}
 despite only being allowed to use it inside dead code, that is, code that can
 never be executed at runtime.
 This attack is even more efficient than the attack on load-store reordering,
 and further, we were able to demonstrate its effectiveness against both
-\verb|gcc| and \verb|clang|.
+{\GCC} and {\CLANG}.
 
-We start from the simple form of the attack presented in
-Section~\ref{sec:dse}, and extend it to leak a secret consisting of an
+We start from the simple form of the attack presented in~\S\ref{sec:dse},
+and extend it to leak a secret consisting of an
 arbitrary number \verb|N| of bits.
 As we did in the load-store reordering attack, we again compile \verb|N| copies
 of the test function, each performing a boolean test on a single bit of the
 secret.
 The function used for reading the \verb|k|th bit is as follows (for
 \verb|N <= 64|):
+\[\begin{array}[t]{@{}l}
+  \VAR x\GETS0\SEMI\\\quad
+    r\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    x\GETS 1\SEMI\\
+    \IF(\CANREAD(\SEC))\THEN \IF(\SEC\,\texttt{ \& (1 << k)}\NOTEQ0)\THEN x\GETS 2\FI
+    \brELSE x\GETS 2\FI
+\end{array}\end{array}\]
+\ignore{
 \begin{verbatim}
     (
       r := x;
@@ -301,77 +333,80 @@ The function used for reading the \verb|k|th bit is as follows (for
       }
     )
 \end{verbatim}
-Then, we test each function in turn, each time noting the value of \verb|r|
+}
+Then, we test each function in turn, each time noting the value of $r$
 observed by the `listening' thread.
-If the appropriate bit of \verb|SECRET| is 1, the \verb|x := 2| assignment is
-guaranteed to happen, so the compiler can eliminate the \verb|x := 1|
-assignment as a dead store and we will observe \verb|r == 2|; however, if the
-appropriate bit of \verb|SECRET| is 0, the \verb|x := 1| assignment cannot be
-eliminated, and we will observe \verb|r == 1| with some probability.
+If the appropriate bit of {\SEC} is 1, the $x\GETS 2$ assignment is
+guaranteed to happen, so the compiler can eliminate the $x \GETS 1$
+assignment as a dead store and we will observe $r\EQ 2$; however, if the
+appropriate bit of {\SEC} is 0, the $x\GETS 1$ assignment cannot be
+eliminated, and we will observe $r\EQ 1$ with some probability.
 The extension of the attack to the general case with truly arbitrary \verb|N|
 is straightforward and proceeds exactly as it did for the attack on
 load-store reordering.
 
 We make three additional tweaks to improve the reliability so that the attacker
-can confidently infer the value of \verb|SECRET| based on the observed values
-of \verb|r|.
+can confidently infer the value of {\SEC} based on the observed values
+of $r$.
 These three tweaks strongly resemble the reliability tweaks we made to the
 load-store reordering attack and differ only in a few details.
 
-First, rather than simply observing \verb|x| with \verb|r := x| in the
-`listening' thread, we continuously load \verb|x| in a loop until a
+First, rather than simply observing $x$ with $r\GETS x$ in the
+`listening' thread, we continuously load $x$ in a loop until a
 nonzero value is observed --- i.e., we perform
+$\DO{r\GETS x} \WHILE(r\EQ0)$.
+\ignore{
 \begin{verbatim}
     do {
       r := x;
     } while(r == 0);
 \end{verbatim}
-This remedies the case where \verb|r := x| could observe a value of \verb|x|
+}
+This remedies the case where $r\GETS x$ could observe a value of $x$
 from `before' either of the two possible writes performed by the other thread.
 \todo{do we need to explicitly say that we ensure x is initialized to 0 --- and
 coherently seen as such by both threads --- before starting the attack?}
 
 Second, we insert additional time-consuming computation immediately following
-the \verb|x := 1| operation in the `main' thread.
-This lengthens the timing window in which \verb|x| has the value \verb|1|,
+the $x\GETS 1$ operation in the `main' thread.
+This lengthens the timing window in which $x$ has the value $1$,
 increasing the likelihood that the `listening' thread will be able to observe
-\verb|x == 1| (unless the \verb|x := 1| write was eliminated, of course).
+$x\EQ 1$ (unless the $x\GETS 1$ write was eliminated, of course).
 Inserting this computation can be done without interfering with the dead store
 elimination process itself, so that the compiler will continue to eliminate
-the \verb|x := 1| write if and only if the appropriate bit of \verb|SECRET|
+the $x\GETS 1$ write if and only if the appropriate bit of {\SEC}
 was 1.
-For \verb|gcc|, we have a fair amount of freedom with the time-consuming
+For {\GCC}, we have a fair amount of freedom with the time-consuming
 computation --- for instance, we can use an arbitrarily long loop.
 In fact, we can perform a further optimization by monitoring the value of the
-variable \verb|r| (written to by the listening thread) and breaking out of the
-loop early if we see that the listening thread has already observed
-\verb|x == 1|.
-However, with \verb|clang|, we cannot use a loop at all --- the time-consuming
+variable $r$ (written to by the listening thread) and breaking out of the
+loop early if we see that the listening thread has already observed $x\EQ 1$.
+However, with {\CLANG}, we cannot use a loop at all --- the time-consuming
 computation must be branch-free, and furthermore must not consist of too many
 instructions.
-This is because \verb|clang|'s dead store elimination pass operates only
+This is because {\CLANG}'s dead store elimination pass operates only
 within basic blocks, and uses a heuristic to stop scanning the basic block
 early if it is too large.
 Nonetheless, we find that even with these restrictions, we are able to
-construct a reliable and fast attack against both \verb|clang| and \verb|gcc|.
+construct a reliable and fast attack against both {\CLANG} and {\GCC}.
 
 Finally, we redundantly execute the entire attack several times, noting the
-final value of \verb|r| (the first observed nonzero value of \verb|x|) in each
+final value of $r$ (the first observed nonzero value of $x$) in each
 case.
-We note that if \emph{any} of the redundant runs produces \verb|r == 1| for a
+We note that if \emph{any} of the redundant runs produces $r\EQ 1$ for a
 particular bit position, we can be certain that the corresponding bit of
-\verb|SECRET| \emph{must} be $0$, as it implies that the \verb|x := 1| write
+{\SEC} \emph{must} be $0$, as it implies that the $x\GETS 1$ write
 was not eliminated in that particular function.
-On the other hand, the more runs that observe \verb|r == 2| in a particular bit
+On the other hand, the more runs that observe $r\EQ 2$ in a particular bit
 position despite our other reliability-increasing measures taken above, the
-more certain we can be that the \verb|x := 1| write was eliminated in that
-function, and the appropriate bit of \verb|SECRET| is $1$.
+more certain we can be that the $x\GETS 1$ write was eliminated in that
+function, and the appropriate bit of {\SEC} is $1$.
 
 Unlike the load-store reordering attack, our implementation of the dead store
 elimination attack has two important ``knobs'' which trade off reliability
 vs.\@ performance, rather than only one.
 First, we have the length of time which the writing thread attempts to
-``stall'' immediately after the \verb|x := 1| write.
+``stall'' immediately after the $x\GETS 1$ write.
 Second, we have the number of entire redundant runs of the attack that are
 performed before the attacker reaches her conclusion.
 Increased reliability can be achieved by adjusting either of these knobs,
@@ -380,15 +415,15 @@ attack.
 After exploring the parameter space, we found that $3$ redundant runs is
 sufficient to provide near-100\% accuracy while allowing us to maximize the
 speed of the attack.
-Specifically, on our machine, our attack on \verb|gcc| reaches speeds of
+Specifically, on our machine, our attack on {\GCC} reaches speeds of
 \todo{exact gcc leak speed} bits leaked per second
 (\todo{exact gcc raw leak speed} `raw' bits leaked per second, that is, before
 error correction) with \todo{exact gcc accuracy}, while our attack on
-\verb|clang| reaches speeds of \todo{exact clang leak speed} bits leaked per
+{\CLANG} reaches speeds of \todo{exact clang leak speed} bits leaked per
 second (\todo{exact clang raw leak speed} `raw' bits leaked per second) with
 \todo{exact clang accuracy}.
 In particular, this means our attack can leak a 2048-bit cryptographic key in
-under \todo{exact speed} ms, on either \verb|gcc| or \verb|clang|, with
+under \todo{exact speed} ms, on either {\GCC} or {\CLANG}, with
 probability \todo{exact probability} that there are exactly zero bit errors in
 the leaked key, or probability \todo{exact probability} that there is at most
 one bit error in the leaked key.
