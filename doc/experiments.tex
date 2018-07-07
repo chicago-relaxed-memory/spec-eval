@@ -259,14 +259,6 @@ particular bit position, the more certain we can be that the read of \verb|y|
 was reordered above the \verb|x := 1| assignment, and the appropriate bit of
 \verb|SECRET| is \verb|1|.
 
-Figure~\ref{fig:load-store-perf} gives the performance results for this attack
-against \verb|gcc| version \todo{ver}.
-The attack can sustain hundreds of thousands of bits per second leaked with
-near-perfect accuracy, or millions of bits per second with error rates of a
-few percent.
-Note that this bandwidth assumes that all copies of the attack function are
-already compiled; the cost of compilation is not included here.
-
 \begin{figure}
   \begin{tabular}{ r | l | l | l }
     Redundancy & Bandwidth (bits/s) & Bitwise Acc & Per-run Acc \\ \hline
@@ -294,6 +286,14 @@ already compiled; the cost of compilation is not included here.
   }
   \label{fig:load-store-perf}
 \end{figure}
+
+Figure~\ref{fig:load-store-perf} gives the performance results for this attack
+against \verb|gcc| version \todo{ver}.
+The attack can sustain hundreds of thousands of bits per second leaked with
+near-perfect accuracy, or millions of bits per second with error rates of a
+few percent.
+Note that this bandwidth assumes that all copies of the attack function are
+already compiled; the cost of compilation is not included here.
 
 \subsection{Dead store elimination attack}
 \label{subsec:exp-dse}
