@@ -519,6 +519,7 @@ then $\aPSS_1 \parallel \aPSS_2$ contains:
 \end{tikzpicture}\]
 
 \begin{definition}
+  \label{def:prefix}
 Let $\aAct \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
 there is $\aPS\in\aPSS$ such that:
 \begin{itemize}
@@ -593,6 +594,7 @@ We can use the operations defined above to give the
 semantics of a simple concurrent imperative programming language.
 
 \begin{definition}
+  \label{def:programs}
 \begin{eqnarray*}
   \sem{\SKIP} & = & \{ \emptyset \} \\
   \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid (\DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]) \\

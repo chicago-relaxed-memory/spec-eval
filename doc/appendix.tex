@@ -33,8 +33,81 @@ may read $1$ for both $x$ and $y$.  This behavior is allowed, since
 or $1$.''  This breaks the dependency between the read of $x$ and the write
 to $y$ in the first thread, allowing the write to be moved earlier.
 
+The semantics of TC8 includes
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ix}{\DW{x}{0}}{}
+  \event{iy}{\DW{y}{0}}{right=of ix}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy0}
+  \event{wx1}{\DW{x}{1}}{right=of ry0}
+  \po{ry1}{wx1}
+  \po[out=30,in=150]{ix}{rx1}
+  \rf[in=-25,out=-160]{wx1}{rx1}
+  \rf[out=20,in=160]{wy1}{ry1}
+  \wk[out=-25,in=-150]{ix}{wx1}
+  \wk[out=25,in=155]{iy}{wy1}
+\end{tikzpicture}\]
+Where we require $(\DW{x}{0})<(\DR{x}{1})$ but not $(\DR{x}{1})<(\DW{y}{1})$.
+To see why this execution exists, consider the left thread with syntax sugar
+removed:
+\begin{displaymath}
+  r\GETS x\SEMI \IF(r<2)\THEN y\GETS 1\FI
+\end{displaymath}
+\begin{math}
+  \sem{\IF(r<2)\THEN y\GETS 1\FI}
+\end{math}
+includes
+\begin{math}
+  (r<2\mid\DW{y}{1}).
+\end{math}
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{wy1}{r<2\mid\DW{y}{1}}{}
+% \end{tikzpicture}\]
+Thus, by definition~\ref{def:programs}, 
+\begin{math}
+  \sem{r\GETS x\SEMI \IF(r<2)\THEN y\GETS 1\FI}
+\end{math}
+includes
+\begin{math}
+  (\DR{x}{1}) \prefix (r<2\mid\DW{y}{1})[x/r]
+\end{math}
+which simplifies to
+\begin{math}
+  (\DR{x}{1}) \prefix (x<2\mid\DW{y}{1}),
+\end{math}
+which, by definition~\ref{def:prefix}, includes:
+\[\begin{tikzpicture}[node distance=1em,baselinecenter]
+    \event{rx1}{\DR{x}{1}}{}
+    \event{wy1}{x<2\mid\DW{y}{1}}{right=of rx1}
+  \end{tikzpicture}\]
+Here we have used the \emph{non-ordering read} clause of definition~\ref{def:prefix}:
+``$\bForm'$ implies $\bForm[\aVal/\aLoc] \land \bForm$, if $\aAct$ reads $\aVal$ from $\aLoc$,''
+where $a=(\DR{x}{1})$,  $\bForm=\bForm'=(x<2)$.  We can use this case since
+$x<2$ implies $1<2\land x<2$.
+
+Prefixing with $(\DW{x}{0})$ allows us to discharge the assumption $x<2$,
+arriving at:
+\[\begin{tikzpicture}[node distance=1em,baselinecenter]
+    \event{ix}{\DW{x}{0}}{}
+    \event{rx1}{\DR{x}{1}}{right=2.5 em of ix}
+    \event{wy1}{\DW{y}{1}}{right=of rx1}
+    \po{ix}{rx1}
+  \end{tikzpicture}\]
+Here we have used the \emph{ordering read}
+clause of \ref{def:prefix}:
+``$\bForm'$ implies $\bForm[\aVal/\aLoc]$, if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$,''
+where $a=(\DW{x}{0})$,  $\bForm=(x<2)$ and $\bForm'=\TRUE$.  As long as
+require
+\begin{math}
+  (\DW{x}{0})<
+  (\DR{x}{1}),
+\end{math}
+we can use this case since $\TRUE$ implies $0<2$.
+
 \subsection{Causality test case 9}
-Test case 8 asks whether:
+
+Test case 9 asks whether:
 \begin{displaymath}
   \VAR x\GETS 0\SEMI
   \VAR y\GETS 0\SEMI
@@ -50,7 +123,27 @@ $1$. However, a compiler might determine that the read of $x$ by thread $1$
 will never see the write by thread $3$ (perhaps because thread $3$ will be
 scheduled after thread $1$)''
 
-Note that \cite{DBLP:conf/lics/JeffreyR16} fails on this case.
+Reasoning as for test case 8, the semantics of test case 9 includes:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ix}{\DW{x}{0}}{}
+  \event{iy}{\DW{y}{0}}{right=of ix}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy0}
+  \event{wx1}{\DW{x}{1}}{right=of ry0}
+  \event{wx2}{\DW{x}{2}}{right=2.5em of wx1}
+  \po{ry1}{wx1}
+  \po[out=30,in=150]{ix}{rx1}
+  \rf[in=-25,out=-160]{wx1}{rx1}
+  \rf[out=20,in=160]{wy1}{ry1}
+  \wk[out=-25,in=-150]{ix}{wx1}
+  \wk[out=25,in=155]{iy}{wy1}
+  \wk[out=-25,in=-150]{ix}{wx2}
+\end{tikzpicture}\]
+
+Thus, with respect to the introduction of new threads, our model appears to
+be more robust than the event structures semantics of
+\cite{DBLP:conf/lics/JeffreyR16}, which fails on this test case.
 
 \subsection{Causality test case 14}
 
@@ -68,9 +161,9 @@ variables and $y$ is volatile, which is equivalent to release/acquire in this
 example.  This behavior is also disallowed, since ``in all sequentially
 consistent executions, [the read of $a$ gets $0$] and the program is
 correctly synchronized. Since the program is correctly synchronized in all SC
-executions, no non-sc behaviors are allowed.''
+executions, no non-SC behaviors are allowed.''
 
-Unrolling the loop once, we have
+Unrolling the loop once, we have:
 \begin{displaymath}
   \VAR a\GETS 0\SEMI
   \VAR b\GETS 0\SEMI
@@ -79,6 +172,35 @@ Unrolling the loop once, we have
   \PAR
   \IF(y\lor b)\THEN a\GETS 1\FI)
 \end{displaymath}
+We argue that any execution with $(\DR{a}{1})$, $(\DR{b}{1})$, and
+$(\DR{y}{0})$ must be cyclic.  The closure requirements require that
+\begin{math}
+  (\DW{a}{1})<(\DR{a}{1})
+  \;\text{and}\;
+  (\DR{b}{1})<(\DR{b}{1}).
+\end{math}
+Ignoring initialization, least ordered execution that includes all of these
+actions is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ra1}{\DR{a}{1}}{}
+  \event{wb1}{\DW{b}{1}}{below=of ra1}
+  \event{wy1}{a=0\mid\DW{y}{1}}{left=of wb1}
+  \event{rb1}{\DR{b}{1}}{right=4.5em of ra1}
+  \event{ry0}{\DR{y}{0}}{right=of rb1}
+  \event{wa1}{\DW{a}{1}}{below=of rb1}
+  \po{ra1}{wb1}
+  \po{rb1}{wa1}
+  \rf{wa1}{ra1}
+  \rf{wb1}{rb1}
+\end{tikzpicture}\]
+where the read of $a$ is ordering for $(\DW{b}{1})$ but
+not $(\DW{y}{1})$, and the read of $b$ is ordering for $(\DW{a}{1})$ but the
+read of $y$ is not.  To avoid order from $(\DR{y}{0})$ to $(\DW{a}{1})$, we
+have strengthened the predicate on $(\DW{a}{1})$ from $(y\lor b)$ to
+$(y=0\land b=1)$.  Note that we cannot use this trick symmetrically to remove
+the order from $(\DR{b}{1})$ to $(\DW{a}{1})$, since $b=1$ does not follow
+from the initialization of $b$.
+
 
 \subsection{Thread inlining}
 
