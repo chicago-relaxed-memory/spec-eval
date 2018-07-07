@@ -1,39 +1,84 @@
 \section{Memory model examples}
 \label{sec:appendix}
 
+\citet{PughWebsite} developed a set of twenty {causality test cases} in the
+process of revising the Java Memory Model (JMM)
+\cite{Manson:2005:JMM:1047659.1040336}.  Using hand calculation, we have
+confirmed that our model gives the desired result for all twenty cases,
+unrolling loops as necessary.  Our model also gives the desired results for
+all of the examples in \citet[\textsection 4]{DBLP:conf/esop/BattyMNPS15} and
+all but one in \citet[\textsection 5.3]{SevcikThesis}:
+redundant-write-after-read-elimination---this counterexample applies to any
+sensible non-coherent semantics.  Our model agrees with the JMM on the
+``surprising and controversial behaviors'' of \citet[\textsection
+8]{Manson:2005:JMM:1047659.1040336}, and thus fails to validate thread
+inlining.
 
-\subsection{Causality test cases}
+In this section, we discuss three of the causality test cases and the thread
+inlining from \cite{Manson:2005:JMM:1047659.1040336}.  In presenting the
+examples, we unroll loops, correct typos and simplify the code.  
 
-FROM THE LICS paper:
+\subsection{Causality test case 8}
 
-In the process of revising the Java Memory Model, \citet{PughWebsite}
-developed a set of twenty \emph{causality test cases}.  Using hand
-calculation, we tested our semantics against eighteen of these cases (TC14
-and TC15 require loops).
+Test case 8 asks whether:
+\begin{displaymath}
+  \VAR x\GETS 0\SEMI
+  \VAR y\GETS 0\SEMI
+  (\IF(x<2)\THEN y\GETS 1\FI 
+  \PAR
+  x\GETS y)
+\end{displaymath}
+may read $1$ for both $x$ and $y$.  This behavior is allowed, since
+``interthread analysis could determine that $x$ and $y$ are always either $0$
+or $1$.''  This breaks the dependency between the read of $x$ and the write
+to $y$ in the first thread, allowing the write to be moved earlier.
 
-% Also by hand calculation, we found that our semantics gives the desired
-% results for all examples in \citet[\textsection
-% 4]{DBLP:conf/esop/BattyMNPS15} and all but one in \citet[\textsection
-% 5.3]{SevcikThesis}: redundant-write-after-read-elimination---this
-% counterexample applies to any sensible non-coherent semantics.
+\subsection{Causality test case 9}
+Test case 8 asks whether:
+\begin{displaymath}
+  \VAR x\GETS 0\SEMI
+  \VAR y\GETS 0\SEMI
+  (\IF(x<2)\THEN y\GETS 1\FI 
+  \PAR
+  x\GETS y
+  \PAR
+  y\GETS 2\SEMI)
+\end{displaymath}
+may read $1$ for both $x$ and $y$.  This behavior is also allowed.  This is
+``similar to test case $8$, except that $x$ is not always $0$ or
+$1$. However, a compiler might determine that the read of $x$ by thread $1$
+will never see the write by thread $3$ (perhaps because thread $3$ will be
+scheduled after thread $1$)''
 
-A variation on TC1:
-\begin{verbatim}
-  x:=0; y:=0 (if(x<2){y:=1;}  ||  x:=y;)
-\end{verbatim}
-Compiler can determine that x and y are both non-negative.
+Note that \cite{DBLP:conf/lics/JeffreyR16} fails on this case.
 
-Causality test cases 1, 6, 8, 9, 18, 20  (12?) require that the logic make
-  assertions about the domain of variables
+\subsection{Causality test case 14}
 
-  A variation on TC9:
-Here is an example that \cite{DBLP:conf/lics/JeffreyR16} fails on:
-\begin{verbatim}
-  x:=0; if(x<2){y:=1;}  ||  x:=y;  || y:=2;
-\end{verbatim}
-This should allow \texttt{r1==r2==1}.  Hopefully this is allowed by our
-semantics...
+Test case 14 asks whether:
+\begin{displaymath}
+  \VAR a\GETS 0\SEMI
+  \VAR b\GETS 0\SEMI
+  \VAR y\GETS 0\SEMI
+  (\IF(a)\THEN b\GETS 1\ELSE y\GETS 1\FI 
+  \PAR
+  \WHILE(y+b==0) \THEN\SKIP\FI\; a\GETS1)
+\end{displaymath}
+may read $1$ for $a$ and $b$, yet $0$ for $y$.  Here $a$ and $b$ are regular
+variables and $y$ is volatile, which is equivalent to release/acquire in this
+example.  This behavior is also disallowed, since ``in all sequentially
+consistent executions, [the read of $a$ gets $0$] and the program is
+correctly synchronized. Since the program is correctly synchronized in all SC
+executions, no non-sc behaviors are allowed.''
 
+Unrolling the loop once, we have
+\begin{displaymath}
+  \VAR a\GETS 0\SEMI
+  \VAR b\GETS 0\SEMI
+  \VAR y\GETS 0\SEMI
+  (\IF(a)\THEN b\GETS 1\ELSE y\GETS 1\FI 
+  \PAR
+  \IF(y\lor b)\THEN a\GETS 1\FI)
+\end{displaymath}
 
 \subsection{Thread inlining}
 

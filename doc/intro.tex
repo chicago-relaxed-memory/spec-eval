@@ -76,7 +76,7 @@ execution of programs.
 
   This would be fine if there were no program constructs
   which could observe control dependencies, but unfortunately
-  relaxed memory models such as JMM~\cite{Manson:2005:JMM:1047659.1040336}, C++~\cite{Boehm:2008:FCC:1375581.1375591} or LLVM~\cite{DBLP:conf/popl/ZhaoNMZ12}
+  the relaxed memory models for Java~\cite{Manson:2005:JMM:1047659.1040336}, C++~\cite{Boehm:2008:FCC:1375581.1375591} and LLVM~\cite{DBLP:conf/popl/ZhaoNMZ12}
   allow for such observations. This means there is the possibility
   for information flows caused by optimizing compilers, which
   we investigate in this paper.
