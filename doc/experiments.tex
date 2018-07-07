@@ -255,6 +255,7 @@ was reordered above the $x\GETS 1$ assignment, and the appropriate bit of
 {\SEC} is $1$.
 
 \begin{figure}
+  \small
   \begin{tabular}{ r | l | l | l }
     Redundancy & Bandwidth (bits/s) & Bitwise Acc & Per-run Acc \\ \hline
     1          & 3.17 million       & 90.13\%     & 0.0\%       \\
@@ -287,6 +288,8 @@ against {\GCC} version \todo{ver}.
 The attack can sustain hundreds of thousands of bits per second leaked with
 near-perfect accuracy, or millions of bits per second with error rates of a
 few percent.
+This means that an attacker can leak a 2048-bit secret with near-perfect
+accuracy in under $10$ ms.
 Note that this bandwidth assumes that all copies of the attack function are
 already compiled; the cost of compilation is not included here.
 
@@ -400,28 +403,100 @@ position despite our other reliability-increasing measures taken above, the
 more certain we can be that the $x\GETS 1$ write was eliminated in that
 function, and the appropriate bit of {\SEC} is $1$.
 
-Unlike the load-store reordering attack, our implementation of the dead store
-elimination attack has two important ``knobs'' which trade off reliability
-vs.\@ performance, rather than only one.
+\begin{figure}
+  \small
+  \begin{tabular}{ r | l | l | l }
+    Redundancy & Bandwidth (bits/s) & Bitwise Acc & Per-run Acc \\ \hline
+    1          & 1.40 million       & 99.92\%     & 66.8\%      \\
+    2          & 702 thousand       & 99.999\%    & 97.5\%      \\
+    3          & 470 thousand       & 99.99999\%  & 99.9\%       \\
+    4          & 352 thousand       & 100.0\%     & 100.0\%      \\
+  \end{tabular}
+  \caption{
+    Performance results for the dead store elimination attack on {\CLANG} when
+    leaking a 2048-bit secret.
+    Terms are the same as defined in the caption for Figure~\ref{fig:load-store-perf}.
+    \todo{Note: numbers are not final (collected on Craig's Mac with Apple Clang),
+    but give an idea of where we stand.}
+  }
+  \label{fig:clang-dse-perf}
+\end{figure}
+
+Performance results for the dead store elimination attack against {\CLANG}
+are given in Figure~\ref{fig:clang-dse-perf}.
+This attack is faster than the load-store reordering attack against {\GCC} for
+any given desired accuracy.
+\todo{however, compared to the load-store reordering attack we don't have an
+even-faster-but-even-less-accurate setting.
+This could be accomplished by reducing the amount of `time-consuming computation'
+which for clang we have been holding constant near the max value clang will
+tolerate.
+Really, we could make this a 2D table like Figure~\ref{fig:gcc-dse-perf}, we'll
+just have a strict maximum on how far to the right you can go.}
+
+\begin{figure}
+  \small
+  \begin{tabular}{ r | c | c | c | c | c | c }
+    Stall amount & 10 & 20 & 50 & 100 & 200 & 500 \\ \hline
+    Redundancy 1 & \makecell{2.75 million\\97.13\%} &
+                   \makecell{2.55 million\\99.72\%} &
+                   \makecell{2.27 million\\99.98\%} &
+                   \makecell{1.83 million\\99.99\%} &
+                   \makecell{1.34 million\\99.99\%} &
+                   \makecell{728 thousand\\99.99\%} \\ \hline
+    Redundancy 2 & \makecell{1.40 million\\99.01\%} &
+                   \makecell{1.30 million\\99.99\%} &
+                   \makecell{1.14 million\\100.0\%} &
+                   \makecell{902 thousand\\100.0\%} &
+                   \makecell{663 thousand\\100.0\%} &
+                   \makecell{382 thousand\\100.0\%} \\ \hline
+    Redundancy 3 & \makecell{926 thousand\\99.44\%} &
+                   \makecell{870 thousand\\100.0\%} &
+                   \makecell{763 thousand\\100.0\%} &
+                   \makecell{610 thousand\\100.0\%} &
+                   \makecell{443 thousand\\100.0\%} &
+                   \makecell{246 thousand\\100.0\%} \\ \hline
+    Redundancy 4 & \makecell{694 thousand\\99.71\%} &
+                   \makecell{645 thousand\\100.0\%} &
+                   \makecell{571 thousand\\100.0\%} &
+                   \makecell{451 thousand\\100.0\%} &
+                   \makecell{330 thousand\\100.0\%} &
+                   \makecell{186 thousand\\100.0\%} \\
+  \end{tabular}
+  \caption{
+    Performance results for the dead store elimination attack on {\GCC} when
+    leaking a 2048-bit secret.
+    Rows give different values of `redundancy' (as defined in previous figures),
+    while columns give amounts of stall time immediately following the
+    $x\GETS 1$ write (as measured in loop iterations).
+    Each table cell gives the leak bandwidth in bits/sec, followed by the
+    bitwise accuracy.
+    \todo{Note: numbers are not final (collected on Craig's machine inside a
+    VM), but give an idea of where we stand.}
+  }
+  \label{fig:gcc-dse-perf}
+\end{figure}
+
+Figure~\ref{fig:gcc-dse-perf} shows the performance results for the dead
+store elimination attack against {\GCC}.
+Unlike the other attacks we've discussed, our implementation of this attack
+has two important ``knobs'' which trade off reliability vs.\@ performance,
+rather than only one.
 First, we have the length of time which the writing thread attempts to
-``stall'' immediately after the $x\GETS 1$ write.
-Second, we have the number of entire redundant runs of the attack that are
-performed before the attacker reaches her conclusion.
+``stall'' immediately after the $x\GETS 1$ write (which is configurable in this
+case because {\GCC} will perform the dead store elimination even with a loop
+here).
+Second, as in the other attacks, we have the number of entire redundant runs of
+the attack that are performed before the attacker reaches her conclusion.
 Increased reliability can be achieved by adjusting either of these knobs,
 and they each have (different) effects on the overall performance of the
 attack.
-After exploring the parameter space, we found that $3$ redundant runs is
-sufficient to provide near-100\% accuracy while allowing us to maximize the
-speed of the attack.
-Specifically, on our machine, our attack on {\GCC} reaches speeds of
-\todo{exact gcc leak speed} bits leaked per second
-(\todo{exact gcc raw leak speed} `raw' bits leaked per second, that is, before
-error correction) with \todo{exact gcc accuracy}, while our attack on
-{\CLANG} reaches speeds of \todo{exact clang leak speed} bits leaked per
-second (\todo{exact clang raw leak speed} `raw' bits leaked per second) with
-\todo{exact clang accuracy}.
-In particular, this means our attack can leak a 2048-bit cryptographic key in
-under \todo{exact speed} ms, on either {\GCC} or {\CLANG}, with
-probability \todo{exact probability} that there are exactly zero bit errors in
-the leaked key, or probability \todo{exact probability} that there is at most
-one bit error in the leaked key.
+Although Redundancy 1 never reaches perfect accuracy (probably because of rare
+catastrophic events like OS interrupts), once we move to Redundancy 2,
+increasing the ``stall'' time is much more advantageous than further
+redundancy.
+Perfect accuracy (in our tests) can be achieved with a bandwidth of over 1.1
+million bits per second at Redundancy 2, making this our most efficient and
+accurate attack by a considerable margin.
+In particular, this means that this attack can leak a 2048-bit cryptographic
+key with perfect accuracy (in our tests) in under $2$ ms.
