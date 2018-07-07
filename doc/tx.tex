@@ -174,11 +174,11 @@ The action $(\DB{\aVal})\in\Acq$ represents the begin of a transaction with
 id $\aVal$ and $(\DC{\aVal})\in \Rel$ represents the corresponding commit,
 with semantics:
 \begin{eqnarray*}
-  \sem{\aReg\GETS\BEGIN\aVal\SEMI \bCmd}
+  \sem{\aReg\GETS\BEGINVAL\SEMI \bCmd}
   & = &
   (\TRUE \mid \DB{\aVal}) \prefix \sem{\aCmd}[\aVal/\aReg]
   \\
-  \sem{\aReg\GETS\COMMIT\aVal\SEMI \bCmd}
+  \sem{\aReg\GETS\COMMITVAL\SEMI \bCmd}
   & = &
   (\TRUE \mid \DC{\aVal}) \prefix \sem{\bCmd}[1/\aReg]
   \cup
@@ -237,14 +237,24 @@ the treatment of the touch operation in \S\ref{sec:spectre}.
 To model \textsc{Prime+Abort}, we require an honest agent whose cache-set
 access depends upon a secret.  If $a[0]$ and $a[1]$ belong to separate
 cache sets, then such an honest agent is:
+\[
+  a[\SEC]\,\GETS\,1
+\]
+\ignore{
 \begin{verbatim}
   a[SECRET] := 1
 \end{verbatim}
+}
 The attack relies on discovery of some $y$ which belongs to the cache-set of $a[1]$.
 Then the program
+\[
+  \BEGIN\SEMI y\GETS0\SEMI r\GETS\COMMIT\SEMI \IF(r\EQ0)\THEN x\GETS1\FI
+\]
+\ignore{
 \begin{verbatim}
   begin; y:=0; r:=commit; if (r==0) {x:=1;}
 \end{verbatim}
+}
 can write $1$ to $x$ only if the \texttt{SECRET} is $1$, in which case the
 following execution is possible.
 \[\begin{tikzpicture}[node distance=1em,baselinecenter]
