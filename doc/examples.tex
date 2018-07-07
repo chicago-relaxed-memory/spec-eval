@@ -725,20 +725,9 @@ the program:
     r\GETS x
   \PAR\begin{array}[t]{@{}l}
     x\GETS 1\SEMI\\
-    \IF(\CANREAD(\SEC))\THEN \IF(\SEC\NOTEQ0)\THEN x\GETS 2\FI
+    \IF(\CANREAD(\SEC))\THEN \IF(\SEC)\THEN x\GETS 2\FI
     \brELSE x\GETS 2\FI
 \end{array}\end{array}\]
-\ignore{
-\begin{verbatim}
-  (
-    r := x;
-  ) || (
-    x := 1;
-    if (canRead(SECRET)) { if (SECRET) { x := 2; } }
-    else { x := 2; }
-  )
-\end{verbatim}
-}
 In the case that \verb|SECRET| is $0$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
