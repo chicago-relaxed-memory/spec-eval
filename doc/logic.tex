@@ -168,12 +168,12 @@ closed if $\mods{(\afo)}$ is prefix-closed\footnote{$\aPS'$ is a prefix of
 
 We now turn to the example program, which is a variant of \cite[Figure 8]{DBLP:journals/toplas/Lochbihler13}:
 \[
-  \VAR x,y,z\SEMI (
-    y\GETS0\SEMI y\GETS x
+  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI \VAR z\GETS0\SEMI  (
+    y\GETS x
   \PAR
-    x\GETS0\SEMI \IF(z)\THEN x\GETS1 \ELSE x\GETS y\SEMI a\GETS y \FI
+    \IF(z)\THEN x\GETS1 \ELSE x\GETS y\SEMI a\GETS y \FI
   \PAR
-    z\GETS0\SEMI z\GETS1
+    z\GETS1
   )
 \]
 This program is allowed to write $1$ to $a$ under many speculative

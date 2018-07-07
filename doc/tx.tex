@@ -243,7 +243,7 @@ cache sets, then such an honest agent is:
 The attack relies on discovery of some $y$ which belongs to the cache-set of $a[1]$.
 Then the program
 \begin{verbatim}
-  begin; y:=0; r:=commit; x:=r+1;
+  begin; y:=0; r:=commit; if (r==0) {x:=1;}
 \end{verbatim}
 can write $1$ to $x$ only if the \texttt{SECRET} is $1$, in which case the
 following execution is possible.

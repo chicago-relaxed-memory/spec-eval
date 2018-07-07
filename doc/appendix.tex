@@ -19,7 +19,7 @@ and TC15 require loops).
 
 A variation on TC1:
 \begin{verbatim}
-  x:=0; if(x<2){y:=1;}  ||  x:=y;
+  x:=0; y:=0 (if(x<2){y:=1;}  ||  x:=y;)
 \end{verbatim}
 Compiler can determine that x and y are both non-negative.
 
