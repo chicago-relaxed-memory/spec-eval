@@ -559,16 +559,15 @@ semantics forbids thin air examples that are permitted by prior speculative
 models
 \cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17}.
 
-Our model passes all of the expressible causality test cases
-\cite{PughWebsite} (two test cases require loops).  Significantly, this
+Our model passes all of the causality test cases
+\cite{PughWebsite}.  Significantly, this
 includes test case 9, which is forbidden by \cite{DBLP:conf/lics/JeffreyR16},
 one of the few models that disallows the thin air example from
 \S\ref{sec:logic}.  We present this test case in the appendix, where we also
 discuss the thread inlining examples from
 \cite{Manson:2005:JMM:1047659.1040336}.
 
-In \cite{DBLP:conf/esop/BattyMNPS15},
-\citeauthor{DBLP:conf/esop/BattyMNPS15} showed that the thin-air problem has
+\citet{DBLP:conf/esop/BattyMNPS15} showed that the thin-air problem has
 no per-candidate-execution solution for C++.  This result does not apply to
 our model, as the semantics of a conditional can depend on the semantics
 of both branches.
@@ -687,7 +686,7 @@ code.  If we replace the code fragment above with:
     \ELSE x\GETS P(1)\SEMI z\GETS1 \FI
 \]
 then $(\DW{z}{1})$ is possible only if $P$ is independent of its
-input.  The conditional is able to capture multiple executions, as in
+input.  Thus, the conditional is able to capture multiple executions, as in
 \cite{Barthe:2004:SIF:1009380.1009669}.
 
 \subsection{Dead store elimination}
