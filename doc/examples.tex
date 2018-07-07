@@ -582,59 +582,70 @@ hardware capabilities, which have to be modeled by adding
 extra capabilities to the language, this new attacker works
 by exploiting relaxed memory which can result in
 unexpected information flows. The attacker program is:
-\begin{verbatim}
-  (
-    x := 0; y := x;
-  ) || (
-    if (y == 0) { x := 1; }
-    else if (canRead(SECRET)) { x := SECRET; }
-    else { x := 1; z := 1; }
-  )
-\end{verbatim}
-In the case where \verb|SECRET| is $2$, this has many executions,
+\[\begin{array}[t]{@{}l}
+  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI\\\quad
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    \IF(y = 0)\THEN x\GETS1
+    \brELIF(\CANREAD(\SEC))\THEN x\GETS\SEC
+    \brELSE x\GETS1\SEMI z\GETS1 \FI
+\end{array}\end{array}\]
+In the case where $\SEC$ is $2$, this has many executions,
 one of which is:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{wx0}{\DW{x}{0}}{}
-  \event{wy0}{\DW{y}{0}}{right=of wx0}
-  \event{ry0}{\DR{y}{0}}{right=2.5 em of wy0}
+  \event{ix}{\DW{x}{0}}{}
+  \event{iy}{\DW{y}{0}}{right=of ix}
+  \event{rx0}{\DR{x}{0}}{right=2.5 em of iy}
+  \event{wy0}{\DW{y}{0}}{right=of rx0}
+  \event{ry0}{\DR{y}{0}}{right=2.5em of wy0}
   \event{wx1}{\DW{x}{1}}{right=of ry0}
   \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
   \nonevent{wz1}{\DW{z}{1}}{right=of wx2}
+  \po{rx0}{wy0}
   \po{ry0}{wx1}
   \po[out=30,in=150]{ry0}{wz1}
-  \po[out=25,in=150]{ry0}{wx2}
-  \rf{wy0}{ry0}
+  \po[out=25,in=155]{ry0}{wx2}
+  \rf[out=25,in=155]{ix}{rx0}
+  \rf[out=20,in=160]{wy0}{ry0}
+  \wk[out=25,in=155]{iy}{wy0}
 \end{tikzpicture}\]
 but there are no executions which exhibit
 $(\DW{z}{1})$, since any attempt to do so
 produces a cycle:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{wx0}{\DW{x}{0}}{}
-  \event{rx1}{\DR{x}{1}}{right=of wx0}
+  \event{ix}{\DW{x}{0}}{}
+  \event{iy}{\DW{y}{0}}{right=of ix}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5 em of wy1}
-  \event{wx1}{\DW{x}{1}}{right=of ry1}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy0}
+  \event{wx1}{\DW{x}{1}}{right=of ry0}
   \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
   \event{wz1}{\DW{z}{1}}{right=of wx2}
   \po{rx1}{wy1}
   \po{ry1}{wx1}
   \po[out=30,in=150]{ry1}{wz1}
-  \po[out=25,in=150]{ry1}{wx2}
-  \rf{wy1}{ry1}
-  \rf[out=210,in=330]{wx1}{rx1}
+  \po[out=25,in=155]{ry1}{wx2}
+  \rf[in=-25,out=-155]{wx1}{rx1}
+  \rf[out=20,in=160]{wy1}{ry1}
+  \wk[out=-25,in=-155]{ix}{wx1}
+  \wk[out=-25,in=-155]{ix}{wx2}
+  \wk[out=25,in=155]{iy}{wy1}
 \end{tikzpicture}\]
 In the case where \verb|SECRET| is $1$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{wx0}{\DW{x}{0}}{}
-  \event{rx1}{\DR{x}{1}}{right=of wx0}
+  \event{ix}{\DW{x}{0}}{}
+  \event{iy}{\DW{y}{0}}{right=of ix}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5 em of wy1}
-  \event{wx1}{\DW{x}{1}}{right=of ry1}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy0}
+  \event{wx1}{\DW{x}{1}}{right=of ry0}
   \event{wz1}{\DW{z}{1}}{right=of wx1}
   \po{rx1}{wy1}
   \po[out=30,in=150]{ry1}{wz1}
-  \rf{wy1}{ry1}
-  \rf[out=210,in=330]{wx1}{rx1}
+  \rf[in=-25,out=-155]{wx1}{rx1}
+  \rf[out=20,in=160]{wy1}{ry1}
+  \wk[out=-25,in=-155]{ix}{wx1}
+  \wk[out=25,in=155]{iy}{wy1}
 \end{tikzpicture}\]
 Note that in this case, there is no dependency from
 $(\DR{y}{1})$ to $(\DW{x}{1})$, which is what makes this
@@ -646,35 +657,36 @@ attack.
 This attack is not just an artifact of the model,
 since the same behavior can be exhibited by
 compiler optimizations. Consider the program fragment:
-\begin{verbatim}
-  if (y == 0) { x := 1; }
-  else if (canRead(SECRET)) { x := SECRET; }
-  else { x := 1; z := 1; }
-\end{verbatim}
+\[
+    \IF(y = 0)\THEN x\GETS1
+    \ELIF(\CANREAD(\SEC))\THEN x\GETS\SEC
+    \ELSE x\GETS1\SEMI z\GETS1 \FI
+\]
 Now, in the case where \verb|SECRET| is a constant \verb|1|,
 the compiler can inline it:
-\begin{verbatim}
-  if (y == 0) { x := 1; }
-  else if (canRead(SECRET)) { x := 1; }
-  else { x := 1; z := 1; }
-\end{verbatim}
-and lift the assignment to \verb|x| out of the \verb|if| statement:
-\begin{verbatim}
-  x := 1;
-  if (y == 0) { }
-  else if (canRead(SECRET)) { }
-  else { z := 1; }
-\end{verbatim}
+\[
+    \IF(y = 0)\THEN x\GETS1
+    \ELIF(\CANREAD(\SEC))\THEN x\GETS1
+    \ELSE x\GETS1\SEMI z\GETS1 \FI
+\]
+and lift the assignment to $x$ out of the $\IF$ statement:
+\[
+    x\GETS1\SEMI
+    \IF(y = 0)\THEN
+    \ELIF(\CANREAD(\SEC))\THEN
+    \ELSE z\GETS1 \FI
+\]
 After these optimizations, a sequentially consistent execution
 exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
 further in \S\ref{sec:experiments}.
 
 This approach can be generalized to detect information flows in arbitrary
 code.  If we replace the code fragment above with:
-\begin{verbatim}
-  if (y == 0) { x:=P(0); } else { x:=P(1); z:=1; }
-\end{verbatim}
-then $(\DW{z}{1})$ is possible only if \texttt{P} is independent of its
+\[
+    \IF(y = 0)\THEN x\GETS P(0)
+    \ELSE x\GETS P(1)\SEMI z\GETS1 \FI
+\]
+then $(\DW{z}{1})$ is possible only if $P$ is independent of its
 input.  The conditional is able to capture multiple executions, as in
 \cite{Barthe:2004:SIF:1009380.1009669}.
 
