@@ -317,6 +317,17 @@ of the test function, each performing a boolean test on a single bit of the
 secret.
 The function used for reading the \verb|k|th bit is as follows (for
 \verb|N <= 64|):
+
+\[\begin{array}[t]{@{}l}
+  \VAR x\GETS0\SEMI\\\quad
+    r\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    x\GETS 1\SEMI\\
+    \IF(\CANREAD(\SEC))\THEN \IF(\SEC\,\texttt{ \& (1 << k)}\NOTEQ0)\THEN x\GETS 2\FI
+    \brELSE x\GETS 2\FI
+\end{array}\end{array}\]
+
+\ignore{
 \begin{verbatim}
     (
       r := x;
@@ -329,6 +340,8 @@ The function used for reading the \verb|k|th bit is as follows (for
       }
     )
 \end{verbatim}
+}
+
 Then, we test each function in turn, each time noting the value of \verb|r|
 observed by the `listening' thread.
 If the appropriate bit of \verb|SECRET| is 1, the \verb|x := 2| assignment is
@@ -349,11 +362,14 @@ load-store reordering attack and differ only in a few details.
 First, rather than simply observing \verb|x| with \verb|r := x| in the
 `listening' thread, we continuously load \verb|x| in a loop until a
 nonzero value is observed --- i.e., we perform
+$\DO{r\GETS x} \WHILE(r\EQ0)$.
+\ignore{
 \begin{verbatim}
     do {
       r := x;
     } while(r == 0);
 \end{verbatim}
+}
 This remedies the case where \verb|r := x| could observe a value of \verb|x|
 from `before' either of the two possible writes performed by the other thread.
 \todo{do we need to explicitly say that we ensure x is initialized to 0 --- and
