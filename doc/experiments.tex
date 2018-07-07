@@ -110,18 +110,59 @@ on the value of a \verb|SECRET|:
       else { return 1; }
     )
 \end{verbatim}
-In the case that \verb|SECRET| is \verb|1|, \verb|gcc| will remove the
-\verb|if| statement entirely, and move the read of \verb|y| above the write of
-\verb|x|.
-However, if \verb|SECRET| is not \verb|1|, the \verb|if| statement must remain
-intact, and \verb|gcc| will not move the read of \verb|y|.
+Figure~\ref{fig:lsr-asm} shows the assembly output of \verb|gcc| in the cases
+where \verb|SECRET| is 0 and 1 respectively.
+In the case that \verb|SECRET| is \verb|1|, \verb|gcc| removes the \verb|if|
+statement entirely, and moves the read of \verb|y| above the write of \verb|x|.
+However, when \verb|SECRET| is \verb|0|, the \verb|if| statement must remain
+intact, and \verb|gcc| does not move the read of \verb|y|.
 This means that if \verb|SECRET| is \verb|1|, the second thread will always
 read \verb|y == 0| and always return \verb|1|.
-However, if \verb|SECRET| is not \verb|1|, it is possible that the first thread
+However, if \verb|SECRET| is \verb|0|, it is possible that the first thread
 may observe \verb|x == 1| and write \verb|y := 1| in time for the second thread
 to observe \verb|y == 1| and thus return \verb|0|.
 In this way, we leverage compiler load-store reordering to learn the value of
 a compile-time \verb|SECRET|.
+
+\begin{figure}
+  \begin{tabular}[fragile]{p{3cm} | p{3cm}}
+    \texttt{SECRET == 0} & \texttt{SECRET == 1} \\
+\begin{verbatim}
+  mov f(%rip), %eax
+  mov $1, x(%rip)
+  test %eax, %eax
+  je label1
+  mov %0, x(%rip)
+label1:
+  mov y(%rip), %eax
+  test %eax, %eax
+  sete %eax
+  ret
+\end{verbatim}
+  &
+\begin{verbatim}
+  mov f(%rip), %eax
+  mov y(%rip), %eax
+  mov $1, x(%rip)
+  test %eax, %eax
+  sete %eax
+  ret
+\end{verbatim}
+  \\
+  \end{tabular}
+  \caption{
+    (Simplified) x86 assembly output from \texttt{gcc} for the main thread of
+    the load-store reordering attack.
+    In particular, note that the order between \texttt{mov \$1, x(\%rip)}
+    and \texttt{mov y(\%rip), \%eax} is different in the two cases.
+    The call to \texttt{canRead(SECRET)} has been inlined; we implemented
+    \texttt{canRead(x)} as \texttt{return f;} where
+    \texttt{volatile bool f = false;}.
+    Thus, \texttt{gcc} preserves the read of \texttt{f} even when its value is
+    unused, as in the case on the right.
+  }
+  \label{fig:lsr-asm}
+\end{figure}
 
 We extend this attack to leak a secret consisting of an arbitrary number
 \verb|N| of bits.
