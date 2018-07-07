@@ -364,8 +364,6 @@ $\DO{r\GETS x} \WHILE(r\EQ0)$.
 }
 This remedies the case where $r\GETS x$ could observe a value of $x$
 from `before' either of the two possible writes performed by the other thread.
-\todo{do we need to explicitly say that we ensure x is initialized to 0 --- and
-coherently seen as such by both threads --- before starting the attack?}
 
 Second, we insert additional time-consuming computation immediately following
 the $x\GETS 1$ operation in the `main' thread.
