@@ -476,35 +476,41 @@ reads-from.
 Since we are allowing events to be partially ordered, this gives a simple
 model of relaxed memory, for example an independent read independent write
 (IRIW) example is:
-\begin{verbatim}
-  x := 0; x := x+1; || y := 0; y := y+1; || if (x) { r := y; } || if (y) { s := x; }
-\end{verbatim}
+\[
+  x\GETS0\SEMI x\GETS x+1
+  \PAR
+  y\GETS0\SEMI y\GETS y+1
+  \PAR
+  \IF(x)\THEN r\GETS y \FI
+  \PAR
+  \IF(y)\THEN s\GETS x \FI
+\]
 which includes the execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
   \event{wx1}{\DW{x}{1}}{right=of wx0}
   \event{wy0}{\DW{y}{0}}{right=2.5em of wx1}
   \event{wy1}{\DW{y}{1}}{right=of wy0}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of wy1}
-  \event{ry0}{\DR{y}{0}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5 em of ry0}
+  \event{ry1}{\DR{y}{1}}{right=2.5 em of wy1}
   \event{rx0}{\DR{x}{0}}{right=of ry1}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of rx0}
+  \event{ry0}{\DR{y}{0}}{right=of rx1}
   \rf[out=20,in=160]{wx1}{rx1}
   \rf[out=20,in=160]{wy0}{ry0}
-  \rf[out=340,in=200]{wy1}{ry1}
-  \rf[out=340,in=200]{wx0}{rx0}
+  \rf[out=20,in=160]{wy1}{ry1}
+  \rf[out=20,in=160]{wx0}{rx0}
   \wk{wx0}{wx1}
   \wk{wy0}{wy1}
   \po{rx1}{ry0}
   \po{ry1}{rx0}
 \end{tikzpicture}\]
 This model does not introduce thin-air reads (TAR),
-for example the TAR pit program is:
-\begin{verbatim}
-  x := y; || y := x;
-\end{verbatim}
+for example the TAR pit is
+\((
+  x\GETS y \PAR y \GETS x
+)\)
 but an attempt to produce a value from thin air fails,
-for the usual reason of producing a cycle in $\le$, as shown on the left below.
+for the usual reason of producing a cycle in $\le$, as shown on the left below:
 \begin{align*}
 \begin{tikzpicture}[node distance=1em]
   \event{ry42}{\DR{y}{42}}{}
@@ -527,10 +533,10 @@ for the usual reason of producing a cycle in $\le$, as shown on the left below.
   \rf{wy1}{ry1}
 \end{tikzpicture}
 \end{align*}
-This cycle can be broken if one of the writes does not depend on the read, for example:
-\begin{verbatim}
-  x := y; || r := x; y := r+1-r;
-\end{verbatim}
+This cycle can be broken by removing a dependency, for example0
+\((
+  x\GETS y \PAR r\GETS x\SEMI y \GETS r+1-r
+)\)
 has the execution on the right above.
 % \[\begin{tikzpicture}[node distance=1em]
 %   \event{ry1}{\DR{y}{1}}{}
@@ -564,7 +570,8 @@ discuss the thread inlining examples from
 In \cite{DBLP:conf/esop/BattyMNPS15},
 \citeauthor{DBLP:conf/esop/BattyMNPS15} showed that the thin-air problem has
 no per-candidate-execution solution for C++.  This result does not apply to
-our model, which tracks dependencies more precisely than C++.
+our model, as the semantics of a conditional can depend on the semantics
+of both branches.
 
 \subsection{Information flow attacks on relaxed memory}
 \label{sec:info-flow-attack}
