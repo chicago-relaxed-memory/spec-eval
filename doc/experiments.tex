@@ -82,7 +82,7 @@ We plan to explore JavaScript attacks of this type as future work.
 \subsection{Load-store reordering attack}
 \label{subsec:exp-rel-mem}
 
-We begin by examining the attack in Section~\ref{sec:info-flow-attack} in
+We begin by examining the attack in~\S\ref{sec:info-flow-attack} in
 more detail, subject to the attacker model given above.
 In particular, we show that by exploiting compiler optimizations which perform
 load-store reordering, an attacker can learn the value of a compile-time
@@ -90,7 +90,7 @@ load-store reordering, an attacker can learn the value of a compile-time
 code that can never be executed at runtime.
 This attack was tested and works against \verb|gcc| version \todo{gcc version}.
 
-The form of the attack presented in Section~\ref{sec:info-flow-attack} works in
+The form of the attack presented in~\S\ref{sec:info-flow-attack} works in
 theory, but in practice, just because a compiler is \emph{allowed} to perform a
 load-store reordering doesn't mean that it \emph{will}.
 We found that \verb|gcc| and \verb|clang| chose to read \verb|y| into a
@@ -298,10 +298,10 @@ already compiled; the cost of compilation is not included here.
 \subsection{Dead store elimination attack}
 \label{subsec:exp-dse}
 
-In this section we return to the attack in Section~\ref{sec:dse} based on
+In this section we return to the attack in~\S\ref{sec:dse} based on
 dead store elimination.
-We show that in our attacker model (given in
-Section~\ref{subsec:attacker-model}), the attacker is able to exploit dead
+We show that in our attacker model (given in~\S\ref{subsec:attacker-model}),
+the attacker is able to exploit dead
 store elimination to again learn the value of a compile-time \verb|SECRET|
 despite only being allowed to use it inside dead code, that is, code that can
 never be executed at runtime.
@@ -309,8 +309,8 @@ This attack is even more efficient than the attack on load-store reordering,
 and further, we were able to demonstrate its effectiveness against both
 \verb|gcc| and \verb|clang|.
 
-We start from the simple form of the attack presented in
-Section~\ref{sec:dse}, and extend it to leak a secret consisting of an
+We start from the simple form of the attack presented in~\S\ref{sec:dse},
+and extend it to leak a secret consisting of an
 arbitrary number \verb|N| of bits.
 As we did in the load-store reordering attack, we again compile \verb|N| copies
 of the test function, each performing a boolean test on a single bit of the
