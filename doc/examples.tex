@@ -605,7 +605,7 @@ one of which is:
   \po[out=30,in=150]{ry0}{wz1}
   \po[out=25,in=155]{ry0}{wx2}
   \rf[out=25,in=155]{ix}{rx0}
-  \rf[out=20,in=160]{wy0}{ry0}
+  \rf{wy0}{ry0}
   \wk[out=25,in=155]{iy}{wy0}
 \end{tikzpicture}\]
 but there are no executions which exhibit
@@ -624,10 +624,10 @@ produces a cycle:
   \po{ry1}{wx1}
   \po[out=30,in=150]{ry1}{wz1}
   \po[out=25,in=155]{ry1}{wx2}
-  \rf[in=-25,out=-155]{wx1}{rx1}
-  \rf[out=20,in=160]{wy1}{ry1}
-  \wk[out=-25,in=-155]{ix}{wx1}
-  \wk[out=-25,in=-155]{ix}{wx2}
+  \rf[in=-25,out=-160]{wx1}{rx1}
+  \rf{wy1}{ry1}
+  \wk[out=-20,in=-150]{ix}{wx1}
+  \wk[out=-20,in=-155]{ix}{wx2}
   \wk[out=25,in=155]{iy}{wy1}
 \end{tikzpicture}\]
 In the case where \verb|SECRET| is $1$, there is an execution:
@@ -641,9 +641,9 @@ In the case where \verb|SECRET| is $1$, there is an execution:
   \event{wz1}{\DW{z}{1}}{right=of wx1}
   \po{rx1}{wy1}
   \po[out=30,in=150]{ry1}{wz1}
-  \rf[in=-25,out=-155]{wx1}{rx1}
-  \rf[out=20,in=160]{wy1}{ry1}
-  \wk[out=-25,in=-155]{ix}{wx1}
+  \rf[in=-25,out=-160]{wx1}{rx1}
+  \rf{wy1}{ry1}
+  \wk[out=-20,in=-150]{ix}{wx1}
   \wk[out=25,in=155]{iy}{wy1}
 \end{tikzpicture}\]
 Note that in this case, there is no dependency from
