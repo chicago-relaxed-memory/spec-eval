@@ -99,8 +99,19 @@ register first (before writing to \verb|x|), regardless of the value of
 However, we did find a related pattern in which \verb|gcc| will emit a
 different ordering of the read of \verb|y| and the write of \verb|x| depending
 on the value of a \verb|SECRET|:
+\[\begin{array}[t]{@{}l}
+  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI\\\quad
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    x\GETS 1\SEMI\\
+    \IF(\CANREAD(\SEC))\THEN x\GETS\SEC\SEMI\FI\\
+    \IF(y > 0)\THEN \RETURN 0
+    \brELSE \RETURN 1\FI
+\end{array}\end{array}\]
+
+\ignore{
 \begin{verbatim}
-    y := 0;
+    x := 0; y := 0;
     (
       y := x;
     ) || (
@@ -110,6 +121,8 @@ on the value of a \verb|SECRET|:
       else { return 1; }
     )
 \end{verbatim}
+}
+
 Figure~\ref{fig:lsr-asm} shows the assembly output of \verb|gcc| in the cases
 where \verb|SECRET| is 0 and 1 respectively.
 In the case that \verb|SECRET| is \verb|1|, \verb|gcc| removes the \verb|if|
@@ -170,7 +183,20 @@ To do this, we simply compile \verb|N| copies of the test function, each
 performing a boolean test on a single bit of the secret.
 The function used for reading the \verb|k|th bit is as follows (for
 \verb|N <= 64|):
+
+\[\begin{array}[t]{@{}l}
+  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI\\\quad
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    x\GETS 1\SEMI\\
+    \IF(\CANREAD(\SEC))\THEN x\GETS\texttt{(\SEC\, \& (1 << k)) ? 1 : 0}\SEMI\FI\\
+    \IF(y > 0)\THEN \RETURN 0
+    \brELSE \RETURN 1\FI
+\end{array}\end{array}\]
+
+\ignore{
 \begin{verbatim}
+    x := 0; y := 0;
     (
       y := x;
     ) || (
@@ -180,6 +206,8 @@ The function used for reading the \verb|k|th bit is as follows (for
       else { return 1; }
     )
 \end{verbatim}
+}
+
 Following the same analysis as above, this function will always return \verb|1|
 if the appropriate bit of \verb|SECRET| is \verb|1|, but may return \verb|0| if
 the appropriate bit of \verb|SECRET| is \verb|0|.
