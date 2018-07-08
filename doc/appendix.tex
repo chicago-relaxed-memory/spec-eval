@@ -184,7 +184,7 @@ actions is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ra1}{\DR{a}{1}}{}
   \event{wb1}{\DW{b}{1}}{below=of ra1}
-  \event{wy1}{a=0\mid\DW{y}{1}}{left=of wb1}
+  \nonevent{wy1}{\DW{y}{1}}{left=of wb1}
   \event{rb1}{\DR{b}{1}}{right=4.5em of ra1}
   \event{ry0}{\DR{y}{0}}{right=of rb1}
   \event{wa1}{\DW{a}{1}}{below=of rb1}
@@ -195,7 +195,9 @@ actions is:
 \end{tikzpicture}\]
 where the read of $a$ is ordering for $(\DW{b}{1})$ but
 not $(\DW{y}{1})$, and the read of $b$ is ordering for $(\DW{a}{1})$ but the
-read of $y$ is not.  To avoid order from $(\DR{y}{0})$ to $(\DW{a}{1})$, we
+read of $y$ is not.  $(\DW{y}{1})$ is crossed out, since its
+precondition must imply $(\lnot a)[1/a]$, which is equivalent to $\FALSE$.
+To avoid order from $(\DR{y}{0})$ to $(\DW{a}{1})$, we
 have strengthened the predicate on $(\DW{a}{1})$ from $(y\lor b)$ to
 $(y=0\land b=1)$.  Note that we cannot use this trick symmetrically to remove
 the order from $(\DR{b}{1})$ to $(\DW{a}{1})$, since $b=1$ does not follow
