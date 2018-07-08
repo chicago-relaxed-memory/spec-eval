@@ -175,15 +175,13 @@ The action $(\DB{\aVal})\in\Acq$ represents the begin of a transaction with
 id $\aVal$ and $(\DC{\aVal})\in \Rel$ represents the corresponding commit,
 with semantics:
 \begin{eqnarray*}
-  \sem{\aReg\GETS\BEGINVAL\SEMI \bCmd}
+  \sem{\BEGINVAL\SEMI \aCmd\SEMI \RECOVERYVAL\SEMI \bCmd}
   & = &
-  (\TRUE \mid \DB{\aVal}) \prefix \sem{\aCmd}[\aVal/\aReg]
+  (\DB{\aVal}) \prefix (\sem{\aCmd} \cup (\FALSE \mid \sem{\aCmd}) \parallel \sem{\bCmd})
   \\
-  \sem{\aReg\GETS\COMMITVAL\SEMI \bCmd}
+  \sem{\COMMITVAL\SEMI \bCmd}
   & = &
-  (\TRUE \mid \DC{\aVal}) \prefix \sem{\bCmd}[1/\aReg]
-  \cup
-  (\FALSE \mid \DC{\aVal}) \prefix \sem{\bCmd}[0/\aReg]
+  (\DC{\aVal}) \prefix \sem{\bCmd}
 \end{eqnarray*}
 At top level, we require that pomsets be \emph{serializable}, as defined below.
 \begin{definition}
@@ -198,8 +196,8 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
   We say that commit event $\comEv$ \emph{commits} $\aEv$ if $\aEv\le\comEv$
   and there is no intervening matching begin.
   % event $\begEv$ such that $\aEv\le\begEv\le\comEv$.
-% \end{definition}
-% \begin{definition}
+\end{definition}
+\begin{definition}
   A pomset is \emph{serializable} if:
   \begin{enumerate}
   \item\label{tx:1} no two begins have the same id,
@@ -212,16 +210,12 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
   \item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, then
     $\aEv\le\bEv$ implies $\comEv\le\bEv$ and $\bEv\ltN\aEv$ implies $\bEv\ltN\comEv$,
   \item\label{tx:6} if $\aEv$ and $\bEv$ belong to $\begEv$ and read the same
-    location, then both read the same value, 
+    location, then both read the same value, and 
   % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,    
   % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$
   %   ends $\aEv$ such that both $\aEv$ implies $\comEv$ and $\comEv$ implies $\aEv$,    
   \item\label{tx:7} if $\aEv$ belongs to $\begEv$, then $\aEv$ implies some
-    matching $\comEv$ that ends $\aEv$, and
-  \item\label{tx:8} if $\begEv$ aborts then there must be some $\aEv$ that
-    belongs to $\begEv$ and some tautologous $\bEv\le\aEv$ that does not
-    belong to $\begEv$ such that $\aEv$ and $\bEv$ touch locations in the
-    same cache set.
+    matching $\comEv$ that ends $\aEv$.
   \end{enumerate}
 \end{definition}
 In discussion, we identify transactions by their unique begin event.  A
@@ -231,9 +225,21 @@ Conditions \ref{tx:1}-\ref{tx:5} ensure serializability of committed
 transactions.  Conditions \ref{tx:4}-\ref{tx:6} also ensure strong isolation
 for non-transactional events
 \cite{DBLP:journals/pacmpl/DongolJR18}. Condition \ref{tx:7} ensures that all
-events in aborted transactions are unsatisfiable.  Condition \ref{tx:8}
-requires that aborts only occur due to caching conflicts---this is similar to
+events in aborted transactions are unsatisfiable.
+
+In order to model \textsc{Prime+Abort}, we need a mechanism for modelling
+\emph{why} a transaction aborts, as this can be used as a back channel.
+We model a simple form of concurent transaction, which aborts when it
+encounters a memory conflict---this is similar to
 the treatment of the touch operation in \S\ref{sec:spectre}.
+
+\begin{definition}
+  An event $\begEv$ \emph{aborts due to memory conflict}
+  if there must be some $\aEv$ that
+  belongs to $\begEv$ and some tautologous $\bEv\le\aEv$ that does not
+  belong to $\begEv$ such that $\aEv$ and $\bEv$ touch locations in the
+  same cache set.
+\end{definition}
 
 To model \textsc{Prime+Abort}, we require an honest agent whose cache-set
 access depends upon a secret.  If $a[0]$ and $a[1]$ belong to separate
@@ -249,14 +255,14 @@ cache sets, then such an honest agent is:
 The attack relies on discovery of some $y$ which belongs to the cache-set of $a[1]$.
 Then the program
 \[
-  \BEGIN\SEMI y\GETS0\SEMI r\GETS\COMMIT\SEMI \IF(r\EQ0)\THEN x\GETS1\FI
+\BEGIN\SEMI y\GETS0\SEMI r\GETS\COMMIT\SEMI \RECOVERY\SEMI x\GETS1
 \]
 \ignore{
 \begin{verbatim}
-  begin; y:=0; r:=commit; if (r==0) {x:=1;}
+  begin; y:=0; commit; onabort; x:=1;
 \end{verbatim}
 }
-can write $1$ to $x$ only if the \texttt{SECRET} is $1$, in which case the
+can write $1$ to $x$ if the \texttt{SECRET} is $1$, in which case the
 following execution is possible.
 \[\begin{tikzpicture}[node distance=1em,baselinecenter]
   \event{b}{\DB{}}{}
@@ -265,8 +271,11 @@ following execution is possible.
   \event{wx1}{\DW{x}{1}}{right=of c}
   \po{b}{e}
   \po{e}{c}
-  \po{c}{wx1}
+  \po[out=30,in=155]{b}{wx1}
 \end{tikzpicture}\]
+If the attacker knows that every aborted action aborts due to memory conflicts,
+then this attack is an information flow, since the memory conflict only happens
+when the \texttt{SECRET} is $1$.
 
 % The definition handles simple examples:
 % \begin{itemize}
