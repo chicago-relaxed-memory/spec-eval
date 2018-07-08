@@ -13,7 +13,7 @@ $\aAct$ is a \emph{release action} if $\aAct\in\Rel$ and $\aAct$ is an
 In a pomset, a release event is one labelled with a release action,
 and an acquire event is one labelled by an acquire action.
 The semantics of fences are given by adding an extra constraint
-to the definition of $(\aForm\mid\aAct)\prefix\aPSS$
+to the definition of $\aAct\prefix\aPSS$
 (recalling that $\cEv$ is the $\aAct$-labelled event being introduced):
 \begin{itemize}
 \item $\cEv \le \aEv$ whenever $\cEv$ is an acquire event or $\aEv$ is a release event.
@@ -38,61 +38,62 @@ The semantics of programs with releasing write and acquiring read are the
 same as for regular write and read and, but with $\DWRel\aLoc\aVal$ replacing
 $\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$.  
 \begin{eqnarray*}
-  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid \DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc] \\
-  \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\TRUE \mid \DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
+  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]) \\
+  \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
 \end{eqnarray*}
-
 For example, consider the program:
-\begin{verbatim}
-  (x := 0; f := 0; x:= 1; rel f := 1;) || (acq r := f; s := x;)
-\end{verbatim}
+\[
+  \VAR x\GETS0\SEMI \VAR f\GETS0\SEMI
+  (x\GETS 1\SEMI \REL f\GETS1 \PAR \ACQ r\GETS f; s\GETS x)
+\]
 This has an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
-  \event{wx1}{\DW{x}{1}}{right=of wx0}
-  \event{wf0}{\DW{f}{0}}{right=of wx1}
-  \event{wf1}{\DWRel{f}{1}}{right=of wf0}
+  \event{wf0}{\DW{f}{0}}{right=of wx0}
+  \event{wx1}{\DW{x}{1}}{right=2.5em of wf0}
+  \event{wf1}{\DWRel{f}{1}}{right=of wx1}
   \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx1}{\DR{x}{1}}{right=of rf1}
-  \po{wx0}{wx1}
-  \po{wf0}{wf1}
-  \po[out=25,in=155]{wx1}{wf1}
+  \po[out=20,in=160]{wx0}{wf1}
+  \po[out=20,in=160]{wf0}{wf1}
+  \po{wx1}{wf1}
   \po{rf1}{rx1}
   \rf{wf1}{rf1}
-  \rf[out=25,in=155]{wx1}{rx1}
+  \rf[out=20,in=160]{wx1}{rx1}
+  \wk[out=20,in=160]{wx0}{wx1}
 \end{tikzpicture}\]
 but \emph{not}:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
-  \event{wx1}{\DW{x}{1}}{right=of wx0}
-  \event{wf0}{\DW{f}{0}}{right=of wx1}
-  \event{wf1}{\DWRel{f}{1}}{right=of wf0}
+  \event{wf0}{\DW{f}{0}}{right=of wx0}
+  \event{wx1}{\DW{x}{1}}{right=2.5em of wf0}
+  \event{wf1}{\DWRel{f}{1}}{right=of wx1}
   \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx0}{\DR{x}{0}}{right=of rf1}
-  \po{wx0}{wx1}
-  \po{wf0}{wf1}
-  \po[out=25,in=155]{wx1}{wf1}
-  \po{rf1}{rx0}
+  \po[out=20,in=160]{wx0}{wf1}
+  \po[out=20,in=160]{wf0}{wf1}
+  \po{wx1}{wf1}
+  \po{rf1}{rx1}
   \rf{wf1}{rf1}
   \rf[out=20,in=160]{wx0}{rx0}
+  \wk[out=20,in=160]{wx0}{wx1}
 \end{tikzpicture}\]
-since $(\DW x0) < (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
-requirements to be a $x$-closed.
+since $(\DW x0) \gtN (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
+requirements to be $x$-closed.
 If we replace the release
 with a plain write, then the outcome $(\DRAcq f1)$ and $(\DR x0)$ is possible:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
-  \event{wx1}{\DW{x}{1}}{right=of wx0}
-  \event{wf0}{\DW{f}{0}}{right=of wx1}
-  \event{wf1}{\DW{f}{1}}{right=of wf0}
+  \event{wf0}{\DW{f}{0}}{right=of wx0}
+  \event{wx1}{\DW{x}{1}}{right=2.5em of wf0}
+  \event{wf1}{\DW{f}{1}}{right=of wx1}
   \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx0}{\DR{x}{0}}{right=of rf1}
-  \po{wx0}{wx1}
-  \po{wf0}{wf1}
-  %\po[bend left]{wx1}{wf1}
+  \wk[out=20,in=160]{wf0}{wf1}
   \po{rf1}{rx0}
   \rf{wf1}{rf1}
   \rf[out=20,in=160]{wx0}{rx0}
+  \wk[out=20,in=160]{wx0}{wx1}
 \end{tikzpicture}\]
 since no order is required between $(\DW x1)$ and $(\DW f1)$.  
 Symmetrically, if we replace the acquire of the original program
