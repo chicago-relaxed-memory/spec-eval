@@ -530,24 +530,30 @@ there is $\aPS\in\aPSS$ such that:
 \item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then:
   \begin{itemize}
   \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
-  \item $\bForm'$ implies \(\left\{\begin{array}{l@{~}l}
-    \bForm[\aVal/\aLoc]              & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} \\
-    \bForm[\aVal/\aLoc] \land \bForm & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$} \\
-    \bForm                           & \mbox{otherwise}
+  \item $\bForm'$ implies \(\left\{\begin{array}{l@{~}ll}
+    \bForm[\aVal/\aLoc]                     & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} & \textsc{[dependent read]} \\
+    \bForm[\aVal/\aLoc] \text{ and } \bForm & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$}                  & \textsc{[independent read]} \\
+    \bForm                                  & \mbox{otherwise}                                              & \textsc{[non-read]} \\
   \end{array}\right.\)
   \item if $\aAct$ and $\bAct$ both write to $\bLoc$,
     then $\cEv \gtN' \aEv$.
   \end{itemize}
 \end{itemize}
 \end{definition}
-Prefixing is used to define the semantics of reads and writes, and adds a new event $\cEv$
-with action $\aAct$ and a precondition which implies $\phi$. It performs a substitution
-on the preconditions of any subsequent events. The tricky part of the definition
-is the last two clauses, which places requirements on $\cEv < \aEv$ and $\cEv \gtN \aEv$. In normal prefixing,
-these would always be required, but we only require it when either the precondition of $\aEv$
-depends on a variable read by $\aAct$, or if $\cEv$ and $\aEv$ write to the same
-variable. For example, if 
-$\aPSS$ contains:
+Prefixing is used to define the semantics of reads and writes, and
+adds a new event $\cEv$ with action $\aAct$. The tricky part of the
+definition is the named cases, which places requirements on read
+dependencies.  If $\aAct$ reads $\aVal$ from $\aLoc$, we have to
+decide whether $\aEv$ depends on $\cEv$ for some $\aEv$ with old
+precondition $\bForm$ and new precondition $\bForm'$. The first case
+\textsc{[dependent read]} is that the dependency exists, in which case
+$\bForm'$ just has to imply $\bForm[\aVal/\aLoc]$. The more interesting 
+case is \textsc{[independent read]}, in which case $\bForm'$ has to imply
+$\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
+$\aEv$ can be performed with or without the $\cEv$ having happened.
+In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
+$\bForm'$ to be $\bForm$, and the independent read case will apply.
+For example, if $\aPSS$ contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{b}{\bForm \mid \bAct}{}
   \event{c}{\cForm \mid \cAct}{right=of b}
@@ -556,7 +562,7 @@ $\aPSS$ contains:
 where $\aAct$ reads $\aVal$ from $\aLoc$ and writes $\bVal$ to $\bLoc$,
 $\bAct$ writes to $\bLoc$,
 and $\bForm$ is independent of $\aLoc$,
-then $(\aForm\mid\aAct)\prefix\aPSS$ contains:
+then $\aAct\prefix\aPSS$ contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{a}{\aForm \mid \aAct}{}
   \event{b}{\bForm \mid \bAct}{right=of a}
