@@ -21,10 +21,15 @@ static const uint64_t SECRET[32] = {
   0xe76b23a5fcd41890, 0x098cd65ab1723ef4, 0x10567def24a89cb3, 0xacacacacacacacac,
 };
 
-static volatile bool alwaysFalse = false;
-static volatile bool observer_exit = false;
+static volatile bool f = false;
+static bool canRead() {
+  return f;
+}
+
 static unsigned x;
 static unsigned r;
+
+static volatile bool observer_exit = false;
 
 // attack function for gcc (i.e. not clang/llvm)
 #if !defined(__clang__) && !defined(__llvm__)
@@ -51,7 +56,7 @@ static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t iters) { \
     if(*r_vol > 0) break; /* quit early if observer has already gotten something */ \
   } while(--iters > 0); \
  \
-  if(alwaysFalse) { \
+  if(canRead()) { \
     if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x = 2; \
   } else { \
     x = 2; \
@@ -83,7 +88,7 @@ static void __attribute__((noinline)) attackfunc_##bitnum(uint64_t junk) { \
   /* Otherwise, clang won't eliminate the first store to x, regardless.         */ \
   EIGHT(EIGHT(__rdtsc();)) \
  \
-  if(alwaysFalse) { \
+  if(canRead()) { \
     if(SECRET[bitnum/64] & (1ULL<<(bitnum & 63))) x = 2; \
   } else { \
     x = 2; \
@@ -245,6 +250,8 @@ static void printUsage(char* progname) {
                   , progname, progname);
 }
 
+// how long to run trials for, in milliseconds
+#define DURATION_MS 15000
 int main(int argc, char* argv[]) {
   bool tuning;
   uint64_t iters;
@@ -288,22 +295,42 @@ int main(int argc, char* argv[]) {
   pthread_create(&thread, NULL, &observer, NULL);
 
   struct manyRuns_res res;
+  struct manyRuns_analysis analysis;
 
   if(tuning) {
 
-#if !defined(__clang__) && !defined(__llvm__)
+    const unsigned error_runs_vals[] = {1, 2, 3, 4, 5, 7, 10, 15, 20};
+    const unsigned length_error_runs_vals = 9;
+
+#if defined(__clang__) || defined(__llvm__)
+    // clang tuning: no 'iters' parameter
+
+    printf("(Since this executable was compiled with clang/llvm, the 'iters' parameter is meaningless\n"
+           "  so no need to test multiple values for it)\n");
+
+    // column headings
+    printf("\n error_runs  leaked bits/sec  %% of bits correct  %% of trials correct\n");
+
+    // C++: for(const unsigned error_runs : error_runs_vals)
+    for(const unsigned* error_runs = &error_runs_vals[0];
+        error_runs < &error_runs_vals[length_error_runs_vals];
+        error_runs++) {
+      printf(" %9u  ", *error_runs);
+      fflush(stdout);
+
+      manyRuns(1, *error_runs, DURATION_MS, &res);
+      manyRuns_analyze(&res, &analysis);
+
+      printf("   %10.1f         %8.6f%%         %6.2f%%\n", analysis.leakedBitsPerSec, 100*analysis.bitAccuracy, 100*analysis.completelyCorrectRate);
+    }
+
+#else  // GCC
+
     // gcc respects the 'iters' parameter
     const uint64_t iters_vals[] = {10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000};
     const unsigned length_iters_vals = 14;
-#else
-    // clang does not respect the 'iters' parameter
-    const uint64_t iters_vals[] = {1};
-    const unsigned length_iters_vals = 1;
-#endif
-    const unsigned error_runs_vals[] = {1, 2, 3, 4, 5, 7, 10, 20, 50};
-    const unsigned length_error_runs_vals = 9;
     printf("\n rows are iters, columns are # of redundant runs\n"
-           " each cell is leaked bits per second : %% of runs completely correct\n\n");
+           " each cell is leaked bits per second : %% of bits leaked correctly\n\n");
 
     // column headings
     printf("       ");
@@ -314,7 +341,6 @@ int main(int argc, char* argv[]) {
       printf("      %-3u       ", *error_runs);
     printf("\n\n");
 
-    struct manyRuns_analysis analysis;
     // C++: for(const uint64_t iters : iters_vals)
     for(const uint64_t* iters = &iters_vals[0];
         iters < &iters_vals[length_iters_vals];
@@ -324,22 +350,19 @@ int main(int argc, char* argv[]) {
       for(const unsigned* error_runs = &error_runs_vals[0];
           error_runs < &error_runs_vals[length_error_runs_vals];
           error_runs++) {
-        manyRuns(*iters, *error_runs, 10000, &res);
+        manyRuns(*iters, *error_runs, DURATION_MS, &res);
         manyRuns_analyze(&res, &analysis);
-        printf("%8.1f : %-5.1f", analysis.leakedBitsPerSec, 100*analysis.completelyCorrectRate);
+        printf("%8.1f : %-7.3f", analysis.leakedBitsPerSec, 100*analysis.bitAccuracy);
         fflush(stdout);
       }
       printf("\n");
     }
-#if defined(__clang__) || defined(__llvm__)
-    printf("(Since this executable was compiled with clang/llvm, the 'iters' parameter is meaningless\n"
-           "  so no need to test multiple values for it)\n");
-#endif
+
+#endif // GCC
 
   } else {  // not tuning
 
-    manyRuns(iters, error_runs, 2000, &res);
-    struct manyRuns_analysis analysis;
+    manyRuns(iters, error_runs, DURATION_MS, &res);
     manyRuns_analyze(&res, &analysis);
 
     printf("Number of complete 2048-bit trials which were off by x bits:\n");

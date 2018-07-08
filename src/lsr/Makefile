@@ -13,12 +13,15 @@ ASMS=$(addsuffix .s, $(EXECS))
 all : $(EXECS) $(ASMS)
 asm : $(ASMS)
 
-lsrattack : $(SRC) for_0_to_2047.h
-	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+lsrattack.o : $(SRC) for_0_to_2047.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+lsrattack : lsrattack.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 lsrattack.s : $(SRC) for_0_to_2047.h
 	$(CC) $(CFLAGS) -S $< -o $@
 
 .PHONY : clean
 clean :
-	-rm -rf $(EXECS) $(ASMS)
+	-rm -rf $(EXECS) $(ASMS) *.o

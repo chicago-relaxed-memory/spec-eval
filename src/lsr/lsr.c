@@ -20,11 +20,13 @@ static const uint64_t SECRET[32] = {
   0xe76b23a5fcd41890, 0x098cd65ab1723ef4, 0x10567def24a89cb3, 0x7107107107107107,
 };
 
+static volatile bool f = false;
+static bool canRead() {
+  return f;
+}
+
 static int x = 0;
 static int y = 0;
-
-// 'volatile' ensures compiler keeps the check
-static volatile bool alwaysFalse = false;
 
 static volatile bool forwarder_exit = false;
 
@@ -33,43 +35,43 @@ static volatile bool forwarder_exit = false;
 bool __attribute__((noinline)) attackfunc_##bitnum() { \
   x = 1; \
   /* Apparently gcc will move a write past 31 reads but no more! */ \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
-  if (alwaysFalse) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
+  if (canRead()) { x = SECRET[bitnum/64] & (1ULL<<(bitnum & 63)) ? 1 : 0; } \
   /* In the case that the appropriate bit of SECRET is 1, gcc will remove all  */ \
-  /* of the if statements, move the write of x below the alwaysFalse reads,    */ \
+  /* of the if statements, move the write of x below the canRead() calls,      */ \
   /* and move the read of y above at least the write of x so the read of y is  */ \
   /* guaranteed to happen before the write of x.                               */ \
   /* This means with the SECRET bit being 1, we're guaranteed to return true.  */ \
   /* Otherwise the read of y won't be moved so we have a possibility of seeing */ \
-  /* y = 1, and hence returning false.                                          */ \
+  /* y = 1, and hence returning false.                                         */ \
   if (y) { return false; } else { return true; } \
 }
 
