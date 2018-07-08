@@ -30,24 +30,8 @@ design choices could be adopted. For example we have chosen to pun between
 commits which are aborted due to transaction failure, and ones which are aborted
 for other reasons such as failed speculation.
 
-% \todo{Integrate this example on information flow?}
-
-% Let {\tt P(hi)} be a function with domain $\{0, . . . ,n \}$  and codomain $\{1, . . . ,n \}$. Our aim is to write a
-% program that tests whether there is information flow from input {\tt  hi} to the return value {\tt lo}. Consider:
-% \begin{alltt}
-%  s:=y; if (s!=0) { x=P(s); z:=1; } else { x=P(0); }
-% \end{alltt}
-% When there is a dependency of the output on the input, there are at least two different possible
-% assignments to {\tt z}. In this case, the only possible execution, as validated by our model, of the above
-% program is the SC execution that reads {\tt m} as $0$ and leaves {\tt noflow} untouched.
-% When there is no dependency from input to output the value of {\tt z} is the same, say {\tt k} in all cases,
-% non-zero by assumption. In this case, the compiler can hoist the assignment of  to  {\tt z} outside the
-% conditional and swap with the independent asignment to {\tt hi}, 
-% thus rewriting T2 to:
-% \begin{alltt}
-% T2: z=k; s=m; if (s!=0) { noflow=true; }
-% \end{alltt}
-% In this case, the program has an execution, validated by our model, that sets {\tt noflow} to {\tt true}.
+\citet{Plotkin:1997:TSP:266557.266600} studied full-abstraction for pomset
+models.  It would interesting to extend their results to 3-valued pomsets.
 
 One interesting feature of this model is that (in the language
 of~\cite{Pichon-Pharabod:2016:CSR:2837614.2837616}) it is a
@@ -64,6 +48,3 @@ models multiple runs by giving the semantics of $\IF$ in terms of a
 concurrent semantics of both branches.
 In the parlance of information flow~\cite{Barthe:2004:SIF:1009380.1009669},
 the humble conditional suffices to construct a composition operator to detect information flow  in the presence of speculation.
-
-\citet{Plotkin:1997:TSP:266557.266600} studied full-abstraction for pomset
-models.  It would interesting to extend their results to 3-valued pomsets.
