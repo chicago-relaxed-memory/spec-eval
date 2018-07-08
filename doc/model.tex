@@ -401,14 +401,6 @@ further concurrency cannot turn a non-blocker into a blocker.
     then either $\bEv \ltN \cEv$ or $\cEv \ltN \aEv$.
   \end{itemize}
 \end{definition}
-\begin{definition}
-  A 3-valued pomset is $\aLoc$-closed if
-  for every $\aEv\in\Event$:
-  \begin{itemize}
-  \item $\aEv$ is independent of $\aLoc$, and
-  \item if $\aEv$ reads from $\aLoc$, then there is a $\bEv$ such that $\aEv$ can read $\aLoc$ fom $\bEv$.
-  \end{itemize}
-\end{definition}
 In our previous example, in order for $(\DR{\aLoc}{1})$ to read from
 $(\DW{\aLoc}{1})$, we either need $(\DW{\aLoc}{1}) \ltN (\DW{\aLoc}{2})$
 or $(\DW{\aLoc}{2}) \ltN (\DW{\aLoc}{1})$, for example:
@@ -467,6 +459,64 @@ then putting this in parallel as before results in:
 but this is \emph{not} a valid 3-valued pomset,
 since $(\DW{\aLoc}{2}) < (\DR{\aLoc}{1})$ but also $(\DW{\aLoc}{2}) \ltN (\DR{\aLoc}{1})$,
 which is a contradiction.
+
+The definitions as they stand allow cycles in weak edges. This is necessary for examples such
+as $(\aLoc\GETS\bLoc-1\SEMI \aLoc\GETS1 \PAR \bLoc\GETS\aLoc-1\SEMI\bLoc\GETS1)$
+which has execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{\bLoc}{1}}{}
+  \event{wx0}{\DW{\aLoc}{0}}{right=of ry1}
+  \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
+  \event{rx1}{\DR{\aLoc}{1}}{right=2.5em of wx1}
+  \event{wy0}{\DW{\bLoc}{0}}{right=of rx1}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of wy0}
+  \wk{wx0}{wx1}
+  \wk{wy0}{wy1}
+  \po{ry1}{wx0}
+  \po{rx1}{wy0}
+  \rf{wx1}{rx1}
+  \rf[in=20,out=160]{wy1}{ry1}
+\end{tikzpicture}\]
+However, in order to model fencing or transactions, we need to ban
+executions such as:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{\aLoc}{0}}{}
+  \event{wx1}{\DW{\aLoc}{1}}{below=7ex of wx0}
+  \event{wy1}{\DWRel{\bLoc}{1}}{below right=of wx0}
+  \event{ry1}{\DRAcq{\bLoc}{1}}{right=2.5em of wy1}
+  \event{rx0}{\DR{\aLoc}{0}}{above right=of ry1}
+  \event{rx1}{\DR{\aLoc}{1}}{below=7ex of rx0}
+  \wk[out=-75,in=75]{wx0}{wx1}
+  \wk[out=105,in=-105]{wx1}{wx0}
+  \po{wx0}{wy1}
+  \po{wx1}{wy1}
+  \po{ry1}{rx0}
+  \po{ry1}{rx1}
+  \rf{wy1}{ry1}
+  \rf{wx0}{rx0}
+  \rf{wx1}{rx1}
+\end{tikzpicture}\]
+The problem here is the weak cycle between $(\DW\aLoc0)$ and $(\DW\aLoc1)$,
+which according to Definition~\ref{def:rf}, allows both $(\DR\aLoc0)$ and
+$(\DR\aLoc1)$, even though one of them must be a stale value. This can be addressed by
+requiring $\ltN$ to form a \emph{per-location} partial order. This is a form
+of partial coherence, and can be strengthened to total coherence by requiring
+$\ltN$ to be a per-location total order.
+
+\begin{definition}
+  A 3-valued pomset is \emph{partially} (resp.~\emph{totally}) $\aLoc$-\emph{coherent}
+  if, when restricted to events which write to $\aLoc$,
+  $\ltN$ forms a partial (resp.~total) order.
+\end{definition}
+
+\begin{definition}
+  A 3-valued pomset is $\aLoc$-closed if it is partially $\aLoc$-coherent, and
+  for every $\aEv\in\Event$:
+  \begin{itemize}
+  \item $\aEv$ is independent of $\aLoc$, and
+  \item if $\aEv$ reads from $\aLoc$, then there is a $\bEv$ such that $\aEv$ can read $\aLoc$ fom $\bEv$.
+  \end{itemize}
+\end{definition}
 
 \subsection{Sets of 3-valued pomsets}
 \label{sec:sets-of-pomsets}
