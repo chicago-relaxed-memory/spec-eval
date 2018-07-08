@@ -550,7 +550,7 @@ precondition $\bForm$ and new precondition $\bForm'$. The first case
 $\bForm'$ just has to imply $\bForm[\aVal/\aLoc]$. The more interesting 
 case is \textsc{[independent read]}, in which case $\bForm'$ has to imply
 $\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
-$\aEv$ can be performed with or without the $\cEv$ having happened.
+$\aEv$ can be performed with or without $\cEv$.
 In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
 $\bForm'$ to be $\bForm$, and the independent read case will apply.
 For example, if $\aPSS$ contains:
