@@ -401,6 +401,15 @@ further concurrency cannot turn a non-blocker into a blocker.
     then either $\bEv \ltN \cEv$ or $\cEv \ltN \aEv$.
   \end{itemize}
 \end{definition}
+
+\begin{definition}
+  A 3-valued pomset is $\aLoc$-closed if,
+  for every $\aEv\in\Event$:
+  \begin{itemize}
+  \item $\aEv$ is independent of $\aLoc$, and
+  \item if $\aEv$ reads from $\aLoc$, then there is a $\bEv$ such that $\aEv$ can read $\aLoc$ fom $\bEv$.
+  \end{itemize}
+\end{definition}
 In our previous example, in order for $(\DR{\aLoc}{1})$ to read from
 $(\DW{\aLoc}{1})$, we either need $(\DW{\aLoc}{1}) \ltN (\DW{\aLoc}{2})$
 or $(\DW{\aLoc}{2}) \ltN (\DW{\aLoc}{1})$, for example:
@@ -507,15 +516,6 @@ $\ltN$ to be a per-location total order.
   A 3-valued pomset is \emph{partially} (resp.~\emph{totally}) $\aLoc$-\emph{coherent}
   if, when restricted to events which write to $\aLoc$,
   $\ltN$ forms a partial (resp.~total) order.
-\end{definition}
-
-\begin{definition}
-  A 3-valued pomset is $\aLoc$-closed if it is partially $\aLoc$-coherent, and
-  for every $\aEv\in\Event$:
-  \begin{itemize}
-  \item $\aEv$ is independent of $\aLoc$, and
-  \item if $\aEv$ reads from $\aLoc$, then there is a $\bEv$ such that $\aEv$ can read $\aLoc$ fom $\bEv$.
-  \end{itemize}
 \end{definition}
 
 \subsection{Sets of 3-valued pomsets}
@@ -643,7 +643,7 @@ Let $(\aForm \mid \aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ when
 
 \begin{definition}
 Let $(\nu\aLoc\st\aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ whenever
-$\aPS$ is $\aLoc$-closed.
+$\aPS$ is $\aLoc$-closed and partially $\aLoc$-coherent.
 \end{definition}
 
 We can use the operations defined above to give the
