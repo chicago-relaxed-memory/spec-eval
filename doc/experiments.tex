@@ -187,8 +187,7 @@ The function used for reading the \verb|k|th bit is as follows (for
     \brELSE \RETURN 1\FI
 \end{array}\end{array}\]
 Following the same analysis as above, this function will always return $1$
-if the appropriate bit of {\SEC} is $1$, but may return $0$ if
-the appropriate bit of {\SEC} is $0$.
+if {\SEC} is $1$, but may return $0$ if {\SEC} is $0$.
 The extension of the attack to the general case with truly arbitrary \verb|N|
 is straightforward; {\SEC} becomes an array of 64-bit values, and we use
 \verb|k / 64| and \verb|1 << (k & 63)| as the array index and bitmask
@@ -204,21 +203,20 @@ thread, $y$ will be immediately assigned $1$ by the forwarding thread
 and the main thread will be able to read $y\EQ 1$.
 
 Second, we wish to lengthen the timing window between $x\GETS 1$ and the
-read of $y$ in the main thread (in the case where the appropriate bit of
+read of $y$ in the main thread (in the case where
 {\SEC} is $0$ and the read of $y$ remains below $x\GETS 1$).
 However, we wish to do this in a way that does not block the reordering of the
-read of $y$ upwards in the case where the appropriate bit of {\SEC}
-is $1$.
+read of $y$ upwards in the case where {\SEC} is $1$.
 We do this by inserting many copies of the line
 \[
   \IF (\texttt{canReadSecret}) \THEN x\GETS\SEC\FI
 \]
 instead of just one.
-In the case where the appropriate bit of {\SEC} is $0$, this
+In the case where {\SEC} is $0$, this
 results in many reads of \verb|canReadSecret| and many conditional jumps,
 which in practice creates a timing window for the forwarding thread to perform
 $y\GETS x$.
-However, in the case where the appropriate bit of {\SEC} is $1$,
+However, in the case where {\SEC} is $1$,
 all of these inserted lines can be removed just as a single copy could be.
 In practice, we found that inserting too many copies of the line prevents
 {\GCC} from reordering the read of $y$ above the write to $x$ as
@@ -233,8 +231,7 @@ corresponding bit of {\SEC} \emph{must} be $0$, as it implies the
 read of $y$ was not reordered upwards in that particular function.
 On the other hand, the more runs that produce a value of $z\EQ1$ for a
 particular bit position, the more certain we can be that the read of $y$
-was reordered above the $x\GETS 1$ assignment, and the appropriate bit of
-{\SEC} is $1$.
+was reordered above the $x\GETS 1$ assignment, and {\SEC} is $1$.
 
 \begin{figure}
   \small
@@ -320,10 +317,10 @@ The function used for reading the \verb|k|th bit is as follows (for
 }
 Then, we test each function in turn, each time noting the value of $y$
 observed by the `listening' thread.
-If the appropriate bit of {\SEC} is 1, the $x\GETS 2$ assignment is
+If {\SEC} is 1, the $x\GETS 2$ assignment is
 guaranteed to happen, so the compiler can eliminate the $x \GETS 1$
-assignment as a dead store and we will observe $y\EQ 2$; however, if the
-appropriate bit of {\SEC} is 0, the $x\GETS 1$ assignment cannot be
+assignment as a dead store and we will observe $y\EQ 2$; however, if
+{\SEC} is 0, the $x\GETS 1$ assignment cannot be
 eliminated, and we will observe $y\EQ 1$ with some probability.
 The extension of the attack to the general case with truly arbitrary \verb|N|
 is straightforward and proceeds exactly as it did for the attack on
@@ -362,8 +359,7 @@ This increases the likelihood that the listening thread will be able to observe
 $x\EQ 1$ (unless the $x\GETS 1$ write was eliminated).
 Inserting this computation should be done without interfering with the dead store
 elimination process itself, so that the compiler will continue to eliminate
-the $x\GETS 1$ write if and only if the appropriate bit of {\SEC}
-was 1.
+the $x\GETS 1$ write if and only if {\SEC} was 1.
 For {\GCC}, we have a fair amount of freedom with the time-consuming
 computation --- for instance, we can use an arbitrarily long loop.
 In fact, we can perform a further optimization by monitoring the value of the
@@ -391,7 +387,7 @@ was not eliminated in that particular function.
 On the other hand, the more runs that observe $y\EQ 2$ in a particular bit
 position despite our other reliability-increasing measures taken above, the
 more certain we can be that the $x\GETS 1$ write was eliminated in that
-function, and the appropriate bit of {\SEC} is $1$.
+function, and {\SEC} is $1$.
 }
 
 \begin{figure}
