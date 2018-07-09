@@ -9,24 +9,21 @@ transactional memory.
 
 We assume there are sets $\Rel$ and $\Acq \subseteq\Act$.  We say that
 $\aAct$ is a \emph{release action} if $\aAct\in\Rel$ and $\aAct$ is an
-\emph{acquire action} if $\aAct\in\Rel$.
+\emph{acquire action} if $\aAct\in\Acq$.
 In a pomset, a release event is one labelled with a release action,
 and an acquire event is one labelled by an acquire action.
-The semantics of fences are given by adding an extra constraint
-to the definition of $\aAct\prefix\aPSS$
-(recalling that $\cEv$ is the $\aAct$-labelled event being introduced):
+To give the semantics of fences, we add extra constraints
+to definition~\ref{def:prefix} of prefixing %$\aAct\prefix\aPSS$
+(recalling that $\cEv$ is the %$\aAct$-labelled
+event being introduced):
 \begin{itemize}
-\item $\cEv \le \aEv$ whenever $\cEv$ is an acquire event or $\aEv$ is a release event.
+\item $\cEv \le \aEv$ whenever $\cEv$ is an acquire event or $\aEv$ is a release event
+\item if $\cEv$ is an acquire event then $\aEv$ is independent of $\aLoc$,
+  for every $\aLoc$.
 \end{itemize}
-This constraint ensures that events are ordered before a
-release and after an acquire.
-
-% In addition, we must change the semantics of write from
-% \S\ref{sec:sets-of-pomsets} to ensure that an action is generated for every
-% write that might be published by a subsequent release action.
-% Formally, $\sem{\aLoc\GETS\aExp\SEMI \aCmd}$ only includes pomsets
-% from $\sem{\aCmd}[\aExp/\aLoc]$ that contain a write to
-% $\aLoc$ that is not preceded by a release.
+The first constraint ensures that events are ordered before a release and
+after an acquire.  The second constraint ensures that thread-local reads do
+not cross acquire fences.
 
 In examples, we will use
 releasing writes and acquiring reads:
@@ -39,9 +36,10 @@ same as for regular write and read and, but with $\DWRel\aLoc\aVal$ replacing
 $\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$.  
 \begin{eqnarray*}
   \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]) \\
-  \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \bigcup_\aVal\; (\DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
+  \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \bigcup_\aVal\; (\DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
 \end{eqnarray*}
-For example, consider the program:
+
+To see the need for the first constraint on prefixing, consider the program:
 \[
   \VAR x\GETS0\SEMI \VAR f\GETS0\SEMI
   (x\GETS 1\SEMI \REL f\GETS1 \PAR \ACQ r\GETS f; s\GETS x)
@@ -161,13 +159,73 @@ with a plain read, then the outcome $(\DR f1)$ and $(\DR x0)$ is possible.
 % $(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily imply $\bEv < \aEv$, instead
 % requiring that $(\mathord< \cup \mathord\RF)$ be acyclic.
 
+To see the need for the second constraint on prefixing, consider the program:
+\begin{displaymath}
+  (
+  x\GETS1\SEMI
+  \REL f\GETS 1\SEMI
+  \ACQ r\GETS f\SEMI
+  y\GETS x
+  )
+  \PAR
+  (
+  \ACQ s\GETS f\SEMI
+  x\GETS2\SEMI
+  \REL f\GETS 2\SEMI
+  )
+\end{displaymath}
+whose semantics includes execution:
+\begin{displaymath}
+\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{x}{1}}{}
+  \event{wf1}{\DWRel{f}{1}}{right=of wx1}
+  \event{rf1}{\DRAcq{f}{2}}{below=of wf1}
+  \event{wx2}{\DW{x}{2}}{right=of rf1}
+  \event{wf2}{\DWRel{f}{1}}{right=of wx2}
+  \event{rf2}{\DRAcq{f}{2}}{above=of wf2}
+  \event{wy1}{\DW{y}{1}}{right=of rf2}
+  \po{wx1}{wf1}
+  \rf{wf1}{rf1}
+  \po{rf1}{wx2}
+  \po{wx2}{wf2}
+  \rf{wf2}{rf2}
+  \po{rf2}{wy1}
+\end{tikzpicture}
+\end{displaymath}
+This execution exists because
+\begin{math}
+  \sem{y\GETS x}
+\end{math}
+includes
+\begin{math}
+  (x=1\mid \DW{y}{1})
+\end{math}
+and the precondition $x=1$ is fulfilled by the preceding write $x\GETS1$.  In
+implementation term, this execution is reading $1$ from $x$ in a ``stale
+cache.''  The alternative execution that attempts to read $1$ from the $x$ in
+``main memory,'' has an explicit $(\DR{x}{1})$ between $(\DRAcq{f}{2})$ and
+$(\DW{y}{1})$, and thus will fail to be $x$-closed.
+
+To prevent thread-local writes from crossing release/acquire pairs, we
+require that pomsets in the semantics of acquire have no free locations.
+This corresponds to the idea that acquires flush the read cache, and
+therefore reads must reload values from main memory after an acquire.
+
+% In addition, we must change the semantics of write from
+% \S\ref{sec:sets-of-pomsets} to ensure that an action is generated for every
+% write that might be published by a subsequent release action.
+% Formally, $\sem{\aLoc\GETS\aExp\SEMI \aCmd}$ only includes pomsets
+% from $\sem{\aCmd}[\aExp/\aLoc]$ that contain a write to
+% $\aLoc$ that is not preceded by a release.
+
+
 \subsection{Transactions}
 \label{sec:transactions}
 
-We present a model of serializable transactions that is sufficient to capture
+We present a model of transactional memory~\cite{Larus:2007:TM:1207012} that is sufficient to capture
 \textsc{Prime+Abort} attacks~\cite{DBLP:conf/uss/DisselkoenKPT17}.  We make
 several simplifying assumptions: transactions are serializable, strongly
-isolated~\cite{Larus:2007:TM:1207012}, and only abort due to cache conflicts.
+isolated, and only abort due to cache conflicts.
 To model the latter, we assume that the set of locations $\Loc$ is
 partitioned into \emph{cache sets}.
 
@@ -186,14 +244,16 @@ elide in examples) abort handlers (which we elide when they are empty):
 \end{eqnarray*}
 The semantics of a transaction has two cases: a successful case
 (the transaction body) and an aborted case (the transaction body and the recovery code, and marks the
-body as being unsatisfiable). For example two executions of:
-$(\BEGIN\SEMI \aLoc\GETS1\SEMI \aLoc\GETS2\SEMI \COMMIT\SEMI \RECOVERY \bLoc\GETS1\ENDREC)$
+body as being unsatisfiable). For example, two executions of
+\begin{math}
+  (\BEGIN\SEMI \aLoc\GETS1\SEMI \aLoc\GETS2\SEMI \COMMIT\SEMI \RECOVERY \bLoc\GETS1\ENDREC)
+\end{math}
 are:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{b0}{\DB{0}}{}
+  \event{b0}{\DB{}}{}
   \event{wx0}{\DW{x}{0}}{right=of b0}
   \event{wx1}{\DW{x}{1}}{right=of wx0}
-  \event{c0}{\DC{0}}{right=of wx1}
+  \event{c0}{\DC{}}{right=of wx1}
   \po{b0}{wx0}
   \po[out=30,in=150]{b0}{wx1}
   \po[out=30,in=150]{wx0}{c0}
@@ -202,10 +262,10 @@ are:
 \end{tikzpicture}
 \qquad\qquad
 \begin{tikzpicture}[node distance=1em]
-  \event{b0}{\DB{0}}{}
+  \event{b0}{\DB{}}{}
   \nonevent{wx0}{\DW{x}{0}}{right=of b0}
   \nonevent{wx1}{\DW{x}{1}}{right=of wx0}
-  \nonevent{c0}{\DC{0}}{right=of wx1}
+  \nonevent{c0}{\DC{}}{right=of wx1}
   \event{wy1}{\DW{y}{1}}{right=of c0}
   \po{b0}{wx0}
   \po[out=30,in=150]{b0}{wx1}
@@ -219,8 +279,9 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
   We say that event $\comEv$ \emph{matches} $\begEv$ if
   $\labelling(\comEv)=(\DC{\aVal})$ and
   $\labelling(\begEv)=(\DB{\aVal})$. %, for some $\aVal$.
-  We say that a begin event \emph{aborts} if every matching commit is
-  unsatisfiable.  We say that begin event $\begEv$ \emph{begins} $\aEv$ if
+  % We say that a begin event \emph{aborts} if every matching commit is
+  % unsatisfiable.
+  We say that begin event $\begEv$ \emph{begins} $\aEv$ if
   $\begEv\le\aEv$ and there is no intervening matching commit; in this case
   $\aEv$ \emph{belongs to} $\begEv$.
   % event $\comEv$ such that $\begEv\le\comEv\le\aEv$
@@ -234,12 +295,12 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
   \item\label{tx:1} no two begins have the same id,
   \item\label{tx:2} every commit follows the matching begin,
   \item\label{tx:3} $\le$ totally orders tautological begins and commits,
-  %\item\label{tx:4} if $\begEv$ begins $\aEv$, but not $\bEv$, and $\bEv\le\aEv$ then $\bEv\le\begEv$,
-  \item\label{tx:4} if $\begEv$ begins $\aEv$, but not $\bEv$, then
-    $\bEv\le\aEv$ implies $\bEv\le\begEv$ and $\aEv\ltN\bEv$ implies $\begEv\ltN\bEv$
-  %\item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, and $\aEv\le\bEv$ then $\comEv\le\bEv$,
-  \item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, then
-    $\aEv\le\bEv$ implies $\comEv\le\bEv$ and $\bEv\ltN\aEv$ implies $\bEv\ltN\comEv$,
+  \item\label{tx:4} if $\begEv$ begins $\aEv$, but not $\bEv$, and $\bEv\le\aEv$ then $\bEv\le\begEv$,
+  \item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, and $\aEv\le\bEv$ then $\comEv\le\bEv$,
+  % \item\label{tx:4} if $\begEv$ begins $\aEv$, but not $\bEv$, then
+  %   $\bEv\le\aEv$ implies $\bEv\le\begEv$ and $\aEv\ltN\bEv$ implies $\begEv\ltN\bEv$
+  % \item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, then
+  %   $\aEv\le\bEv$ implies $\comEv\le\bEv$ and $\bEv\ltN\aEv$ implies $\bEv\ltN\comEv$,
   \item\label{tx:6} if $\aEv$ and $\bEv$ belong to $\begEv$ and read the same
     location, then both read the same value, and 
   % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,    
@@ -261,10 +322,10 @@ events in aborted transactions are unsatisfiable.
 For example Conditions \ref{tx:5} and \ref{tx:7} rule out
 executions (which violate strong isolation and atomicity):
 \[\begin{tikzpicture}[node distance=1em]
-  \event{b0}{\DB{0}}{}
+  \event{b0}{\DB{}}{}
   \event{wx0}{\DW{x}{0}}{right=of b0}
   \event{wx1}{\DW{x}{1}}{right=of wx0}
-  \event{c0}{\DC{0}}{right=of wx1}
+  \event{c0}{\DC{}}{right=of wx1}
   \event{rx0}{\DR{x}{0}}{right=of c0}
   \po{b0}{wx0}
   \po[out=30,in=150]{b0}{wx1}
@@ -275,10 +336,10 @@ executions (which violate strong isolation and atomicity):
 \end{tikzpicture}
 \qquad\qquad
 \begin{tikzpicture}[node distance=1em]
-  \event{b0}{\DB{0}}{}
+  \event{b0}{\DB{}}{}
   \event{wx0}{\DW{x}{0}}{right=of b0}
   \nonevent{wx1}{\DW{x}{1}}{right=of wx0}
-  \nonevent{c0}{\DC{0}}{right=of wx1}
+  \nonevent{c0}{\DC{}}{right=of wx1}
   \event{wy1}{\DW{y}{1}}{right=of c0}
   \po{b0}{wx0}
   \po[out=30,in=150]{b0}{wx1}
@@ -287,40 +348,41 @@ executions (which violate strong isolation and atomicity):
   \po{wx1}{c0}
   \wk{wx0}{wx1}
 \end{tikzpicture}\]
-In order to model \textsc{Prime+Abort}, we need a mechanism for modelling
+
+In order to model \textsc{Prime+Abort}, we need a mechanism for modeling
 \emph{why} a transaction aborts, as this can be used as a back channel.
 We model a simple form of concurent transaction, which aborts when it
 encounters a memory conflict---this is similar to
 the treatment of $\TOUCHED$ in \S\ref{sec:spectre}.
 
 \begin{definition}
-  A commit event $\comEv$ \emph{aborts due to memory conflict}
-  if there is some $\aEv$ ended by $\comEv$, and some tautologous $\bEv\le\aEv$ that does not
+  A commit event $\comEv$ matching $\begEv$ \emph{aborts due to memory conflict}
+  if there is some $\aEv$ ended by $\comEv$, and some tautologous $\begEv\gtN\bEv\gtN\comEv$ that does not
   belong to $\begEv$ such that $\aEv$ and $\bEv$ touch locations in the
   same cache set.
 \end{definition}
 
-To model \textsc{Prime+Abort}, we require an honest agent whose cache-set
+\textsc{Prime+Abort} requires an honest agent whose cache-set
 access depends upon a secret.  If $a[0]$ and $a[1]$ belong to separate
 cache sets, then such an honest agent is:
 \[
   a[\SEC]\,\GETS\,1
 \]
-\ignore{
-\begin{verbatim}
-  a[SECRET] := 1
-\end{verbatim}
-}
+% \ignore{
+% \begin{verbatim}
+%   a[SECRET] := 1
+% \end{verbatim}
+% }
 The attack relies on discovery of some $y$ which belongs to the cache-set of $a[1]$.
 Then the program
 \[
-\BEGIN\SEMI y\GETS0\SEMI r\GETS\COMMIT\SEMI \RECOVERY\SEMI x\GETS1
+\BEGIN\SEMI y\GETS0\SEMI r\GETS\COMMIT\SEMI \RECOVERY x\GETS1\ENDREC
 \]
-\ignore{
-\begin{verbatim}
-  begin; y:=0; commit; onabort; x:=1;
-\end{verbatim}
-}
+% \ignore{
+% \begin{verbatim}
+%   begin; y:=0; commit; onabort; x:=1;
+% \end{verbatim}
+% }
 can write $1$ to $x$ if the \texttt{SECRET} is $1$, in which case the
 following execution is possible.
 \[\begin{tikzpicture}[node distance=1em,baselinecenter]
@@ -334,7 +396,7 @@ following execution is possible.
   \po[out=30,in=155]{b}{wx1}
   \po[out=25,in=155]{wa1}{e}
 \end{tikzpicture}\]
-If the attacker knows that every aborted action aborts due to memory conflicts,
+If the attacker knows that commits only abort due to memory conflicts,
 then this attack is an information flow, since the memory conflict only happens
 when the \texttt{SECRET} is $1$.
 
