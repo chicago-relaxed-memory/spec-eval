@@ -251,8 +251,8 @@ A preliminary definition (which, as we shall see, needs to be strengthened) is:
 \item there is no $\bEv < \cEv < \aEv$ such that
   $\cEv$ writes to $\aLoc$.
 \end{itemize}
-In diagrams, for readability we often highlight the reads-from edges,
-for example:
+% In diagrams, for readability we often highlight the reads-from edges,
+% for example:
 %% We visualize rf-pomsets by drawing a dashed edge between nodes in $\RF$,
 %% labelled with the memory location,
 %% for example:
@@ -267,79 +267,21 @@ for example:
 %% \end{tikzpicture}\]
 %% In most cases, the memory location is obvious from context,
 %% so we elide it:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{x1}{\DR{\aLoc}{1}}{right=2.5em of wx1}
-  \nonevent{y0}{\DW{\bLoc}{0}}{right=of x1}
-  \event{y1}{\DW{\bLoc}{1}}{right=of y0}
-  \rf{wx1}{x1}
-  \po{x1}{y0}
-  \po[out=30,in=150]{x1}{y1}
-\end{tikzpicture}\]
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{wx1}{\DW{\aLoc}{1}}{}
+%   \event{x1}{\DR{\aLoc}{1}}{right=2.5em of wx1}
+%   \nonevent{y0}{\DW{\bLoc}{0}}{right=of x1}
+%   \event{y1}{\DW{\bLoc}{1}}{right=of y0}
+%   \rf{wx1}{x1}
+%   \po{x1}{y0}
+%   \po[out=30,in=150]{x1}{y1}
+% \end{tikzpicture}\]
 Unfortunately by itself, this is not enough. The problem is the final
 clause saying that there does not exist an $\aLoc$-\emph{blocking}
 event $\cEv$ between $\bEv$ and $\aEv$. Unfortunately, concurrency can
 turn events that were not $\aLoc$-blockers into an $\aLoc$-blocker,
 \emph{even if the new thread does not mention $\aLoc$.}
-To see this, consider a program with execution:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
-  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
-  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
-  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
-  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
-  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
-  \rf{wx1}{rx1a}
-  \po{rx1a}{wy1}
-  \rf{wx2}{rx2a}
-  \po{rx2a}{wy2}
-  \po{rz1}{wx2}
-  \po{rz2}{rx1}
-  \rf[out=20,in=160]{wx1}{rx1}
-\end{tikzpicture}\]
-If this is placed in parallel with:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{ry1}{\DR{\bLoc}{1}}{}
-  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
-  \event{ry2}{\DR{\bLoc}{2}}{right=of wz1}
-  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
-  \po{ry1}{wz1}
-  \po{ry2}{wz2}
-\end{tikzpicture}\]
-then a possible execution is:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
-  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
-  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
-  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
-  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
-  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
-  \rf{wx1}{rx1a}
-  \po{rx1a}{wy1}
-  \rf{wx2}{rx2a}
-  \po{rx2a}{wy2}
-  \po{rz1}{wx2}
-  \po{rz2}{rx1}
-  \event{ry1}{\DR{\bLoc}{1}}{below=of wy1}
-  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
-  \event{ry2}{\DR{\bLoc}{2}}{below=of wy2}
-  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
-  \po{ry1}{wz1}
-  \po{ry2}{wz2}
-  \rf{wy1}{ry1}
-  \rf{wz1}{rz1}
-  \rf{wy2}{ry2}
-  \rf{wz2}{rz2}
-\end{tikzpicture}\]
-and now the $(\DW{\aLoc}{2})$ event is an $\aLoc$-blocker,
-so $(\DR{\aLoc}{1})$ cannot
-read from $(\DW{\aLoc}{1})$.
+We give an example to show this in \S\ref{sec:blockers}
 
 There are a number of ways this can be addressed, for example
 in models such as~\cite{Batty:2011:MCC:1926385.1926394} the reads-from relation is taken
@@ -369,7 +311,10 @@ In diagrams, we visualize $(\aEv \ltN \bEv)$ as a dashed
 arrow from $\bEv$ to $\aEv$ (note the flip of direction).
 We wrefer to edges introduced by $(\bEv < \aEv)$ as
 \emph{strong edges} and by $(\aEv \ltN \bEv)$
-as \emph{weak edges}, for example:
+as \emph{weak edges}.
+We often highlight the reads-from edges as well.
+% for example:
+For example:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
   \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
@@ -410,64 +355,6 @@ further concurrency cannot turn a non-blocker into a blocker.
   \item if $\aEv$ reads from $\aLoc$, then there is a $\bEv$ such that $\aEv$ can read $\aLoc$ fom $\bEv$.
   \end{itemize}
 \end{definition}
-In our previous example, in order for $(\DR{\aLoc}{1})$ to read from
-$(\DW{\aLoc}{1})$, we either need $(\DW{\aLoc}{1}) \ltN (\DW{\aLoc}{2})$
-or $(\DW{\aLoc}{2}) \ltN (\DW{\aLoc}{1})$, for example:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
-  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
-  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
-  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
-  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
-  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
-  \rf{wx1}{rx1a}
-  \po{rx1a}{wy1}
-  \rf{wx2}{rx2a}
-  \po{rx2a}{wy2}
-  \po{rz1}{wx2}
-  \po{rz2}{rx1}
-  \rf[out=20,in=160]{wx1}{rx1}
-  \wk[out=-150,in=-30]{rx1}{wx2}
-  \wk{wy1}{wy2}
-\end{tikzpicture}\]
-then putting this in parallel as before results in:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
-  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
-  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
-  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
-  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
-  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
-  \rf{wx1}{rx1a}
-  \po{rx1a}{wy1}
-  \rf{wx2}{rx2a}
-  \po{rx2a}{wy2}
-  \po{rz1}{wx2}
-  \po{rz2}{rx1}
-  \rf[out=20,in=160]{wx1}{rx1}
-  \wk[out=-150,in=-30]{rx1}{wx2}
-  \wk{wy1}{wy2}
-  \event{ry1}{\DR{\bLoc}{1}}{below=of wy1}
-  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
-  \event{ry2}{\DR{\bLoc}{2}}{below=of wy2}
-  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
-  \po{ry1}{wz1}
-  \po{ry2}{wz2}
-  \rf{wy1}{ry1}
-  \rf{wz1}{rz1}
-  \rf{wy2}{ry2}
-  \rf{wz2}{rz2}
-  \wk[out=30,in=150]{wz1}{wz2}
-\end{tikzpicture}\]
-but this is \emph{not} a valid 3-valued pomset,
-since $(\DW{\aLoc}{2}) < (\DR{\aLoc}{1})$ but also $(\DW{\aLoc}{2}) \ltN (\DR{\aLoc}{1})$,
-which is a contradiction.
 
 The definitions as they stand allow cycles in weak edges. This is necessary for examples such
 as $(\aLoc\GETS\bLoc-1\SEMI \aLoc\GETS1 \PAR \bLoc\GETS\aLoc-1\SEMI\bLoc\GETS1)$
@@ -486,7 +373,7 @@ which has execution:
   \rf{wx1}{rx1}
   \rf[in=20,out=160]{wy1}{ry1}
 \end{tikzpicture}\]
-However, in order to model fencing or transactions, we need to ban
+However, in order to model release/acquire fencing, we need to ban
 executions such as:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}

@@ -214,6 +214,133 @@ a dependency between $(r\GETS x)$ and $(y\GETS r+2-r)$.
 In contrast, this model is based on logical implication,
 which can be interpreted semantically.
 
+\subsection{Blockers}
+\label{sec:blockers}
+Were we to use the preliminary definition of reads-from in \S\ref{sec:pomsets},
+then concurrent threads could
+turn events that were not $\aLoc$-blockers into an $\aLoc$-blocker,
+{even if the new thread does not mention $\aLoc$.}
+
+To see this, consider a program with execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{\aLoc}{1}}{}
+  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
+  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
+  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
+  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
+  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
+  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
+  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
+  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
+  \rf{wx1}{rx1a}
+  \po{rx1a}{wy1}
+  \rf{wx2}{rx2a}
+  \po{rx2a}{wy2}
+  \po{rz1}{wx2}
+  \po{rz2}{rx1}
+  \rf[out=20,in=160]{wx1}{rx1}
+\end{tikzpicture}\]
+If this is placed in parallel with:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{\bLoc}{1}}{}
+  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
+  \event{ry2}{\DR{\bLoc}{2}}{right=of wz1}
+  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
+  \po{ry1}{wz1}
+  \po{ry2}{wz2}
+\end{tikzpicture}\]
+then a possible execution is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{\aLoc}{1}}{}
+  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
+  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
+  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
+  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
+  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
+  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
+  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
+  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
+  \rf{wx1}{rx1a}
+  \po{rx1a}{wy1}
+  \rf{wx2}{rx2a}
+  \po{rx2a}{wy2}
+  \po{rz1}{wx2}
+  \po{rz2}{rx1}
+  \event{ry1}{\DR{\bLoc}{1}}{below=of wy1}
+  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
+  \event{ry2}{\DR{\bLoc}{2}}{below=of wy2}
+  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
+  \po{ry1}{wz1}
+  \po{ry2}{wz2}
+  \rf{wy1}{ry1}
+  \rf{wz1}{rz1}
+  \rf{wy2}{ry2}
+  \rf{wz2}{rz2}
+\end{tikzpicture}\]
+and now the $(\DW{\aLoc}{2})$ event is an $\aLoc$-blocker,
+so $(\DR{\aLoc}{1})$ cannot
+read from $(\DW{\aLoc}{1})$.
+
+With the final definition, in order for $(\DR{\aLoc}{1})$ to read from
+$(\DW{\aLoc}{1})$, we either need $(\DW{\aLoc}{1}) \ltN (\DW{\aLoc}{2})$
+or $(\DW{\aLoc}{2}) \ltN (\DW{\aLoc}{1})$, for example:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{\aLoc}{1}}{}
+  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
+  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
+  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
+  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
+  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
+  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
+  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
+  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
+  \rf{wx1}{rx1a}
+  \po{rx1a}{wy1}
+  \rf{wx2}{rx2a}
+  \po{rx2a}{wy2}
+  \po{rz1}{wx2}
+  \po{rz2}{rx1}
+  \rf[out=20,in=160]{wx1}{rx1}
+  \wk[out=-150,in=-30]{rx1}{wx2}
+  \wk{wy1}{wy2}
+\end{tikzpicture}\]
+then putting this in parallel as before results in:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx1}{\DW{\aLoc}{1}}{}
+  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
+  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
+  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
+  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
+  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
+  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
+  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
+  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
+  \rf{wx1}{rx1a}
+  \po{rx1a}{wy1}
+  \rf{wx2}{rx2a}
+  \po{rx2a}{wy2}
+  \po{rz1}{wx2}
+  \po{rz2}{rx1}
+  \rf[out=20,in=160]{wx1}{rx1}
+  \wk[out=-150,in=-30]{rx1}{wx2}
+  \wk{wy1}{wy2}
+  \event{ry1}{\DR{\bLoc}{1}}{below=of wy1}
+  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
+  \event{ry2}{\DR{\bLoc}{2}}{below=of wy2}
+  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
+  \po{ry1}{wz1}
+  \po{ry2}{wz2}
+  \rf{wy1}{ry1}
+  \rf{wz1}{rz1}
+  \rf{wy2}{ry2}
+  \rf{wz2}{rz2}
+  \wk[out=30,in=150]{wz1}{wz2}
+\end{tikzpicture}\]
+but this is \emph{not} a valid 3-valued pomset,
+since $(\DW{\aLoc}{2}) < (\DR{\aLoc}{1})$ but also $(\DW{\aLoc}{2}) \ltN (\DR{\aLoc}{1})$,
+which is a contradiction.
+
+
 \subsection{Control dependencies}
 \label{sec:control-dep}
 
@@ -635,7 +762,7 @@ produces a cycle:
   \wk[out=-20,in=-150]{ix}{wx1}
   \wk[out=-20,in=-155]{ix}{wx2}
   \wk[out=25,in=155]{iy}{wy1}
-\end{tikzpicture}\]\vskip-\bigskipamount\noindent
+\end{tikzpicture}\]
 In the case where \verb|SECRET| is $1$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ix}{\DW{x}{0}}{}
@@ -651,7 +778,7 @@ In the case where \verb|SECRET| is $1$, there is an execution:
   \rf{wy1}{ry1}
   \wk[out=-20,in=-150]{ix}{wx1}
   \wk[out=25,in=155]{iy}{wy1}
-\end{tikzpicture}\]\vskip-\bigskipamount\noindent
+\end{tikzpicture}\]
 Note that in this case, there is no dependency from
 $(\DR{y}{1})$ to $(\DW{x}{1})$, which is what makes this
 execution possible. Thus, if the attacker sees
@@ -737,11 +864,9 @@ the program:
 In the case that \verb|SECRET| is $0$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
-  \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{wx1}{\DW{x}{1}}{right=2.5em of wy1}
+  \event{wx1}{\DW{x}{1}}{right=2.5em of rx1}
   \event{wx2}{\aForm \mid \DW{x}{2}}{right=of wx1}
-  \rf[out=160,in=20]{wx1}{rx1}
-  \po{rx1}{wy1}
+  \rf{wx1}{rx1}
   \wk{wx1}{wx2}
 \end{tikzpicture}\]
 where $\aForm$ is ($\lnot$\verb|canRead(SECRET)|),
@@ -750,11 +875,9 @@ In the case that \verb|SECRET| is not $0$, the matching execution
 is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx2}{\DR{x}{2}}{}
-  \event{wy2}{\DW{y}{2}}{right=of rx2}
-  \nonevent{wx1}{\DW{x}{1}}{right=2.5em of wy2}
+  \nonevent{wx1}{\DW{x}{1}}{right=2.5em of rx2}
   \event{wx2}{\DW{x}{2}}{right=of wx1}
   \rf[out=160,in=20]{wx2}{rx2}
-  \po{rx2}{wy2}
   \wk{wx1}{wx2}
 \end{tikzpicture}\]
 Now the $(\DW{x}{2})$ event is a guaranteed write, so the $(\DW{x}{1})$
