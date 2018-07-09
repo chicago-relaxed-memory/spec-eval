@@ -49,8 +49,8 @@ may not access timers of any kind; and may not leverage hardware side channels.
 }
 The attacker's goal is to learn the value of the {\SEC}.
 
-As a hypothetical example, suppose there is a library which contains
-a hardcoded {\SEC} such as an API or signing key:
+As a running hypothetical example, suppose there is a library which contains
+a hardcoded {\SEC} such as an API key:
 \begin{verbatim}
   static const uint SECRET = 0x1234;
   static volatile bool canReadSecret = false;
@@ -102,7 +102,7 @@ on the value of a {\SEC}:
     y\GETS x
   \PAR\begin{array}[t]{@{}l}
     x\GETS 1\SEMI\\
-    \IF(\texttt{canReadSecret})\THEN x\GETS\SEC\SEMI\FI\\
+    \IF(\texttt{canReadSecret})\THEN x\GETS\SEC\FI\\
     \IF(y > 0)\THEN z\GETS 0 \ELSE z\GETS 1\FI
 \end{array}\end{array}\]
 \ignore{
