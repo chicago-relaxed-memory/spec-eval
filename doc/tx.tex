@@ -394,7 +394,8 @@ following execution is possible.
   \po{b}{e}
   \po{e}{c}
   \po[out=30,in=155]{b}{wx1}
-  \po[out=25,in=155]{wa1}{e}
+  \wk{b}{wa1}
+  \wk[out=25,in=155]{wa1}{c}
 \end{tikzpicture}\]
 If the attacker knows that commits only abort due to memory conflicts,
 then this attack is an information flow, since the memory conflict only happens
