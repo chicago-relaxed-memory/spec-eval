@@ -232,7 +232,7 @@ partitioned into \emph{cache sets}.
 The action $(\DB{\aVal})\in\Acq$ represents the begin of a transaction with
 id $\aVal$ and $(\DC{\aVal})\in \Rel$ represents the corresponding commit.
 We model a language in which transactions have explicit identifiers (which we
-elide in examples) abort handlers (which we elide when they are empty):
+elide in examples) and abort handlers (which we elide when they are empty):
 \begin{eqnarray*}
   \sem{\BEGINVAL\SEMI \aCmd\SEMI \RECOVERYVAL \bCmd \ENDREC}
   & = &

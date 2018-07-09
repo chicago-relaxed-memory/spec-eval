@@ -27,9 +27,9 @@ evolve into genuine threats against targets such as JIT compilers.
 }
 We demonstrate the efficacy of our proof-of-concept attacks against
 the {\CLANG} and {\GCC} C compilers.
-All of our experiments are performed on a \todo{describe machine} with
-{\CLANG} version \todo{clang version} and {\GCC} version \todo{gcc
-version}.
+All of our experiments are performed on a macOS 10.13.5 machine with an Intel
+i7 processor and 16 GB RAM, running a Debian 9 VM assigned two cores
+and 4 GB RAM; we test against {\GCC} 6.3.0 and {\CLANG} 3.8.
 
 \subsection{Attacker model}
 \label{subsec:attacker-model}
@@ -50,17 +50,14 @@ may not access timers of any kind; and may not leverage hardware side channels.
 The attacker's goal is to learn the value of the {\SEC}.
 
 As a hypothetical example, suppose there is a library which contains
-a hardcoded {\SEC} such as an API or signing key, which cannot be accessed
-directly, only through a function guarded by a security check:
-\todo{change real code to match this}
+a hardcoded {\SEC} such as an API or signing key:
 \begin{verbatim}
-  private static const uint SECRET = 0x1234;
-  private static volatile uint securityLevel = 0;
-  public uint get_secret() {
-    if (securityLevel > 0) { return SECRET; }
-    else { return 0; }
-  }
+  static const uint SECRET = 0x1234;
+  static volatile bool canReadSecret = false;
 \end{verbatim}
+The attacker is not allowed to write to \verb|canReadSecret| or read from {\SEC}
+except after performing an \verb|if(canReadSecret)| check.
+
 This is not necessarily a realistic attacker model,
 since in most cases secrets are only known at run time rather than compile time,
 which means that the attacks presented in this section
@@ -85,12 +82,11 @@ We plan to explore JavaScript attacks of this type as future work.
 \label{subsec:exp-rel-mem}
 
 We begin by examining the attack in~\S\ref{sec:info-flow-attack} in
-more detail, subject to the attacker model given above.
-In particular, we show that by exploiting compiler optimizations which perform
+more detail.
+We show that by exploiting compiler optimizations which perform
 load-store reordering, an attacker can learn the value of a compile-time
-{\SEC} despite only being allowed to use it inside dead code, that is,
-code that can never be executed at runtime.
-This attack was tested and works against {\GCC} version \todo{gcc version}.
+{\SEC} despite only being allowed to use it inside dead code.
+This attack was tested and works against {\GCC} version 6.3.0.
 
 The form of the attack presented in~\S\ref{sec:info-flow-attack} works in
 theory, but in practice, just because a compiler is \emph{allowed} to perform a
@@ -106,9 +102,8 @@ on the value of a {\SEC}:
     y\GETS x
   \PAR\begin{array}[t]{@{}l}
     x\GETS 1\SEMI\\
-    \IF(\CANREAD(\SEC))\THEN x\GETS\SEC\SEMI\FI\\
-    \IF(y > 0)\THEN \RETURN 0
-    \brELSE \RETURN 1\FI
+    \IF(\texttt{canReadSecret})\THEN x\GETS\SEC\SEMI\FI\\
+    \IF(y > 0)\THEN z\GETS 0 \ELSE z\GETS 1\FI
 \end{array}\end{array}\]
 \ignore{
 \begin{verbatim}
@@ -117,7 +112,7 @@ on the value of a {\SEC}:
       y := x;
     ) || (
       x := 1;
-      if (canRead(SECRET)) { x := SECRET; }
+      if(canReadSecret) { x = SECRET; }
       if (y) { return 0; }
       else { return 1; }
     )
@@ -131,57 +126,55 @@ statement entirely, and moves the read of $y$ above the write of $x$.
 However, when {\SEC} is $0$, the \IF statement must remain
 intact, and {\GCC} does not move the read of $y$.
 This means that if {\SEC} is $1$, the second thread will always
-read $y\EQ0$ and always return $1$.
+read $y\EQ0$ and always assign $z\GETS1$.
 However, if {\SEC} is $0$, it is possible that the first thread
 may observe $x\EQ1$ and write $y\GETS1$ in time for the second thread
-to observe $y\EQ1$ and thus return $0$.
+to observe $y\EQ1$ and thus assign $z\GETS0$.
 In this way, we leverage compiler load-store reordering to learn the value of
 a compile-time {\SEC}.
 
 \begin{figure}
-  \begin{tabular}[fragile]{p{3cm} | p{3cm}}
-    \texttt{SECRET == 0} & \texttt{SECRET == 1} \\
+  \begin{tabular}{p{3.4cm} @{\quad} | p{3.4cm}}
+    \texttt{SECRET == 0} & \texttt{SECRET == 1} \\ \hline
 \begin{verbatim}
-  mov f(%rip), %eax
+  mov s(%rip), %eax
   mov $1, x(%rip)
   test %eax, %eax
   je label1
-  mov %0, x(%rip)
+  mov $0, x(%rip)
 label1:
   mov y(%rip), %eax
   test %eax, %eax
   sete %eax
-  ret
 \end{verbatim}
   &
 \begin{verbatim}
-  mov f(%rip), %eax
+  mov s(%rip), %eax
   mov y(%rip), %eax
   mov $1, x(%rip)
   test %eax, %eax
   sete %eax
-  ret
 \end{verbatim}
-  \\
   \end{tabular}
   \caption{
-    (Simplified) x86 assembly output from \texttt{gcc} for the main thread of
+    Simplified x86 assembly output from \texttt{gcc} for the main thread of
     the load-store reordering attack.
-    In particular, note that the order between \texttt{mov \$1, x(\%rip)}
-    and \texttt{mov y(\%rip), \%eax} is different in the two cases.
-    The call to \texttt{canRead(SECRET)} has been inlined; we implemented
-    \texttt{canRead(x)} as \texttt{return f;} where
-    \texttt{volatile bool f = false;}.
-    Thus, \texttt{gcc} preserves the read of \texttt{f} even when its value is
-    unused, as in the case on the right.
+    In particular, note that the order between (\texttt{mov \$1, x(\%rip)})
+    and (\texttt{mov y(\%rip), \%eax}) is different in the two cases.
+    References to the \texttt{canReadSecret} variable have been shortened to
+    \texttt{s} for the figure.
   }
   \label{fig:lsr-asm}
 \end{figure}
 
 We extend this attack to leak a secret consisting of an arbitrary number
 \verb|N| of bits.
-To do this, we simply compile \verb|N| copies of the test function, each
-performing a boolean test on a single bit of the secret.
+To do this, we compile \verb|N| copies of the test function, each
+performing a boolean test on a single bit of {\SEC}.
+We must compile a separate function for each bit, rather than execute the same
+code repeatedly in a loop, so that the bit value is
+constant at compile time.
+\ignore{
 The function used for reading the \verb|k|th bit is as follows (for
 \verb|N <= 64|):
 \[\begin{array}[t]{@{}l}
@@ -189,23 +182,10 @@ The function used for reading the \verb|k|th bit is as follows (for
     y\GETS x
   \PAR\begin{array}[t]{@{}l}
     x\GETS 1\SEMI\\
-    \IF(\CANREAD(\SEC))\THEN x\GETS\texttt{(\SEC\, \& (1 << k)) ? 1 : 0}\SEMI\FI\\
+    \IF(\texttt{canReadSecret})\THEN x\GETS\texttt{(\SEC\, \& (1 << k)) ? 1 : 0}\SEMI\FI\\
     \IF(y > 0)\THEN \RETURN 0
     \brELSE \RETURN 1\FI
 \end{array}\end{array}\]
-\ignore{
-\begin{verbatim}
-    x := 0; y := 0;
-    (
-      y := x;
-    ) || (
-      x := 1;
-      if (canRead(SECRET)) { x := (SECRET & (1 << k)) ? 1 : 0; }
-      if (y) { return 0; }
-      else { return 1; }
-    )
-\end{verbatim}
-}
 Following the same analysis as above, this function will always return $1$
 if the appropriate bit of {\SEC} is $1$, but may return $0$ if
 the appropriate bit of {\SEC} is $0$.
@@ -213,30 +193,30 @@ The extension of the attack to the general case with truly arbitrary \verb|N|
 is straightforward; {\SEC} becomes an array of 64-bit values, and we use
 \verb|k / 64| and \verb|1 << (k & 63)| as the array index and bitmask
 respectively.
+}
 
-We make three additional tweaks to improve the reliability so that the attacker
-can confidently infer the value of {\SEC} based on the observed return
-values of the function.
-First, rather than performing $y\GETS x$ only once in the first thread, we
-perform $y\GETS x$ continuously in a loop.
-This maximizes the probability that, once $x\GETS 1$ occurs in the second
-thread, $y$ will be immediately assigned $1$ by the first thread
-and the second thread will be able to read $y\EQ 1$.
+We make three additional tweaks to improve the reliability, so that the attacker
+can confidently infer the value of {\SEC} based on the observed value of $z$.
+  First, rather than performing $y\GETS x$ only once in the forwarding thread,
+we perform $y\GETS x$ continuously in a loop.
+This maximizes the probability that, once $x\GETS 1$ occurs in the main
+thread, $y$ will be immediately assigned $1$ by the forwarding thread
+and the main thread will be able to read $y\EQ 1$.
 
 Second, we wish to lengthen the timing window between $x\GETS 1$ and the
-read of $y$ in the second thread (in the case where the appropriate bit of
+read of $y$ in the main thread (in the case where the appropriate bit of
 {\SEC} is $0$ and the read of $y$ remains below $x\GETS 1$).
 However, we wish to do this in a way that does not block the reordering of the
 read of $y$ upwards in the case where the appropriate bit of {\SEC}
 is $1$.
 We do this by inserting many copies of the line
-\begin{verbatim}
-    if (canRead(SECRET)) { x := (SECRET & (1 << k)) ? 1 : 0; }
-\end{verbatim}
+\[
+  \IF (\texttt{canReadSecret}) \THEN x\GETS\SEC\FI
+\]
 instead of just one.
 In the case where the appropriate bit of {\SEC} is $0$, this
-results in many calls to $\CANREAD(\SEC)$ and many conditional jumps,
-which in practice creates a timing window for the first thread to perform
+results in many reads of \verb|canReadSecret| and many conditional jumps,
+which in practice creates a timing window for the forwarding thread to perform
 $y\GETS x$.
 However, in the case where the appropriate bit of {\SEC} is $1$,
 all of these inserted lines can be removed just as a single copy could be.
@@ -246,12 +226,12 @@ desired; inserting $30$ copies was sufficient to create a timing window
 while still allowing the desired reordering.
 
 Finally, we redundantly execute the entire attack several times, noting the
-return value of the function in each case.
-We note that if \emph{any} of the redundant runs produces a return value of
-$0$ for a particular bit position, we can be certain that the
+value of $z$ in each case.
+We note that if \emph{any} of the redundant runs produces a value of
+$z\EQ0$ for a particular bit position, we can be certain that the
 corresponding bit of {\SEC} \emph{must} be $0$, as it implies the
 read of $y$ was not reordered upwards in that particular function.
-On the other hand, the more runs that produce a return value of $1$ for a
+On the other hand, the more runs that produce a value of $z\EQ1$ for a
 particular bit position, the more certain we can be that the read of $y$
 was reordered above the $x\GETS 1$ assignment, and the appropriate bit of
 {\SEC} is $1$.
@@ -279,14 +259,14 @@ was reordered above the $x\GETS 1$ assignment, and the appropriate bit of
     `Bitwise Accuracy' is the percentage of bits that were correct, while
     `Per-run Accuracy' is the percentage of full 2048-bit secrets that were
     correct in all bit positions.
-    \todo{Note: numbers are not final (collected on Craig's machine inside a
-    VM), but give an idea of where we stand.}
+    \todo{Note: numbers are not final (collected using only 15sec runtime per
+    cell), but give an idea of where we stand.}
   }
   \label{fig:load-store-perf}
 \end{figure}
 
 Figure~\ref{fig:load-store-perf} gives the performance results for this attack
-against {\GCC} version \todo{ver}.
+against {\GCC} version 6.3.0.
 The attack can sustain hundreds of thousands of bits per second leaked with
 near-perfect accuracy, or millions of bits per second with error rates of a
 few percent.
@@ -418,7 +398,7 @@ function, and the appropriate bit of {\SEC} is $1$.
     Performance results for the dead store elimination attack on {\CLANG} when
     leaking a 2048-bit secret.
     Terms are the same as defined in the caption for Figure~\ref{fig:load-store-perf}.
-    \todo{Note: numbers are not final (collected on Craig's Mac with Apple Clang),
+    \todo{Note: numbers are not final (collected with Apple Clang),
     but give an idea of where we stand.}
   }
   \label{fig:clang-dse-perf}
@@ -473,8 +453,8 @@ just have a strict maximum on how far to the right you can go.}
     $x\GETS 1$ write (as measured in loop iterations).
     Each table cell gives the leak bandwidth in bits/sec, followed by the
     bitwise accuracy.
-    \todo{Note: numbers are not final (collected on Craig's machine inside a
-    VM), but give an idea of where we stand.}
+    \todo{Note: numbers are not final (collected using only 15sec runtime per
+    cell), but give an idea of where we stand.}
   }
   \label{fig:gcc-dse-perf}
 \end{figure}
