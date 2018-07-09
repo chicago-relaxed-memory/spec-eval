@@ -302,7 +302,10 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
   % \item\label{tx:5} if $\comEv$ ends $\aEv$, but not $\bEv$, then
   %   $\aEv\le\bEv$ implies $\comEv\le\bEv$ and $\bEv\ltN\aEv$ implies $\bEv\ltN\comEv$,
   \item\label{tx:6} if $\aEv$ and $\bEv$ belong to $\begEv$ and read the same
-    location, then both read the same value, and 
+    location, then both read the same value, and
+    % note that read events are optional, so we can assume they come from
+    % outside the transaction.
+  % 
   % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,    
   % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$
   %   ends $\aEv$ such that both $\aEv$ implies $\comEv$ and $\comEv$ implies $\aEv$,    
