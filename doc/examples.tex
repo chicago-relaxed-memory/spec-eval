@@ -728,7 +728,7 @@ elimination is \emph{always} performed, then there is an information
 flow attack similar to the one in \S\ref{sec:info-flow-attack}. Consider
 the program:
 \[\begin{array}[t]{@{}l}
-    r\GETS x
+    y\GETS x
   \PAR\begin{array}[t]{@{}l}
     x\GETS 1\SEMI\\
     \IF(\CANREAD(\SEC))\THEN \IF(\SEC)\THEN x\GETS 2\FI

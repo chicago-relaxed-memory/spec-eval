@@ -259,8 +259,6 @@ was reordered above the $x\GETS 1$ assignment, and the appropriate bit of
     `Bitwise Accuracy' is the percentage of bits that were correct, while
     `Per-run Accuracy' is the percentage of full 2048-bit secrets that were
     correct in all bit positions.
-    \todo{Note: numbers are not final (collected using only 15sec runtime per
-    cell), but give an idea of where we stand.}
   }
   \label{fig:load-store-perf}
 \end{figure}
@@ -283,15 +281,16 @@ dead store elimination.
 We show that in our attacker model (given in~\S\ref{subsec:attacker-model}),
 the attacker is able to exploit dead
 store elimination to again learn the value of a compile-time {\SEC}
-despite only being allowed to use it inside dead code, that is, code that can
-never be executed at runtime.
+despite only being allowed to use it inside dead code.
 This attack is even more efficient than the attack on load-store reordering,
 and further, we were able to demonstrate its effectiveness against both
 {\GCC} and {\CLANG}.
 
 We start from the simple form of the attack presented in~\S\ref{sec:dse},
 and extend it to leak a secret consisting of an
-arbitrary number \verb|N| of bits.
+arbitrary number of bits, in the same way that we extended the load-store
+reordering attack.
+\ignore{
 As we did in the load-store reordering attack, we again compile \verb|N| copies
 of the test function, each performing a boolean test on a single bit of the
 secret.
@@ -319,24 +318,29 @@ The function used for reading the \verb|k|th bit is as follows (for
     )
 \end{verbatim}
 }
-Then, we test each function in turn, each time noting the value of $r$
+Then, we test each function in turn, each time noting the value of $y$
 observed by the `listening' thread.
 If the appropriate bit of {\SEC} is 1, the $x\GETS 2$ assignment is
 guaranteed to happen, so the compiler can eliminate the $x \GETS 1$
-assignment as a dead store and we will observe $r\EQ 2$; however, if the
+assignment as a dead store and we will observe $y\EQ 2$; however, if the
 appropriate bit of {\SEC} is 0, the $x\GETS 1$ assignment cannot be
-eliminated, and we will observe $r\EQ 1$ with some probability.
+eliminated, and we will observe $y\EQ 1$ with some probability.
 The extension of the attack to the general case with truly arbitrary \verb|N|
 is straightforward and proceeds exactly as it did for the attack on
 load-store reordering.
-
+}
 We make three additional tweaks to improve the reliability so that the attacker
-can confidently infer the value of {\SEC} based on the observed values
-of $r$.
-These three tweaks strongly resemble the reliability tweaks we made to the
-load-store reordering attack and differ only in a few details.
+can confidently infer the value of {\SEC}.
+Two of them follow exactly the same pattern as the reliability tweaks
+for the load-store reordering attack in~\S\ref{subsec:exp-rel-mem} ---
+continuously forwarding $x$ to $y$ in the forwarding thread, and running the
+entire attack multiple times.
+The remaining tweak is again motivated by increasing the timing window in
+which the forwarding can happen, but differs in some details from the
+implementation in~\S\ref{subsec:exp-rel-mem}.
 
-First, rather than simply observing $x$ with $r\GETS x$ in the
+\ignore{
+First, rather than simply observing $x$ with $y\GETS x$ in the
 `listening' thread, we continuously load $x$ in a loop until a
 nonzero value is observed --- i.e., we perform
 $\DO{r\GETS x} \WHILE(r\EQ0)$.
@@ -347,43 +351,48 @@ $\DO{r\GETS x} \WHILE(r\EQ0)$.
     } while(r == 0);
 \end{verbatim}
 }
-This remedies the case where $r\GETS x$ could observe a value of $x$
+This remedies the case where $y\GETS x$ could observe a value of $x$
 from `before' either of the two possible writes performed by the other thread.
+}
 
-Second, we insert additional time-consuming computation immediately following
-the $x\GETS 1$ operation in the `main' thread.
-This lengthens the timing window in which $x$ has the value $1$,
-increasing the likelihood that the `listening' thread will be able to observe
-$x\EQ 1$ (unless the $x\GETS 1$ write was eliminated, of course).
-Inserting this computation can be done without interfering with the dead store
+To increase the timing window, we insert additional time-consuming
+computation immediately following
+the $x\GETS 1$ operation in the main thread.
+This increases the likelihood that the listening thread will be able to observe
+$x\EQ 1$ (unless the $x\GETS 1$ write was eliminated).
+Inserting this computation should be done without interfering with the dead store
 elimination process itself, so that the compiler will continue to eliminate
 the $x\GETS 1$ write if and only if the appropriate bit of {\SEC}
 was 1.
 For {\GCC}, we have a fair amount of freedom with the time-consuming
 computation --- for instance, we can use an arbitrarily long loop.
 In fact, we can perform a further optimization by monitoring the value of the
-variable $r$ (written to by the listening thread) and breaking out of the
+variable $y$ (written to by the listening thread) and breaking out of the
 loop early if we see that the listening thread has already observed $x\EQ 1$.
 However, with {\CLANG}, we cannot use a loop at all --- the time-consuming
 computation must be branch-free, and furthermore must not consist of too many
 instructions.
+\ignore{
 This is because {\CLANG}'s dead store elimination pass operates only
 within basic blocks, and uses a heuristic to stop scanning the basic block
 early if it is too large.
+}
 Nonetheless, we find that even with these restrictions, we are able to
 construct a reliable and fast attack against both {\CLANG} and {\GCC}.
 
+\ignore{
 Finally, we redundantly execute the entire attack several times, noting the
-final value of $r$ (the first observed nonzero value of $x$) in each
+final value of $y$ (the first observed nonzero value of $x$) in each
 case.
-We note that if \emph{any} of the redundant runs produces $r\EQ 1$ for a
+We note that if \emph{any} of the redundant runs produces $y\EQ 1$ for a
 particular bit position, we can be certain that the corresponding bit of
 {\SEC} \emph{must} be $0$, as it implies that the $x\GETS 1$ write
 was not eliminated in that particular function.
-On the other hand, the more runs that observe $r\EQ 2$ in a particular bit
+On the other hand, the more runs that observe $y\EQ 2$ in a particular bit
 position despite our other reliability-increasing measures taken above, the
 more certain we can be that the $x\GETS 1$ write was eliminated in that
 function, and the appropriate bit of {\SEC} is $1$.
+}
 
 \begin{figure}
   \small
@@ -403,18 +412,6 @@ function, and the appropriate bit of {\SEC} is $1$.
   }
   \label{fig:clang-dse-perf}
 \end{figure}
-
-Performance results for the dead store elimination attack against {\CLANG}
-are given in Figure~\ref{fig:clang-dse-perf}.
-This attack is faster than the load-store reordering attack against {\GCC} for
-any given desired accuracy.
-\todo{however, compared to the load-store reordering attack we don't have an
-even-faster-but-even-less-accurate setting.
-This could be accomplished by reducing the amount of `time-consuming computation'
-which for clang we have been holding constant near the max value clang will
-tolerate.
-Really, we could make this a 2D table like Figure~\ref{fig:gcc-dse-perf}, we'll
-just have a strict maximum on how far to the right you can go.}
 
 \begin{figure}
   \small
@@ -453,32 +450,15 @@ just have a strict maximum on how far to the right you can go.}
     $x\GETS 1$ write (as measured in loop iterations).
     Each table cell gives the leak bandwidth in bits/sec, followed by the
     bitwise accuracy.
-    \todo{Note: numbers are not final (collected using only 15sec runtime per
-    cell), but give an idea of where we stand.}
   }
   \label{fig:gcc-dse-perf}
 \end{figure}
 
-Figure~\ref{fig:gcc-dse-perf} shows the performance results for the dead
-store elimination attack against {\GCC}.
-Unlike the other attacks we've discussed, our implementation of this attack
-has two important ``knobs'' which trade off reliability vs.\@ performance,
-rather than only one.
-First, we have the length of time which the writing thread attempts to
-``stall'' immediately after the $x\GETS 1$ write (which is configurable in this
-case because {\GCC} will perform the dead store elimination even with a loop
-here).
-Second, as in the other attacks, we have the number of entire redundant runs of
-the attack that are performed before the attacker reaches her conclusion.
-Increased reliability can be achieved by adjusting either of these knobs,
-and they each have (different) effects on the overall performance of the
-attack.
-Although Redundancy 1 never reaches perfect accuracy (probably because of rare
-catastrophic events like OS interrupts), once we move to Redundancy 2,
-increasing the ``stall'' time is much more advantageous than further
-redundancy.
-Perfect accuracy (in our tests) can be achieved with a bandwidth of over 1.1
-million bits per second at Redundancy 2, making this our most efficient and
-accurate attack by a considerable margin.
-In particular, this means that this attack can leak a 2048-bit cryptographic
+Performance results for the dead store elimination attack against {\CLANG}
+are given in Figure~\ref{fig:clang-dse-perf}, and against {\GCC} are given in
+Figure~\ref{fig:gcc-dse-perf}.
+Both attacks are faster than the load-store-reordering attack from
+\S\ref{subsec:exp-rel-mem} when comparing settings which give the same
+accuracy.
+In particular, the attack on {\GCC} can leak a 2048-bit cryptographic
 key with perfect accuracy (in our tests) in under $2$ ms.
