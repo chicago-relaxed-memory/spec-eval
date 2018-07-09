@@ -423,7 +423,7 @@ $(\DT{\aLoc})$ and defining:
 The additional requirement we need to add for $\aLoc$-closure is:
 \begin{itemize}
 \item if $\labelling(\aEv)=(\aForm \mid \DT{\aLoc})$
-  then there is $\bEv<\aEv$
+  then there is $\bEv\gtN\aEv$
   where $\bEv$ reads or writes $\aLoc$.
 \end{itemize}
 Note that there is no requirement that $\bEv$ be satisfiable,
@@ -434,7 +434,7 @@ and indeed Spectre has the execution:
   \event{ta}{\DT{a[1]}}{right=of wa}
   \event{wx}{\DW{x}{1}}{right=of ta}
   \po{rs}{wa}
-  \po{wa}{ta}
+  \wk{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
 Putting this in parallel with a high-security write to \verb|SECRET| gives:
@@ -446,7 +446,7 @@ Putting this in parallel with a high-security write to \verb|SECRET| gives:
   \event{wx}{\DW{x}{1}}{right=of ta}
   \rf{ws}{rs}
   \po{rs}{wa}
-  \po{wa}{ta}
+  \wk{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
 but due the requirement of $a$-closure we do \emph{not} have:
@@ -458,7 +458,7 @@ but due the requirement of $a$-closure we do \emph{not} have:
   \event{wx}{\DW{x}{1}}{right=of ta}
   \rf{ws}{rs}
   \po{rs}{wa}
-  \po{wa}{ta}
+  \wk{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
 Thus, the attacker has managed to leak the value of a high-security
