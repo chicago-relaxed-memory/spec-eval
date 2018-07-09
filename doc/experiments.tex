@@ -398,17 +398,14 @@ function, and the appropriate bit of {\SEC} is $1$.
   \small
   \begin{tabular}{ r | l | l | l }
     Redundancy & Bandwidth (bits/s) & Bitwise Acc & Per-run Acc \\ \hline
-    1          & 1.40 million       & 99.92\%     & 66.8\%      \\
-    2          & 702 thousand       & 99.999\%    & 97.5\%      \\
-    3          & 470 thousand       & 99.99999\%  & 99.9\%       \\
-    4          & 352 thousand       & 100.0\%     & 100.0\%      \\
+    1          & 1.36 million       & 99.989\%    & 84.2\%      \\
+    2          & 673 thousand       & 100.0\%     & 100.0\%     \\
+    3          & 452 thousand       & 100.0\%     & 100.0\%     \\
   \end{tabular}
   \caption{
     Performance results for the dead store elimination attack on {\CLANG} when
     leaking a 2048-bit secret.
     Terms are the same as defined in the caption for Figure~\ref{fig:load-store-perf}.
-    \todo{Note: numbers are not final (collected with Apple Clang),
-    but give an idea of where we stand.}
   }
   \label{fig:clang-dse-perf}
 \end{figure}
