@@ -35,8 +35,8 @@ The semantics of programs with releasing write and acquiring read are the
 same as for regular write and read and, but with $\DWRel\aLoc\aVal$ replacing
 $\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$.  
 \begin{eqnarray*}
-  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \bigcup_\aVal\; (\aExp=\aVal \mid (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]) \\
-  \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \bigcup_\aVal\; (\DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
+  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\aExp=\aVal \mid (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]) \\
+  \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg]
 \end{eqnarray*}
 
 To see the need for the first constraint on prefixing, consider the program:
