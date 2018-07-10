@@ -54,12 +54,12 @@ In this pomset, the precondition is $(x+1=1)$, which specifies a property
 of the thread-local value of $x$.
 Finally $\sem{x \GETS 0\SEMI r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ includes:
 \[
-   (0=0 \mid (\DW x0) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[0/x])
+   \bigl(0=0 \mid (\DW x0) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[0/x]\bigr)
 \]
 which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{0=0 \mid \DW{x}{0}}{}
-  \event{wy1}{0+1=1 \mid \DW{y}{1}}{right=of wx0}
+  \event{wy1}{0=0\land0+1=1 \mid \DW{y}{1}}{right=of wx0}
 \end{tikzpicture}\]
 all of whose preconditions are tautologies, so this has the expected behavior:
 \[\begin{tikzpicture}[node distance=1em]
@@ -67,7 +67,7 @@ all of whose preconditions are tautologies, so this has the expected behavior:
   \event{wy1}{\DW{y}{1}}{right=of wx0}
 \end{tikzpicture}\]
 There is no dependency between $(\DW x0)$ and $(\DW y1)$,
-since $(0+1=1)$ is independent of $\aLoc$.
+since $(0=0\land0+1=1)$ is independent of $\aLoc$.
 
 This example demonstrates how preconditions
 capture the sequential semantics of memory.
@@ -75,8 +75,8 @@ In an execution containing an event with label
 $(\aForm \mid \aAct)$, one way the precondition $\aForm$
 can be discharged is by an assignment $\aLoc\GETS\aExp$,
 which performs a substitution $[\aExp/\aLoc]$.
-This is a variant of the Hoare semantics for
-assignment, where if $\aCmd$ has precondition $\aForm$
+This is a variant of the Hoare semantics of
+assignment \cite{Hoare:1969:ABC:363235.363259}, where if $\aCmd$ has precondition $\aForm$
 then $\aLoc\GETS\aExp\SEMI\aCmd$ has precondition
 $\aForm[\aExp/\aLoc]$.
 
@@ -84,10 +84,10 @@ $\aForm[\aExp/\aLoc]$.
 \label{sec:concurrent-memory}
 
 We now turn to the case of concurrent accesses to memory.
-Consider a concurrent version of the program from \S\ref{sec:sequential-memory}:
+Consider the program %a concurrent version of the program from \S\ref{sec:sequential-memory}:
 $(\aLoc\GETS1 \PAR \bLoc\GETS\aLoc+1)$.
-One execution of this program is where the write to $y$
-performs a concurrent read of $x$:
+In executions of this program, it is possible for the second thread to 
+perform a concurrent read of $x$:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\DW{x}{1}}{}
   \event{rx1}{\DR{x}{1}}{right=2.5em of wx1}
@@ -206,22 +206,34 @@ this contains:
 and so the semantics of $(\aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+2-\aReg)$
 is the same as the semantics of $(\bLoc\GETS2\SEMI \aReg\GETS\aLoc)$.
 
-This example shows that we are not just dealing
-with a syntactic notion of dependency, which is common
-in hardware models of memory. In syntactic dependency,
+This example shows that our notion of dependency is based on logical
+implication, and is therefore semantic rather than
+syntactic.  In syntactic dependency, which is common
+in hardware models of memory,
 since $r$ occurs free in $(y\GETS r+2-r)$, there would be
 a dependency between $(r\GETS x)$ and $(y\GETS r+2-r)$.
-In contrast, this model is based on logical implication,
-which can be interpreted semantically.
 
 \subsection{Blockers}
 \label{sec:blockers}
-Were we to use the preliminary definition of reads-from in \S\ref{sec:pomsets},
-then concurrent threads could
-turn events that were not $\aLoc$-blockers into an $\aLoc$-blocker,
-{even if the new thread does not mention $\aLoc$.}
+Recall the preliminary definition of reads-from in \S\ref{sec:pomsets}, which
+defined a blocker to be and event $\cEv$ that writes to $\aLoc$ such that
+$\bEv < \cEv < \aEv$.  Were we to adopt this definition, then concurrent
+threads could turn events that were not $\aLoc$-blockers into an
+$\aLoc$-blocker, even if the new thread does not mention $\aLoc$.
 
-To see this, consider a program with execution:
+To see this, consider the program
+\begin{math}
+  (
+  \aLoc\GETS1\SEMI
+  \bLoc\GETS\aLoc
+  \PAR
+  \aLoc\GETS\cLoc+1\SEMI
+  \bLoc\GETS\aLoc
+  \PAR
+  \IF(z=2)\THEN\aReg\GETS\aLoc\FI
+  )
+\end{math}
+with execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\DW{\aLoc}{1}}{}
   \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
@@ -240,7 +252,14 @@ To see this, consider a program with execution:
   \po{rz2}{rx1}
   \rf[out=20,in=160]{wx1}{rx1}
 \end{tikzpicture}\]
-If this is placed in parallel with:
+and the program
+\begin{math}
+  (
+  \bLoc\GETS\cLoc\SEMI
+  \bLoc\GETS\cLoc
+  )
+\end{math}
+with execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ry1}{\DR{\bLoc}{1}}{}
   \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
@@ -249,7 +268,7 @@ If this is placed in parallel with:
   \po{ry1}{wz1}
   \po{ry2}{wz2}
 \end{tikzpicture}\]
-then a possible execution is:
+If these are placed in parallel, then a possible execution is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\DW{\aLoc}{1}}{}
   \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
@@ -281,7 +300,10 @@ and now the $(\DW{\aLoc}{2})$ event is an $\aLoc$-blocker,
 so $(\DR{\aLoc}{1})$ cannot
 read from $(\DW{\aLoc}{1})$.
 
-With the final definition, in order for $(\DR{\aLoc}{1})$ to read from
+In the final definition of reads-from in \S\ref{sec:pomsets} we
+defined a blocker to be and event $\cEv$ that writes to $\aLoc$ such that
+either $\bEv \ltN \cEv$ or $\cEv \ltN \aEv$.
+With this definition, in order for $(\DR{\aLoc}{1})$ to read from
 $(\DW{\aLoc}{1})$, we either need $(\DW{\aLoc}{1}) \ltN (\DW{\aLoc}{2})$
 or $(\DW{\aLoc}{2}) \ltN (\DW{\aLoc}{1})$, for example:
 \[\begin{tikzpicture}[node distance=1em]
@@ -482,7 +504,7 @@ we end up with an execution without a control dependency:
   \event{rz0}{\DR{z}{0}}{}
   \event{wx1}{\DW{x}{1}}{right=of rz0}
 \end{tikzpicture}\]
-This semantics captures compiler optimizations which may, for example
+This semantics captures compiler optimizations which may, for example,
 merge code executed on both branches of a conditional, or hoist
 constant assignments out of loops.
 
@@ -490,16 +512,16 @@ We can now see the counterintuitive behavior of conditionals
 in the presence of control dependencies.
 There are programs such as
 \(
-  \IF(\cLoc)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI
+  (\IF(\cLoc)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)
 \)
-executions in which  $(\DW x1)$ is independent of $(\DR z1)$:
+with executions in which  $(\DW x1)$ is independent of $(\DR z1)$:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz1}{\DR{z}{1}}{}
   \event{wx1}{\DW{x}{1}}{right=of rz1}
 \end{tikzpicture}\]
 while programs such as
 \(
-  \IF(\cLoc)\THEN \aLoc\GETS1 \ELSE \bLoc\GETS2 \FI
+  (\IF(\cLoc)\THEN \aLoc\GETS1 \ELSE \bLoc\GETS2 \FI)
 \)
 only have executions in which $(\DW x1)$ is dependent on $(\DR z1)$:
 \[\begin{tikzpicture}[node distance=1em]
@@ -509,8 +531,8 @@ only have executions in which $(\DW x1)$ is dependent on $(\DR z1)$:
   \po{rz1}{wx1}
   \po[out=30,in=150]{rz1}{wy2}
 \end{tikzpicture}\]
-so these programs have different dependency relations, depending
-on conditional branches that were not taken. In \S\ref{sec:info-flow-attack}
+These programs have different dependency relations, depending only
+on conditional branches that were \emph{not} taken. In \S\ref{sec:info-flow-attack}
 we shall see that this has security implications, since relaxed
 memory can observe dependency. The attack is similar to Spectre, so
 we shall take a detour to see how Spectre can be modeled in this
