@@ -171,12 +171,12 @@ such that:
 \item formulae are closed under negation, conjunction, disjunction,
 \item formulae are closed under substitutions of the form $\aForm[\aLoc/\aReg]$ or $\aForm[\bExp/\aLoc]$,
 \item there is a relation $\vDash$ between formulae, and
-\item there are partial functions $\rreads$ and $\rwrites: \Act \fun (\Loc \times \Val)$,
+\item there are partial functions $\rreads$ and $\rwrites: \Act \fun (\Loc \times \Val)$.
 \end{itemize}
 We shall say $\aAct$ \emph{reads} $\aVal$ \emph{from} $\aLoc$ whenever
 $\rreads(\aAct) = (\aLoc,\aVal)$, and
 $\aAct$ \emph{writes} $\aVal$ \emph{to} $\aLoc$ whenever
-$\rwrites(\aAct) = (\aLoc,\aVal)$, and
+$\rwrites(\aAct) = (\aLoc,\aVal)$.
 We shall say $\aForm$ \emph{implies} $\bForm$ whenever $\aForm\vDash\bForm$,
 $\aForm$ is a \emph{tautology} whenever $\TRUE\vDash\aForm$,
 $\aForm$ is \emph{unsatisfiable} whenever $\aForm\vDash\FALSE$, and
@@ -184,7 +184,7 @@ $\aForm$ is \emph{independent of $\aLoc$} whenever $\aForm \vDash \aForm[\aVal/\
 In examples, the actions are of the form $(\DR{\aLoc}{\aVal})$, which reads $\aVal$ from $\aLoc$,
 and $(\DW{\aLoc}{\aVal})$, which writes $\aVal$ to $\aLoc$.
 Going forward, we assume a given data model, though some examples in
-\S\ref{sec:examples} make use of particular $\Act$.
+\S\ref{sec:examples} make use of particular actions.
 
 \subsection{3-valued pomsets}
 \label{sec:pomsets}
@@ -197,7 +197,7 @@ Recall the definition of a pomset from~\cite{GISCHER1988199}:
 \end{definition}
 Going forward, we fix the alphabet $\Alphabet=(\Formulae\times\Act)$.
 We will write $(\aForm \mid \aAct)$ for the pair $(\aForm,\aAct)$,
-elide $\aForm$ when $\aForm$ is a tautology, and write $\NEVER\aAct$ 
+elide $\aForm$ when $\aForm$ is a tautology, and write $\aAct$ crossed-out ($\NEVER\aAct$)
 when $\aForm$ is unsatisfiable.
 We lift terminology from logical formulae and actions to events,
 for example if $\labelling(\aEv)=(\aForm\mid\aAct)$ and
@@ -308,11 +308,11 @@ we also have negative statements $(\bEv \ltN \aEv)$
 \end{definition}
 
 In diagrams, we visualize $(\aEv \ltN \bEv)$ as a dashed
-arrow from $\bEv$ to $\aEv$ (note the flip of direction).
+arrow from $\bEv$ to $\aEv$ (note the change of direction).
 We refer to edges introduced by $(\bEv < \aEv)$ as
 \emph{strong edges} and by $(\aEv \ltN \bEv)$
 as \emph{weak edges}.
-We often highlight the reads-from edges as well.
+For readability, we often highlight the reads-from edges as well.
 % for example:
 For example:
 \[\begin{tikzpicture}[node distance=1em]
@@ -478,8 +478,8 @@ there is $\aPS\in\aPSS$ such that:
 \end{itemize}
 \end{definition}
 Prefixing is used to define the semantics of reads and writes, and
-adds a new event $\cEv$ with action $\aAct$. The tricky part of the
-definition is the named cases, which places requirements on read
+adds a new event $\cEv$ with action $\aAct$. The tricky parts of the
+definition are the named cases, which place requirements on read
 dependencies.  If $\aAct$ reads $\aVal$ from $\aLoc$, we have to
 decide whether $\aEv$ depends on $\cEv$ for some $\aEv$ with old
 precondition $\bForm$ and new precondition $\bForm'$. The first case
@@ -490,15 +490,15 @@ $\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
 $\aEv$ can be performed with or without $\cEv$.
 In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
 $\bForm'$ to be $\bForm$, and the independent read case will apply.
-For example, if $\aPSS$ contains:
+For example,
+if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$,
+and
+$\aPSS$ contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{b}{\bForm \mid \bAct}{}
   \event{c}{\cForm \mid \cAct}{right=of b}
   \po{b}{c}
 \end{tikzpicture}\]
-where $\aAct$ reads $\aVal$ from $\aLoc$ and writes $\bVal$ to $\bLoc$,
-$\bAct$ writes to $\bLoc$,
-and $\bForm$ is independent of $\aLoc$,
 then $\aAct\prefix\aPSS$ contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{a}{\aForm \mid \aAct}{}
