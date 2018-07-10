@@ -27,9 +27,9 @@ evolve into genuine threats against targets such as JIT compilers.
 }
 We demonstrate the efficacy of our proof-of-concept attacks against
 the {\CLANG} and {\GCC} C compilers.
-All of our experiments are performed on a macOS 10.13.5 machine with an Intel
-i7 processor and 16 GB RAM, running a Debian 9 VM assigned two cores
-and 4 GB RAM; we test against {\GCC} 6.3.0 and {\CLANG} 3.8.
+All of our experiments are performed on a Debian 9 machine with an Intel
+i7-6500U processor and 8 GB RAM;
+we test against {\GCC} 6.3.0 and {\CLANG} 3.8.
 
 \subsection{Attacker model}
 \label{subsec:attacker-model}
@@ -240,14 +240,16 @@ was reordered above the $x\GETS 1$ assignment, and {\SEC} is $1$.
   \small
   \begin{tabular}{ r | l | l | l }
     Redundancy & Bandwidth (bits/s) & Bitwise Acc & Per-run Acc \\ \hline
-    1          & 3.17 million       & 90.13\%     & 0.0\%       \\
-    2          & 1.62 million       & 96.77\%     & 0.7\%       \\
-    3          & 1.07 million       & 98.84\%     & 3.9\%       \\
-    4          & 812 thousand       & 99.55\%     & 13.5\%      \\
-    5          & 652 thousand       & 99.83\%     & 34.0\%      \\
-    7          & 466 thousand       & 99.97\%     & 71.8\%      \\
-    10         & 322 thousand       & 99.998\%    & 96.6\%      \\
-    15         & 216 thousand       & 100.00\%    & 100.0\%     \\
+    1          & 3.14 million       & 90.89\%     & 1.9\%       \\
+    2          & 1.56 million       & 96.04\%     & 8.1\%       \\
+    3          & 1.04 million       & 98.09\%     & 10.0\%      \\
+    4          & 783 thousand       & 98.98\%     & 24.3\%      \\
+    5          & 626 thousand       & 99.71\%     & 50.2\%      \\
+    7          & 447 thousand       & 99.91\%     & 70.6\%      \\
+    10         & 314 thousand       & 99.991\%    & 93.8\%      \\
+    15         & 208 thousand       & 99.994\%    & 95.5\%      \\
+    20         & 157 thousand       & 99.9995\%   & 99.2\%      \\
+    30         & 105 thousand       & 99.99995\%  & 99.9\%      \\
   \end{tabular}
   \caption{
     Performance results for the load-store reordering attack when leaking a
@@ -397,9 +399,9 @@ function, and {\SEC} is $1$.
   \small
   \begin{tabular}{ r | l | l | l }
     Redundancy & Bandwidth (bits/s) & Bitwise Acc & Per-run Acc \\ \hline
-    1          & 1.36 million       & 99.989\%    & 84.2\%      \\
-    2          & 673 thousand       & 100.0\%     & 100.0\%     \\
-    3          & 452 thousand       & 100.0\%     & 100.0\%     \\
+    1          & 1.19 million       & 99.991\%    & 95.6\%      \\
+    2          & 597 thousand       & 99.99986\%  & 99.7\%      \\
+    3          & 397 thousand       & 100.0\%     & 100.0\%     \\
   \end{tabular}
   \caption{
     Performance results for the dead store elimination attack on {\CLANG} when
@@ -413,30 +415,30 @@ function, and {\SEC} is $1$.
   \small
   \begin{tabular}{ r | c | c | c | c | c | c }
     Stall amount & 10 & 20 & 50 & 100 & 200 & 500 \\ \hline
-    Redundancy 1 & \makecell{2.75 million\\97.13\%} &
-                   \makecell{2.55 million\\99.72\%} &
-                   \makecell{2.27 million\\99.98\%} &
-                   \makecell{1.83 million\\99.99\%} &
-                   \makecell{1.34 million\\99.99\%} &
-                   \makecell{728 thousand\\99.99\%} \\ \hline
-    Redundancy 2 & \makecell{1.40 million\\99.01\%} &
-                   \makecell{1.30 million\\99.99\%} &
-                   \makecell{1.14 million\\100.0\%} &
-                   \makecell{902 thousand\\100.0\%} &
-                   \makecell{663 thousand\\100.0\%} &
-                   \makecell{382 thousand\\100.0\%} \\ \hline
-    Redundancy 3 & \makecell{926 thousand\\99.44\%} &
-                   \makecell{870 thousand\\100.0\%} &
-                   \makecell{763 thousand\\100.0\%} &
-                   \makecell{610 thousand\\100.0\%} &
-                   \makecell{443 thousand\\100.0\%} &
-                   \makecell{246 thousand\\100.0\%} \\ \hline
-    Redundancy 4 & \makecell{694 thousand\\99.71\%} &
-                   \makecell{645 thousand\\100.0\%} &
-                   \makecell{571 thousand\\100.0\%} &
-                   \makecell{451 thousand\\100.0\%} &
-                   \makecell{330 thousand\\100.0\%} &
-                   \makecell{186 thousand\\100.0\%} \\
+    Redundancy 1 & \makecell{2.54 million\\98.15\%} &
+                   \makecell{2.36 million\\99.80\%} &
+                   \makecell{1.95 million\\99.987\%} &
+                   \makecell{1.54 million\\99.996\%} &
+                   \makecell{1.12 million\\99.993\%} &
+                   \makecell{584 thousand\\99.998\%} \\ \hline
+    Redundancy 2 & \makecell{1.24 million\\99.73\%} &
+                   \makecell{1.17 million\\99.993\%} &
+                   \makecell{989 thousand\\100.0\%} &
+                   \makecell{774 thousand\\100.0\%} &
+                   \makecell{553 thousand\\100.0\%} &
+                   \makecell{295 thousand\\100.0\%} \\ \hline
+    Redundancy 3 & \makecell{841 thousand\\99.94\%} &
+                   \makecell{784 thousand\\100.0\%} &
+                   \makecell{666 thousand\\100.0\%} &
+                   \makecell{521 thousand\\100.0\%} &
+                   \makecell{370 thousand\\100.0\%} &
+                   \makecell{201 thousand\\100.0\%} \\ \hline
+    Redundancy 4 & \makecell{620 thousand\\99.992\%} &
+                   \makecell{585 thousand\\100.0\%} &
+                   \makecell{499 thousand\\100.0\%} &
+                   \makecell{387 thousand\\100.0\%} &
+                   \makecell{285 thousand\\100.0\%} &
+                   \makecell{145 thousand\\100.0\%} \\
   \end{tabular}
   \caption{
     Performance results for the dead store elimination attack on {\GCC} when
@@ -457,4 +459,4 @@ Both attacks are faster than the load-store-reordering attack from
 \S\ref{subsec:exp-rel-mem} when comparing settings which give the same
 accuracy.
 In particular, the attack on {\GCC} can leak a 2048-bit cryptographic
-key with perfect accuracy (in our tests) in under $2$ ms.
+key with perfect accuracy (in our tests) in about $2$ ms.
