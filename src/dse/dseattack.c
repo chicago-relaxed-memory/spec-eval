@@ -178,8 +178,11 @@ struct manyRuns_res {
                             // E.g. numOffBy[0] gives how many times it
                             //   was exactly correct
   unsigned numRuns;  // how many total runs were done (sum of the entries in numOffBy)
-  unsigned totalBitsCorrect;  // how many total bits were correct across all runs
   uint64_t elapsedNanoseconds;  // total duration of manyRuns, in nanoseconds
+  double ns_per_run;  // how many nanoseconds each run took on average
+  double bitAccuracy;  // what percentage of bits were leaked correctly
+  double completelyCorrectRate;  // what percentage of trials obtained the completely correct secret
+  double leakedBitsPerSec;  // information leak bandwidth, in bits/sec
 };
 
 // iters: a tuning parameter passed on to leak2048bitSecret()
@@ -190,7 +193,7 @@ void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct m
   // initialize res
   memset(res->numOffBy, 0, 2049*sizeof(unsigned));
   res->numRuns = 0;
-  res->totalBitsCorrect = 0;
+  unsigned totalBitsCorrect = 0;
 
   uint64_t start = getTime();
   uint64_t targetEnd = start + durationMS*1000000;
@@ -201,31 +204,18 @@ void manyRuns(uint64_t iters, unsigned error_runs, uint64_t durationMS, struct m
       for(int i = 0; i < 64; i++)
         if((SECRET[which_64t] & (1ULL << i)) ^ (guessedSecret[which_64t] & (1ULL << i))) bitsWrong++;
 
-    res->totalBitsCorrect += 2048-bitsWrong;
+    totalBitsCorrect += 2048-bitsWrong;
     res->numOffBy[bitsWrong]++;
     res->numRuns++;
     free(guessedSecret);
   }
   uint64_t end = getTime();
   res->elapsedNanoseconds = end-start;
-}
-
-// These are explained in manyRuns_analyze()
-struct manyRuns_analysis {
-  double ns_per_run;  // how many nanoseconds each run took on average
-  double bitAccuracy;  // what percentage of bits were leaked correctly
-  double completelyCorrectRate;  // what percentage of trials obtained the completely correct secret
-  double leakedBitsPerSec;  // information leak bandwidth, in bits/sec
-};
-
-// res: results to analyze
-// analysis: pointer to a manyRuns_analysis struct where results should be returned
-static void manyRuns_analyze(struct manyRuns_res* res, struct manyRuns_analysis* analysis) {
-  analysis->ns_per_run = res->elapsedNanoseconds / (double)res->numRuns;
-  double sec_per_run = analysis->ns_per_run / 1e9;
-  analysis->bitAccuracy = res->totalBitsCorrect / (double)(2048*res->numRuns);
-  analysis->completelyCorrectRate = res->numOffBy[0] / (double)res->numRuns;
-  analysis->leakedBitsPerSec = 2048 * (1 / sec_per_run);
+  res->ns_per_run = res->elapsedNanoseconds / (double)res->numRuns;
+  double sec_per_run = res->ns_per_run / 1e9;
+  res->bitAccuracy = totalBitsCorrect / (double)(2048*res->numRuns);
+  res->completelyCorrectRate = res->numOffBy[0] / (double)res->numRuns;
+  res->leakedBitsPerSec = 2048 * (1 / sec_per_run);
 }
 
 static void printUsage(char* progname) {
@@ -290,7 +280,6 @@ int main(int argc, char* argv[]) {
   pthread_create(&thread, NULL, &observer, NULL);
 
   struct manyRuns_res res;
-  struct manyRuns_analysis analysis;
 
   if(tuning) {
 
@@ -314,9 +303,8 @@ int main(int argc, char* argv[]) {
       fflush(stdout);
 
       manyRuns(1, *error_runs, DURATION_MS, &res);
-      manyRuns_analyze(&res, &analysis);
 
-      printf("   %10.1f         %8.6f%%         %6.2f%%\n", analysis.leakedBitsPerSec, 100*analysis.bitAccuracy, 100*analysis.completelyCorrectRate);
+      printf("   %10.1f         %8.6f%%         %6.2f%%\n", res.leakedBitsPerSec, 100*res.bitAccuracy, 100*res.completelyCorrectRate);
     }
 
 #else  // GCC
@@ -346,8 +334,7 @@ int main(int argc, char* argv[]) {
           error_runs < &error_runs_vals[length_error_runs_vals];
           error_runs++) {
         manyRuns(*iters, *error_runs, DURATION_MS, &res);
-        manyRuns_analyze(&res, &analysis);
-        printf("%8.1f : %-7.3f", analysis.leakedBitsPerSec, 100*analysis.bitAccuracy);
+        printf("%8.1f : %-7.3f", res.leakedBitsPerSec, 100*res.bitAccuracy);
         fflush(stdout);
       }
       printf("\n");
@@ -358,7 +345,6 @@ int main(int argc, char* argv[]) {
   } else {  // not tuning
 
     manyRuns(iters, error_runs, DURATION_MS, &res);
-    manyRuns_analyze(&res, &analysis);
 
     printf("Number of complete 2048-bit trials which were off by x bits:\n");
     unsigned total = 0;
@@ -368,10 +354,10 @@ int main(int argc, char* argv[]) {
     }
     if(total != res.numRuns) printf("more: %u\n", res.numRuns - total);
 
-    printf("%u runs in %.3f sec, or %.3f ms per run\n", res.numRuns, res.elapsedNanoseconds/(double)1e9, analysis.ns_per_run/1e6);
-    printf("  (leak bandwidth %.1f bits/sec after error correction)\n", analysis.leakedBitsPerSec);
-    printf("Overall, after error correction, %.3f%% of bits were correct\n", 100*analysis.bitAccuracy);
-    printf("  and %.1f%% of runs were completely correct\n", 100*analysis.completelyCorrectRate);
+    printf("%u runs in %.3f sec, or %.3f ms per run\n", res.numRuns, res.elapsedNanoseconds/(double)1e9, res.ns_per_run/1e6);
+    printf("  (leak bandwidth %.1f bits/sec after error correction)\n", res.leakedBitsPerSec);
+    printf("Overall, after error correction, %.3f%% of bits were correct\n", 100*res.bitAccuracy);
+    printf("  and %.1f%% of runs were completely correct\n", 100*res.completelyCorrectRate);
 
   }
 

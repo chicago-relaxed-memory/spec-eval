@@ -142,8 +142,10 @@ struct manyTrials_res {
                             // E.g. numOffBy[0] gives how many times it was
                             // exactly correct.
   unsigned numTrials;  // how many total trials were done (sum of entries in numOffBy)
-  unsigned totalBitsCorrect;  // how many total bits were correct across all trials
   uint64_t elapsedNanoseconds;  // total duration of manyTrials, in nanoseconds
+  double leakedBitsPerSec;  // information leak bandwidth, in bits/sec
+  double bitAccuracy;  // what percentage of bits were leaked correctly
+  double trialsAccuracy;  // what percentage of trials obtained the completely correct secret
 };
 
 // error_runs: passed on to leak2048bitSecret, see notes there
@@ -153,7 +155,7 @@ void manyTrials(unsigned error_runs, uint64_t durationMS, struct manyTrials_res*
   // initialize res
   memset(res->numOffBy, 0, 2049*sizeof(unsigned));
   res->numTrials = 0;
-  res->totalBitsCorrect = 0;
+  unsigned totalBitsCorrect = 0;
 
   uint64_t start = getTime();
   uint64_t targetEnd = start + (uint64_t)durationMS*1000000;
@@ -164,13 +166,17 @@ void manyTrials(unsigned error_runs, uint64_t durationMS, struct manyTrials_res*
       for(int i = 0; i < 64; i++)
         if((SECRET[which_64t] & (1ULL << i)) ^ (guessedSecret[which_64t] & (1ULL << i))) bitsWrong++;
 
-    res->totalBitsCorrect += 2048-bitsWrong;
+    totalBitsCorrect += 2048-bitsWrong;
     res->numOffBy[bitsWrong]++;
     res->numTrials++;
     free(guessedSecret);
   }
   uint64_t end = getTime();
   res->elapsedNanoseconds = end-start;
+  uint64_t leakedBits = res->numTrials*2048;
+  res->leakedBitsPerSec = leakedBits/(double)res->elapsedNanoseconds*(double)1e9;
+  res->bitAccuracy = totalBitsCorrect/(double)leakedBits;
+  res->trialsAccuracy = res->numOffBy[0]/(double)res->numTrials;
 }
 
 static void printUsage(char* progname) {
@@ -239,11 +245,7 @@ int main(int argc, char* argv[]) {
 
       manyTrials(*error_runs, DURATION_MS, &res);
 
-      uint64_t leakedBits = res.numTrials*2048;
-      double leakedBitsPerSec = leakedBits/(double)res.elapsedNanoseconds*(double)1e9;
-      double bitAccuracy = res.totalBitsCorrect/(double)leakedBits;
-      double trialsAccuracy = res.numOffBy[0]/(double)res.numTrials;
-      printf("   %10.1f         %8.6f%%         %5.1f%%\n", leakedBitsPerSec, 100*bitAccuracy, 100*trialsAccuracy);
+      printf("   %10.1f         %8.6f%%         %5.1f%%\n", res.leakedBitsPerSec, 100*res.bitAccuracy, 100*res.trialsAccuracy);
     }
 
   } else {  // not tuning
@@ -257,15 +259,10 @@ int main(int argc, char* argv[]) {
       total += res.numOffBy[i];
     }
 
-    uint64_t leakedBits = res.numTrials*2048;
-    double leakedBitsPerSec = leakedBits/(double)res.elapsedNanoseconds*(double)1e9;
-    double bitAccuracy = res.totalBitsCorrect/(double)leakedBits;
-    double trialsAccuracy = res.numOffBy[0]/(double)res.numTrials;
-
     printf("%u trials in %.3f sec, or %.3f ms per trial\n", res.numTrials, res.elapsedNanoseconds/(double)1e9, res.elapsedNanoseconds/(double)res.numTrials/(double)1e6);
-    printf("  (leak bandwidth %.1f bits/sec after error correction)\n", leakedBitsPerSec);
-    printf("Overall, after error correction, %.3f%% of bits were correct\n", 100*bitAccuracy);
-    printf("  and %.1f%% of runs were completely correct\n", 100*trialsAccuracy);
+    printf("  (leak bandwidth %.1f bits/sec after error correction)\n", res.leakedBitsPerSec);
+    printf("Overall, after error correction, %.3f%% of bits were correct\n", 100*res.bitAccuracy);
+    printf("  and %.1f%% of runs were completely correct\n", 100*res.trialsAccuracy);
 
   }
   // tell the forwarder thread to exit
