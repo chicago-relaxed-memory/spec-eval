@@ -30,7 +30,7 @@ $(\aLoc\GETS0\SEMI \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$
 Now $\sem{\SKIP}$ is just $\{\emptyset\}$, and
 $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
-   (r+1=1 \mid (\DW y1) \prefix \sem{\SKIP}[1/y])
+   (r+1=1) \guard (\DW y1) \prefix \sem{\SKIP}[1/y]
 \]
 which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -54,7 +54,7 @@ In this pomset, the precondition is $(x+1=1)$, which specifies a property
 of the thread-local value of $x$.
 Finally $\sem{x \GETS 0\SEMI r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$ includes:
 \[
-   \bigl(0=0 \mid (\DW x0) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[0/x]\bigr)
+   (0=0) \guard (\DW x0) \prefix \sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}[0/x]
 \]
 which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -100,7 +100,7 @@ expand out the syntax sugar to get the program
 $(\aLoc\GETS1\SEMI\SKIP \PAR \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$.
 As before, $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
-   (r+1=2 \mid (\DW y2) \prefix \sem{\SKIP}[2/y])
+   (r+1=2) \guard (\DW y2) \prefix \sem{\SKIP}[2/y]
 \]
 which contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
@@ -466,8 +466,8 @@ To see how this arises,
 consider the definition of $\sem{\IF(r)\THEN x\GETS1\SEMI\SKIP \ELSE x\GETS1\SEMI\SKIP \FI}$:
 \[
    \aPSS_1 \parallel \aPSS_2 \quad\mbox{where}\quad
-   \aPSS_1 = (r\neq 0 \mid \sem{x\GETS1\SEMI\SKIP})  \quad\mbox{and}\quad
-   \aPSS_2 = (r=0 \mid \sem{x\GETS1\SEMI\SKIP})
+   \aPSS_1 = (r\neq 0) \guard \sem{x\GETS1\SEMI\SKIP}  \quad\mbox{and}\quad
+   \aPSS_2 = (r=0) \guard \sem{x\GETS1\SEMI\SKIP}
 \]
 Now, one pomset in $\aPSS_1$ is:
 \[\begin{tikzpicture}[node distance=1em]
@@ -490,7 +490,7 @@ that is $\aPS_2$ where:
 Crucially, in the definition of $\aPSS_1 \parallel \aPSS_2$
 there is \emph{no} requirement that $\Event_1$ and $\Event_2$ are disjoint,
 and in this case they overlap at $\aEv$. As a result, one pomset in
-$\aPSS_1\sqcup\aPSS_2$ is $\aPS_0$ where:
+$\aPSS_1\parallel\aPSS_2$ is $\aPS_0$ where:
 \[
   \Event_0 = \{\aEv\} \quad
   \labelling_0(\aEv) = (r\neq0 \lor r=0, \DW x1)

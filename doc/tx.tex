@@ -35,7 +35,7 @@ The semantics of programs with releasing write and acquiring read are similar
 to regular write and read, with $\DWRel\aLoc\aVal$ replacing
 $\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$:
 \begin{eqnarray*}
-  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; \bigl(\aExp=\aVal \mid (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]\bigr) \\
+  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; \bigl((\aExp=\aVal) \guard (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]\bigr) \\
   \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg]
 \end{eqnarray*}
 
@@ -236,7 +236,7 @@ elide in examples) and abort handlers (which we elide when they are empty):
 \begin{eqnarray*}
   \sem{\BEGINVAL\SEMI \aCmd\SEMI \RECOVERYVAL \bCmd \ENDREC}
   & = &
-  (\DB{\aVal}) \prefix \bigl(\sem{\aCmd} \cup (\FALSE \mid \sem{\aCmd}) \parallel \sem{\bCmd}\bigr)
+  (\DB{\aVal}) \prefix \bigl(\sem{\aCmd} \cup ((\FALSE \guard \sem{\aCmd}) \parallel \sem{\bCmd})\bigr)
   \\
   \sem{\COMMITVAL\SEMI \bCmd}
   & = &
