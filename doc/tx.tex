@@ -242,9 +242,9 @@ elide in examples) and abort handlers (which we elide when they are empty):
   & = &
   (\DC{\aVal}) \prefix \sem{\bCmd}
 \end{eqnarray*}
-The semantics of a transaction has two cases: a successful case
-(with only the transaction body) and an aborted case (with both the transaction body and the
-recovery code, where the body is marked as unsatisfiable). For example, two executions of
+The semantics of a transaction has two cases: a committed case
+(executing only the transaction body) and an aborted case (executing both the body and the
+recovery code, where the body is marked unsatisfiable). For example, two executions of
 \begin{math}
   (\BEGIN\SEMI \aLoc\GETS1\SEMI \aLoc\GETS2\SEMI \COMMIT\SEMI \RECOVERY \bLoc\GETS1\ENDREC)
 \end{math}
