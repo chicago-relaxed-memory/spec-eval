@@ -626,12 +626,13 @@ In \S\ref{sec:info-flow-attack} we present an information flow attack
 on relaxed memory, similar to Spectre in that it relies on speculative
 evaluation. Unlike Spectre it does not depend on timing attacks,
 but instead is based on the sensitivity of relaxed memory to data
-dependencies. For this reason, we present a simple model of relaxed
-memory, which is strong enough to capture this attack.
-The model includes concurrent memory accesses, which can introduce concurrent
+dependencies. % For this reason, we present a simple model of relaxed
+% memory, which is strong enough to capture this attack.
+
+Our model includes concurrent memory accesses, which can introduce concurrent
 reads-from. 
 Since we are allowing events to be partially ordered, this gives a simple
-model of relaxed memory, for example an independent read independent write
+model of relaxed memory.  For example an independent read independent write
 (IRIW) example is:
 \[
   x\GETS0\SEMI x\GETS x+1
@@ -661,13 +662,13 @@ which includes the execution:
   \po{rx1}{ry0}
   \po{ry1}{rx0}
 \end{tikzpicture}\]
-This model does not introduce thin-air reads (TAR),
-for example the TAR pit is
+This model does not introduce thin-air reads (TAR).
+For example the TAR pit
 \((
   x\GETS y \PAR y \GETS x
 )\)
-but an attempt to produce a value from thin air fails,
-for the usual reason of producing a cycle in $\le$, as shown on the left below:
+fails to produce a value for $x$ from thin air
+since this produces a cycle in $\le$, as shown on the left below:
 \begin{align*}
 \begin{tikzpicture}[node distance=1em]
   \event{ry42}{\DR{y}{42}}{}
@@ -690,7 +691,7 @@ for the usual reason of producing a cycle in $\le$, as shown on the left below:
   \rf{wy1}{ry1}
 \end{tikzpicture}
 \end{align*}
-This cycle can be broken by removing a dependency, for example0
+This cycle can be broken by removing a dependency. For example
 \((
   x\GETS y \PAR r\GETS x\SEMI y \GETS r+1-r
 )\)
@@ -725,8 +726,9 @@ discuss the thread inlining examples from
 
 \citet{DBLP:conf/esop/BattyMNPS15} showed that the thin-air problem has
 no per-candidate-execution solution for C++.  This result does not apply to
-our model, as the semantics of a conditional can depend on the semantics
-of both branches.
+our model, which has a different notion of dependency.
+% as the semantics of a conditional can depend on the semantics
+% of both branches.
 
 \subsection{Information flow attacks on relaxed memory}
 \label{sec:info-flow-attack}
@@ -803,7 +805,7 @@ In the case where \verb|SECRET| is $1$, there is an execution:
   \wk[out=25,in=155]{iy}{wy1}
 \end{tikzpicture}\]\vskip-\bigskipamount\noindent
 Note that in this case, there is no dependency from
-$(\DR{y}{1})$ to $(\DW{x}{1})$, which is what makes this
+$(\DR{y}{1})$ to $(\DW{x}{1})$.  This lack of dependency makes the
 execution possible. Thus, if the attacker sees
 an execution with $(\DW{z}{1})$, they can conclude
 that \verb|SECRET| is $1$, which is an information flow
@@ -817,7 +819,7 @@ compiler optimizations. Consider the program fragment:
     \ELIF(\CANREAD(\SEC))\THEN x\GETS\SEC
     \ELSE x\GETS1\SEMI z\GETS1 \FI
 \]
-Now, in the case where \verb|SECRET| is a constant \verb|1|,
+In the case where \verb|SECRET| is a constant \verb|1|,
 the compiler can inline it:
 \[
     \IF(y = 0)\THEN x\GETS1

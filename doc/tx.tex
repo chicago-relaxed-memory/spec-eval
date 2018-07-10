@@ -17,7 +17,7 @@ to definition~\ref{def:prefix} of prefixing %$\aAct\prefix\aPSS$
 (recalling that $\cEv$ is the %$\aAct$-labelled
 event being introduced):
 \begin{itemize}
-\item $\cEv \le \aEv$ whenever $\cEv$ is an acquire event or $\aEv$ is a release event
+\item $\cEv \le \aEv$ whenever $\cEv$ is an acquire event or $\aEv$ is a release event, and
 \item if $\cEv$ is an acquire event then $\aEv$ is independent of $\aLoc$,
   for every $\aLoc$.
 \end{itemize}
@@ -31,11 +31,11 @@ releasing writes and acquiring reads:
 \item $(\DWRel{\aLoc}{\aVal})$, a release action that writes $\aVal$ to $\aLoc$, and
 \item $(\DRAcq{\aLoc}{\aVal})$, an acquire action that reads $\aVal$ from $\aLoc$.
 \end{itemize}
-The semantics of programs with releasing write and acquiring read are the
-same as for regular write and read and, but with $\DWRel\aLoc\aVal$ replacing
-$\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$.  
+The semantics of programs with releasing write and acquiring read are similar
+to regular write and read, with $\DWRel\aLoc\aVal$ replacing
+$\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$:
 \begin{eqnarray*}
-  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\aExp=\aVal \mid (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]) \\
+  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; \bigl(\aExp=\aVal \mid (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]\bigr) \\
   \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg]
 \end{eqnarray*}
 
@@ -236,15 +236,15 @@ elide in examples) and abort handlers (which we elide when they are empty):
 \begin{eqnarray*}
   \sem{\BEGINVAL\SEMI \aCmd\SEMI \RECOVERYVAL \bCmd \ENDREC}
   & = &
-  (\DB{\aVal}) \prefix (\sem{\aCmd} \cup (\FALSE \mid \sem{\aCmd}) \parallel \sem{\bCmd})
+  (\DB{\aVal}) \prefix \bigl(\sem{\aCmd} \cup (\FALSE \mid \sem{\aCmd}) \parallel \sem{\bCmd}\bigr)
   \\
   \sem{\COMMITVAL\SEMI \bCmd}
   & = &
   (\DC{\aVal}) \prefix \sem{\bCmd}
 \end{eqnarray*}
 The semantics of a transaction has two cases: a successful case
-(the transaction body) and an aborted case (the transaction body and the recovery code, and marks the
-body as being unsatisfiable). For example, two executions of
+(with only the transaction body) and an aborted case (with both the transaction body and the
+recovery code, where the body is marked as unsatisfiable). For example, two executions of
 \begin{math}
   (\BEGIN\SEMI \aLoc\GETS1\SEMI \aLoc\GETS2\SEMI \COMMIT\SEMI \RECOVERY \bLoc\GETS1\ENDREC)
 \end{math}
@@ -313,8 +313,8 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
     matching $\comEv$ that ends $\aEv$.
   \end{enumerate}
 \end{definition}
-In discussion, we identify transactions by their unique begin event.  A
-transaction that does not abort is \emph{successful}.
+%In discussion, we identify transactions by their unique begin event.
+%A transaction that does not abort is \emph{successful}.
 %
 Conditions \ref{tx:1}-\ref{tx:5} ensure serializability of committed
 transactions.  Conditions \ref{tx:4}-\ref{tx:6} also ensure strong isolation

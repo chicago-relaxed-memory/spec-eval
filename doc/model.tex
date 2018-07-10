@@ -540,7 +540,7 @@ semantics of a simple concurrent imperative programming language.
   \label{def:programs}
 \begin{eqnarray*}
   \sem{\SKIP} & = & \{ \emptyset \} \\
-  \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\aExp=\aVal \mid (\DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]) \\
+  \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; \bigl(\aExp=\aVal \mid (\DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]\bigr) \\
   \sem{\aReg\GETS\aLoc\SEMI \aCmd} & = & \sem{\aCmd}[\aLoc/\aReg] \cup \textstyle\bigcup_\aVal\; (\DR\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg] \\
   \sem{\IF (\aExp) \THEN \aCmd \ELSE \bCmd \FI} & = & (\aExp \neq 0 \mid \sem{\aCmd}) \parallel (\aExp=0 \mid \sem{\bCmd}) \\
   \sem{\aCmd \PAR \bCmd} & = & \sem{\aCmd} \parallel \sem{\bCmd} \\
