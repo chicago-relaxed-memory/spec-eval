@@ -192,7 +192,7 @@ static void printUsage(char* progname) {
 }
 
 // how long to run trials for, in milliseconds
-#define DURATION_MS 15000
+#define DURATION_MS 60000
 int main(int argc, char* argv[]) {
   bool tuning;
   unsigned error_runs;
@@ -232,8 +232,8 @@ int main(int argc, char* argv[]) {
   struct manyTrials_res res;
 
   if(tuning) {
-    const unsigned error_runs_vals[] = {1, 2, 3, 4, 5, 7, 10, 15, 20};
-    const unsigned length_error_runs_vals = 9;
+    const unsigned error_runs_vals[] = {1, 2, 3, 4, 5, 7, 10, 15, 20, 30};
+    const unsigned length_error_runs_vals = 10;
     printf("\n error_runs  leaked bits/sec  %% of bits correct  %% of trials correct\n");
 
     // C++: for(const unsigned error_runs : error_runs_vals)

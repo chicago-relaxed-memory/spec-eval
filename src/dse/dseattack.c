@@ -236,7 +236,7 @@ static void printUsage(char* progname) {
 }
 
 // how long to run trials for, in milliseconds
-#define DURATION_MS 15000
+#define DURATION_MS 30000
 int main(int argc, char* argv[]) {
   bool tuning;
   uint64_t iters;
