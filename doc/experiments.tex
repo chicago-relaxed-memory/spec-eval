@@ -40,7 +40,7 @@ This {\SEC} is known at compile time, but may not be
 accessed except behind a security check.
 Since the attacker is running with low security privileges,
 the security check always fails,
-so the attacker can only access {\SEC} in dead code.
+so the attacker can only access the {\SEC} in dead code.
 \ignore{
 The attacker has no capabilities other than writing and executing code --- in
 particular the attacker may not disassemble the compiler or libraries to learn
@@ -49,8 +49,8 @@ may not access timers of any kind; and may not leverage hardware side channels.
 }
 The attacker's goal is to learn the value of the {\SEC}.
 
-As a running hypothetical example, suppose there is a library which contains
-a hardcoded {\SEC} such as an API key:
+As a running hypothetical example, suppose there is a library that contains
+a hardcoded {\SEC}: % such as an API key: --- API key mentioned just above
 \begin{verbatim}
   static const uint SECRET = 0x1234;
   static volatile bool canReadSecret = false;
