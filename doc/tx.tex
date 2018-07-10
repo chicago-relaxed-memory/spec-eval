@@ -236,7 +236,7 @@ elide in examples) and abort handlers (which we elide when they are empty):
 \begin{eqnarray*}
   \sem{\BEGINVAL\SEMI \aCmd\SEMI \RECOVERYVAL \bCmd \ENDREC}
   & = &
-  (\DB{\aVal}) \prefix \bigl(\sem{\aCmd} \cup ((\FALSE \guard \sem{\aCmd}) \parallel \sem{\bCmd})\bigr)
+  (\DB{\aVal}) \prefix \bigl(\sem{\aCmd} \cup \bigl((\FALSE \guard \sem{\aCmd}) \parallel \sem{\bCmd}\bigr)\bigr)
   \\
   \sem{\COMMITVAL\SEMI \bCmd}
   & = &

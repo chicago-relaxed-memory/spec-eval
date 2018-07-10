@@ -70,10 +70,11 @@ compiled alongside and integrated into a larger application, often
 using a just-in-time (JIT) compiler.
 JavaScript code from third-party websites running in a browser is a common
 example of this.
-We give an attacker similar capabilities against a
-compiler, except that we consider the simpler setting of using C code against a C
-compiler.
-One could imagine a similar attack using JavaScript against browser JIT
+% We give an attacker similar capabilities against a
+% compiler, except that we consider the simpler setting of using C code against a C
+% compiler.
+Although we consider only attacks using C code against a C compiler,
+one could imagine a similar attack using JavaScript against browser JIT
 compilers, where the compiler may have access to interesting secrets such as the
 browser's cookie store, and may be able to optimize based on those secrets.
 We plan to explore JavaScript attacks of this type as future work.
@@ -86,7 +87,8 @@ more detail.
 We show that by exploiting compiler optimizations which perform
 load-store reordering, an attacker can learn the value of a compile-time
 {\SEC} despite only being allowed to use it inside dead code.
-This attack was tested and works against {\GCC} version 6.3.0.
+%This attack was tested and works against {\GCC} version 6.3.0.
+We verified that this attack succeeds against {\GCC} version 6.3.0.
 
 The form of the attack presented in~\S\ref{sec:info-flow-attack} works in
 theory, but in practice, just because a compiler is \emph{allowed} to perform a
@@ -94,7 +96,8 @@ load-store reordering doesn't mean that it \emph{will}.
 We found that {\GCC} and {\CLANG} chose to read $y$ into a
 register first (before writing to $x$), regardless of the value of
 {\SEC}.
-However, we did find a related pattern in which {\GCC} will emit a
+% However, we did find a related pattern in which {\GCC} will emit a
+However, using a similar program we were able to coax {\GCC} to emit a
 different ordering of the read of $y$ and the write of $x$ depending
 on the value of a {\SEC}:
 \[\begin{array}[t]{@{}l}
@@ -119,7 +122,7 @@ on the value of a {\SEC}:
 \end{verbatim}
 }
 
-Figure~\ref{fig:lsr-asm} shows the assembly output of {\GCC} in the cases
+Figure~\ref{fig:lsr-asm} shows the assembly output of {\GCC} on this program in the cases
 where {\SEC} is 0 and 1 respectively.
 In the case that {\SEC} is $1$, {\GCC} removes the \IF
 statement entirely, and moves the read of $y$ above the write of $x$.
@@ -171,9 +174,9 @@ We extend this attack to leak a secret consisting of an arbitrary number
 \verb|N| of bits.
 To do this, we compile \verb|N| copies of the test function, each
 performing a boolean test on a single bit of {\SEC}.
-We must compile a separate function for each bit, rather than execute the same
-code repeatedly in a loop, so that the bit value is
-constant at compile time.
+So that the bit value is
+constant at compile time, we must compile a separate function for each bit, rather than execute the same
+code repeatedly in a loop.
 \ignore{
 The function used for reading the \verb|k|th bit is as follows (for
 \verb|N <= 64|):
@@ -226,7 +229,7 @@ while still allowing the desired reordering.
 Finally, we redundantly execute the entire attack several times, noting the
 value of $z$ in each case.
 We note that if \emph{any} of the redundant runs produces a value of
-$z\EQ0$ for a particular bit position, we can be certain that the
+$z\EQ0$ for a particular bit position, then we can be certain that the
 corresponding bit of {\SEC} \emph{must} be $0$, as it implies the
 read of $y$ was not reordered upwards in that particular function.
 On the other hand, the more runs that produce a value of $z\EQ1$ for a
@@ -366,7 +369,7 @@ In fact, we can perform a further optimization by monitoring the value of the
 variable $y$ (written to by the listening thread) and breaking out of the
 loop early if we see that the listening thread has already observed $x\EQ 1$.
 However, with {\CLANG}, we cannot use a loop at all --- the time-consuming
-computation must be branch-free, and furthermore must not consist of too many
+computation must be branch-free and, furthermore, must not consist of too many
 instructions.
 \ignore{
 This is because {\CLANG}'s dead store elimination pass operates only
