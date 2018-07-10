@@ -200,7 +200,7 @@ We will write $(\aForm \mid \aAct)$ for the pair $(\aForm,\aAct)$,
 elide $\aForm$ when $\aForm$ is a tautology, and write $\aAct$ crossed-out ($\NEVER\aAct$)
 when $\aForm$ is unsatisfiable.
 We lift terminology from logical formulae and actions to events,
-for example if $\labelling(\aEv)=(\aForm\mid\aAct)$ and
+for example if $\labelling(\aEv)=(\aForm\mid\aAct)$
 then we say
 $\aEv$ is unsatisfiable whenever $\aForm$ is unsatisfiable,
 $\aEv$ writes $\aVal$ to $\aLoc$ whenever $\aAct$ writes $\aVal$ to $\aLoc$, and
@@ -318,7 +318,7 @@ For example:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
   \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of wx1}
+  \event{rx1}{\DR{\aLoc}{1}}{right=2.5 em of wx1}
   \event{wx2}{\DW{\aLoc}{2}}{right=of rx1}
   \rf{wx1}{rx1}
   \wk{wx0}{wx1}
@@ -373,7 +373,7 @@ which has execution:
   \rf{wx1}{rx1}
   \rf[in=20,out=160]{wy1}{ry1}
 \end{tikzpicture}\]
-However, in order to model release/acquire fencing, we need to ban
+However, in order to model release/acquire fencing in \S\ref{sec:ra}, we need to ban
 executions such as:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
