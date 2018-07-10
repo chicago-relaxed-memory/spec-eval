@@ -215,8 +215,9 @@ a dependency between $(r\GETS x)$ and $(y\GETS r+2-r)$.
 
 \subsection{Blockers}
 \label{sec:blockers}
+
 Recall the preliminary definition of reads-from in \S\ref{sec:pomsets}, which
-defined a blocker to be and event $\cEv$ that writes to $\aLoc$ such that
+defined an $\aLoc$-blocker to be and event $\cEv$ that writes to $\aLoc$ such that
 $\bEv < \cEv < \aEv$.  Were we to adopt this definition, then concurrent
 threads could turn events that were not $\aLoc$-blockers into an
 $\aLoc$-blocker, even if the new thread does not mention $\aLoc$.
@@ -301,11 +302,12 @@ so $(\DR{\aLoc}{1})$ cannot
 read from $(\DW{\aLoc}{1})$.
 
 In the final definition of reads-from in \S\ref{sec:pomsets} we
-defined a blocker to be and event $\cEv$ that writes to $\aLoc$ such that
+ruled out $\aLoc$-blockers by requring that any
+event $\cEv$ that writes to $\aLoc$ has
 either $\bEv \ltN \cEv$ or $\cEv \ltN \aEv$.
 With this definition, in order for $(\DR{\aLoc}{1})$ to read from
 $(\DW{\aLoc}{1})$, we either need $(\DW{\aLoc}{1}) \ltN (\DW{\aLoc}{2})$
-or $(\DW{\aLoc}{2}) \ltN (\DW{\aLoc}{1})$, for example:
+or $(\DW{\aLoc}{2}) \ltN (\DR{\aLoc}{1})$, for example:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\DW{\aLoc}{1}}{}
   \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
