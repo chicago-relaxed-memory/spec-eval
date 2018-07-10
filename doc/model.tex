@@ -478,7 +478,11 @@ there is $\aPS\in\aPSS$ such that:
 \end{itemize}
 \end{definition}
 Prefixing is used to define the semantics of reads and writes, and
-adds a new event $\cEv$ with action $\aAct$. The tricky parts of the
+adds a new event $\cEv$ with action $\aAct$.  As in the definition
+of parallel composition, the definition allows the new event to overlap with
+events in $\aPSS$ as long as they agree on the action.
+
+The tricky parts of the
 definition are the named cases, which place requirements on read
 dependencies.  If $\aAct$ reads $\aVal$ from $\aLoc$, we have to
 decide whether $\aEv$ depends on $\cEv$ for some $\aEv$ with old
