@@ -11,9 +11,9 @@ and attacks on transactions in \S\ref{sec:transactions}.
 \label{sec:sequential-memory}
 
 In the semantics of memory, there are two very different ways memory
-can be accessed: sequentially or concurrently. These are modelled
+can be accessed: sequentially or concurrently. These are modeled
 differently, since hardware and compilers give very different
-guarantees about their behaviour.
+guarantees about their behavior.
 In this section, we discuss the sequential semantics, and leave
 the concurrent semantics to \S\ref{sec:concurrent-memory}.
 
@@ -24,7 +24,7 @@ $x$, which is $0$:
   \event{wx0}{\DW{x}{0}}{}
   \event{wy1}{\DW{y}{1}}{right=of wx0}
 \end{tikzpicture}\]
-To see how this execution is modelled, we first
+To see how this execution is modeled, we first
 expand out the syntax sugar to get the program
 $(\aLoc\GETS0\SEMI \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$
 Now $\sem{\SKIP}$ is just $\{\emptyset\}$, and
@@ -61,7 +61,7 @@ which contains the pomset:
   \event{wx0}{0=0 \mid \DW{x}{0}}{}
   \event{wy1}{0+1=1 \mid \DW{y}{1}}{right=of wx0}
 \end{tikzpicture}\]
-all of whose preconditions are tautologies, so this has the expected behaviour:
+all of whose preconditions are tautologies, so this has the expected behavior:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
   \event{wy1}{\DW{y}{1}}{right=of wx0}
@@ -76,7 +76,7 @@ $(\aForm \mid \aAct)$, one way the precondition $\aForm$
 can be discharged is by an assignment $\aLoc\GETS\aExp$,
 which performs a substitution $[\aExp/\aLoc]$.
 This is a variant of the Hoare semantics for
-assignment, where if $\aCmd$ has preconditon $\aForm$
+assignment, where if $\aCmd$ has precondition $\aForm$
 then $\aLoc\GETS\aExp\SEMI\aCmd$ has precondition
 $\aForm[\aExp/\aLoc]$.
 
@@ -95,7 +95,7 @@ performs a concurrent read of $x$:
   \rf{wx1}{rx1}
   \po{rx1}{wy2}
 \end{tikzpicture}\]
-To see how this execution is modelled, we first
+To see how this execution is modeled, we first
 expand out the syntax sugar to get the program
 $(\aLoc\GETS1\SEMI\SKIP \PAR \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$.
 As before, $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
@@ -118,7 +118,7 @@ which contains the pomset:
   \po{rx1}{wy2}
 \end{tikzpicture}\]
 Note that $(\DR x1)$ reads $1$ from $x$, and while
-$(x+1=2)[1/x]$ is a tautlogy,
+$(x+1=2)[1/x]$ is a tautology,
 $(x+1=2)$ is not,
 and so there is a dependency
 $(\DR x1) < (\DW y2)$.
@@ -206,7 +206,7 @@ this contains:
 and so the semantics of $(\aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+2-\aReg)$
 is the same as the semantics of $(\bLoc\GETS2\SEMI \aReg\GETS\aLoc)$.
 
-Note this this example shows that we are not just dealing
+This example shows that we are not just dealing
 with a syntactic notion of dependency, which is common
 in hardware models of memory. In syntactic dependency,
 since $r$ occurs free in $(y\GETS r+2-r)$, there would be
@@ -372,7 +372,7 @@ we will show how this model captures Spectre-like information
 flow attacks, once the attacker is provided with the ability to
 observe such speculations.
 
-To see how these executions are modelled, consider the semantics of
+To see how these executions are modeled, consider the semantics of
 $\sem{x\GETS 1\SEMI\SKIP}$, which contains any pomset of the form:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\aForm \mid \DW{x}{1}}{}
@@ -409,7 +409,7 @@ which gives the required pomset:
 \end{tikzpicture}\]
 Note that the precondition $r=0$ is dependent on $r$,
 and so there is a dependency $(\DR z0) < (\DW y2)$,
-modelling the control dependency introduced by the conditional.
+modeling the control dependency introduced by the conditional.
 
 \subsection{Control independencies}
 
@@ -463,7 +463,7 @@ that is $\aPS_2$ where:
   \Event_2 = \{\aEv\} \quad
   \labelling_2(\aEv) = (r= 0, \DW x1)
 \]
-Crucuially, in the definition of $\aPSS_1 \parallel \aPSS_2$
+Crucially, in the definition of $\aPSS_1 \parallel \aPSS_2$
 there is \emph{no} requirement that $\Event_1$ and $\Event_2$ are disjoint,
 and in this case they overlap at $\aEv$. As a result, one pomset in
 $\aPSS_1\sqcup\aPSS_2$ is $\aPS_0$ where:
@@ -844,10 +844,10 @@ $(\DW{x}{1})$ we cannot eliminate $(\DW{x}{2})$.
 One heuristic that a compiler might adopt is to only eliminate
 writes that are guaranteed to be followed by another write
 to the same variable. This can be formalized by saying that
-$\bEv$ is eliminatable if there is a $\aEv \ltN \bEv$ such
+$\bEv$ is eliminable if there is a $\aEv \ltN \bEv$ such
 that $\aEv$ is a tautology and $\bEv$ writes to every location
 $\aEv$ writes to. A model of dead store elimination is one where,
-in every pomset, every eliminatable event is unsatisfiable.
+in every pomset, every eliminable event is unsatisfiable.
 This simple model includes the examples above.
 
 Note that if dead store

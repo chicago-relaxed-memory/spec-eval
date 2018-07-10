@@ -44,7 +44,7 @@ the pomset:
   \po{ry1}{wx2}
 \end{tikzpicture}\]
 as required. There is an ordering $(\DR{\bLoc}{1}) < (\DW{\aLoc}{2})$
-because the precondition $(\aReg=1)$ depends on $\aReg$. If the preconditon
+because the precondition $(\aReg=1)$ depends on $\aReg$. If the precondition
 was independent of $\aReg$ then there would be no ordering, for example
 $\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1-\aReg}$ contains
 the pomset:
@@ -55,7 +55,7 @@ the pomset:
 since the precondition $(\aReg+1-\aReg=1)$ is independent of $\aReg$.
 
 The main novelty of our semantics, since it is designed to model
-speculative evaluation, is in modelling conditionals. In most
+speculative evaluation, is in modeling conditionals. In most
 sets-of-pomsets semantics, a pomset in
 $\sem{\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI}$ would either be
 given by a pomset in $\sem{\aCmd}$ or a pomset in $\sem{\bCmd}$.
@@ -68,7 +68,7 @@ contains the pomset:
   \event{wx1}{\aExp\neq0 \mid \DW{\aLoc}{1}}{}
   \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
 \end{tikzpicture}\]
-that is we have recorded behaviour from both branches of execution.
+that is we have recorded behavior from both branches of execution.
 Moreover, an action which is performed on both sides of the
 conditional can be merged, producing only one event in the resulting pomset.
 The precondition of the merged event is the disjunction of the preconditions
@@ -127,7 +127,7 @@ speculations such as the crossed out $(\DW\aLoc1)$.
 In summary, the features we need of the underlying data model are:
 \begin{itemize}
 \item \emph{actions}, which may read or write to memory locations, and
-\item \emph{preconditions}, which form a logic closed under substitution.
+\item \emph{preconditions}, which form a logic closed under substitution,
 \end{itemize}
 from which we can define the operations used in defining the semantics of programs,
 which include:
@@ -309,7 +309,7 @@ we also have negative statements $(\bEv \ltN \aEv)$
 
 In diagrams, we visualize $(\aEv \ltN \bEv)$ as a dashed
 arrow from $\bEv$ to $\aEv$ (note the flip of direction).
-We wrefer to edges introduced by $(\bEv < \aEv)$ as
+We refer to edges introduced by $(\bEv < \aEv)$ as
 \emph{strong edges} and by $(\aEv \ltN \bEv)$
 as \emph{weak edges}.
 We often highlight the reads-from edges as well.
@@ -352,7 +352,7 @@ further concurrency cannot turn a non-blocker into a blocker.
   for every $\aEv\in\Event$:
   \begin{itemize}
   \item $\aEv$ is independent of $\aLoc$, and
-  \item if $\aEv$ reads from $\aLoc$, then there is a $\bEv$ such that $\aEv$ can read $\aLoc$ fom $\bEv$.
+  \item if $\aEv$ reads from $\aLoc$, then there is a $\bEv$ such that $\aEv$ can read $\aLoc$ from $\bEv$.
   \end{itemize}
 \end{definition}
 
@@ -553,7 +553,8 @@ to other threads.  A read may see a
 thread-local value, or it may generate a read event that must be justified by
 another thread.  In the latter case, occurrences of $\aReg$ are replaced with
 $\aLoc$ (rather than $\aVal$) to ensure that dependencies are tracked
-properly.
+properly.  The subsequent substitution of $\aVal$ for $\aLoc$ occurs in
+definition~\ref{def:prefix} of prefixing.
 
 We have completed the formal definition of our model of speculative
 evaluation, and now turn to examples of this model in use.
