@@ -64,7 +64,7 @@ includes
 % \[\begin{tikzpicture}[node distance=1em]
 %   \event{wy1}{r<2\mid\DW{y}{1}}{}
 % \end{tikzpicture}\]
-Thus, by definition~\ref{def:programs}, 
+Thus, by Definition~\ref{def:programs}, 
 \begin{math}
   \sem{r\GETS x\SEMI \IF(r<2)\THEN y\GETS 1\FI}
 \end{math}
@@ -76,12 +76,12 @@ which simplifies to
 \begin{math}
   (\DR{x}{1}) \prefix (x<2\mid\DW{y}{1}),
 \end{math}
-which, by definition~\ref{def:prefix}, includes:
+which, by Definition~\ref{def:prefix}, includes:
 \[\begin{tikzpicture}[node distance=1em,baselinecenter]
     \event{rx1}{\DR{x}{1}}{}
     \event{wy1}{x<2\mid\DW{y}{1}}{right=of rx1}
   \end{tikzpicture}\]
-Here we have used the \emph{non-ordering read} clause of definition~\ref{def:prefix}:
+Here we have used the \textsc{[non-ordering read]} clause of Definition~\ref{def:prefix}:
 ``$\bForm'$ implies $\bForm[\aVal/\aLoc] \land \bForm$, if $\aAct$ reads $\aVal$ from $\aLoc$,''
 where $a=(\DR{x}{1})$,  $\bForm=\bForm'=(x<2)$.  We can use this case since
 $x<2$ implies $1<2\land x<2$.
@@ -94,7 +94,7 @@ arriving at:
     \event{wy1}{\DW{y}{1}}{right=of rx1}
     \po{ix}{rx1}
   \end{tikzpicture}\]
-Here we have used the \emph{ordering read}
+Here we have used the \textsc{[ordering read]}
 clause of \ref{def:prefix}:
 ``$\bForm'$ implies $\bForm[\aVal/\aLoc]$, if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$,''
 where $a=(\DW{x}{0})$,  $\bForm=(x<2)$ and $\bForm'=\TRUE$.  As long as

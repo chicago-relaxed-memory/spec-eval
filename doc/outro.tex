@@ -1,7 +1,7 @@
 \section{Conclusions and future work}
 
-In this paper, we have presented a model of speculative evaluation, and
-showed that it captures non-trivial properties of speculations produced
+In this paper, we have presented a model of speculative evaluation and
+shown that it captures non-trivial properties of speculations produced
 by hardware, compiler optimizations, and transactions. These properties
 include information flow attacks: in the case of hardware and transactions
 this is modeling known attacks~\cite{DBLP:journals/corr/abs-1801-01203,DBLP:conf/uss/DisselkoenKPT17},
@@ -20,18 +20,15 @@ in particular the logical formulation of $\aLoc$-closure in
 \S\ref{sec:logic} as
 $((\DR{\aLoc}{\aVal}) \Rightarrow \once(\DW{\aLoc}{\aVal}))$
 would no longer be sound.
-The model is also not considering coherence, though we speculate it
-can be added by requiring that for each $\aLoc$, $\ltN$ form a total
-order when restricted to events that write to $\aLoc$.
+% The model is also not considering coherence, though we speculate it
+% can be added by requiring that for each $\aLoc$, $\ltN$ form a total
+% order when restricted to events that write to $\aLoc$.
 
 The design space for transactions is very rich~\cite{DBLP:journals/pacmpl/DongolJR18}.
 We have only presented one design choice, and it remains to be seen how other
-design choices could be adopted. For example we have chosen to pun between
-commits which are aborted due to transaction failure, and ones which are aborted
-for other reasons such as failed speculation.
-
-\citet{Plotkin:1997:TSP:266557.266600} studied full-abstraction for pomset
-models.  It would interesting to extend their results to 3-valued pomsets.
+design choices could be adopted. For example we have chosen not to distinguish
+commits that are aborted due to transaction failure from commits which are aborted
+for other reasons, such as failed speculation.
 
 One interesting feature of this model is that (in the language
 of~\cite{Pichon-Pharabod:2016:CSR:2837614.2837616}) it is a
@@ -48,3 +45,8 @@ models multiple runs by giving the semantics of $\IF$ in terms of a
 concurrent semantics of both branches.
 In the parlance of information flow~\cite{Barthe:2004:SIF:1009380.1009669},
 the humble conditional suffices to construct a composition operator to detect information flow  in the presence of speculation.
+
+In future work, it would be interesting to see if full-abstraction
+results for pomsets \cite{Plotkin:1997:TSP:266557.266600} can be extended to
+3-valued pomsets.
+
