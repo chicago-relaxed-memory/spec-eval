@@ -5,7 +5,7 @@ in hardware and software.
 
 Information flow provides a formal
 foundation for end-to-end security.  Informally, a program is secure
-if there is no observable dependency of low-security observables on high-security inputs.
+if there is no observable dependency of low-security outputs on high-security inputs.
 The precise formalization of this intuitive idea has been the topic of
 extensive research \cite{Sabelfeld:2006:LIS:2312191.2314769}, encompassing a variety of language
 features such as non-determinism~\cite{Wittbold1990InformationFI},
@@ -88,7 +88,7 @@ has an execution:
 \end{tikzpicture}\]
 The edges from $(\DR{\aLoc}{1})$ to $(\DW{\bLoc}{1})$ and
 $(\DW{\bLoc}{2})$ indicate control dependencies. The presence of
-a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precondition,
+a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precondition.
 
 The novel contributions of this paper are:
 \begin{itemize}

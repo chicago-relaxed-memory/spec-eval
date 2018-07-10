@@ -686,7 +686,6 @@ Although it is not the primary focus of this paper, our model may be an
 attractive model of relaxed memory.  Many prior models either permit
 thin-air executions that our model forbids or forbid desirable executions
 that our model permits.
-
 In \S\ref{sec:logic}, we develop a logic which allows us to prove that our
 semantics forbids thin air examples that are permitted by prior speculative
 models
@@ -762,7 +761,7 @@ produces a cycle:
   \wk[out=-20,in=-150]{ix}{wx1}
   \wk[out=-20,in=-155]{ix}{wx2}
   \wk[out=25,in=155]{iy}{wy1}
-\end{tikzpicture}\]
+\end{tikzpicture}\]\vskip-\bigskipamount\noindent
 In the case where \verb|SECRET| is $1$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ix}{\DW{x}{0}}{}
@@ -778,7 +777,7 @@ In the case where \verb|SECRET| is $1$, there is an execution:
   \rf{wy1}{ry1}
   \wk[out=-20,in=-150]{ix}{wx1}
   \wk[out=25,in=155]{iy}{wy1}
-\end{tikzpicture}\]
+\end{tikzpicture}\]\vskip-\bigskipamount\noindent
 Note that in this case, there is no dependency from
 $(\DR{y}{1})$ to $(\DW{x}{1})$, which is what makes this
 execution possible. Thus, if the attacker sees
@@ -864,9 +863,11 @@ the program:
 In the case that \verb|SECRET| is $0$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
-  \event{wx1}{\DW{x}{1}}{right=2.5em of rx1}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \event{wx1}{\DW{x}{1}}{right=2.5em of wy1}
   \event{wx2}{\aForm \mid \DW{x}{2}}{right=of wx1}
-  \rf{wx1}{rx1}
+  \rf[out=160,in=20]{wx1}{rx1}
+  \po{rx1}{wy1}
   \wk{wx1}{wx2}
 \end{tikzpicture}\]
 where $\aForm$ is ($\lnot$\verb|canRead(SECRET)|),
@@ -875,9 +876,11 @@ In the case that \verb|SECRET| is not $0$, the matching execution
 is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx2}{\DR{x}{2}}{}
-  \nonevent{wx1}{\DW{x}{1}}{right=2.5em of rx2}
+  \event{wy2}{\DW{y}{2}}{right=of rx2}
+  \nonevent{wx1}{\DW{x}{1}}{right=2.5em of wy2}
   \event{wx2}{\DW{x}{2}}{right=of wx1}
   \rf[out=160,in=20]{wx2}{rx2}
+  \po{rx2}{wy2}
   \wk{wx1}{wx2}
 \end{tikzpicture}\]
 Now the $(\DW{x}{2})$ event is a guaranteed write, so the $(\DW{x}{1})$
