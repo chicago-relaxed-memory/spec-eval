@@ -1,6 +1,5 @@
 # to compile with clang (or a custom-built gcc, or anything), change this here or use 'make CC=somecc [...]'
 CC=gcc
-ARMCC=arm-linux-gnueabi-gcc -march=armv8-a
 override CFLAGS += -O3 -std=c11
 LDFLAGS=-lpthread
 

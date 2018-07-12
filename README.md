@@ -28,10 +28,13 @@ Specifically, the [lsr](src/lsr) directory contains the code for the
 load-store reordering attack described in Section 4.2 of the paper, and the
 [dse](src/dse) directory contains the code for the dead store elimination
 attack described in Section 4.3 of the paper.
+
 To run with default values of parameters, `cd` to the appropriate directory and
 `make run`.
 To test a broad range of parameter values, `cd` to the appropriate directory
 and `make runtune`.
+To use a compiler `mycc` other than the default (system `gcc`),
+`make CC=mycc [...]`.
 More detailed usage instructions are available by running the executable
 (`./lsrattack` or `./dseattack`) directly with no arguments.
 
