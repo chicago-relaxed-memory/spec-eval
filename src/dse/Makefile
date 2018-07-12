@@ -19,9 +19,7 @@ dseattack.s : dseattack.c for_0_to_2047.h
 
 .PHONY : run
 run: $(EXECS)
-	./$< run 100 2  # approximately tuned well on my (Craig's) machine
-# with clang, the first parameter is ignored, the second one seems
-#   to need to be 4 for actual 100% accuracy.  3 is very close.
+	./$< run 100 2  # approximately tuned well for gcc
 
 .PHONY : runtune
 runtune: $(EXECS)

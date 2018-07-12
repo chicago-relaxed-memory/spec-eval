@@ -19,6 +19,14 @@ lsrattack : $(SRC) for_0_to_2047.h
 lsrattack.s : $(SRC) for_0_to_2047.h
 	$(CC) $(CFLAGS) -S $< -o $@
 
+.PHONY : run
+run : $(EXECS)
+	./$< run 3
+
+.PHONY : runtune
+runtune: $(EXECS)
+	./$< tune
+
 .PHONY : clean
 clean :
 	-rm -rf $(EXECS) $(ASMS)
