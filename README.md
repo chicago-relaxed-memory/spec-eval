@@ -33,7 +33,7 @@ To run with default values of parameters, `cd` to the appropriate directory and
 To test a broad range of parameter values, `cd` to the appropriate directory
 and `make runtune`.
 More detailed usage instructions are available by running the executable
-(`./lsrattack` or `./dseattack`) directory with no arguments.
+(`./lsrattack` or `./dseattack`) directly with no arguments.
 
 By default, the experiments run for 30-60 seconds per set of parameter values.
 To adjust this higher or lower, change the `DURATION_MS` constant in the
