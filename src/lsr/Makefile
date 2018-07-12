@@ -4,7 +4,7 @@ ARMCC=arm-linux-gnueabi-gcc -march=armv8-a
 override CFLAGS += -O3 -std=c11
 LDFLAGS=-lpthread
 
-SRC=lsr.c
+SRC=lsrattack.c
 
 EXECS=lsrattack
 ASMS=$(addsuffix .s, $(EXECS))
