@@ -35,7 +35,7 @@ and `make runtune`.
 More detailed usage instructions are available by running the executable
 (`./lsrattack` or `./dseattack`) directly with no arguments.
 
-By default, the experiments run for 30-60 seconds per set of parameter values.
+By default, the experiments run for 60 seconds per set of parameter values.
 To adjust this higher or lower, change the `DURATION_MS` constant in the
 appropriate source file.
 
