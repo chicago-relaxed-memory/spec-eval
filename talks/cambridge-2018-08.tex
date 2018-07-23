@@ -8,6 +8,7 @@
 \setbeamercolor{frametitle}{fg=bottle}
 \setbeamercolor{section in toc}{fg=bottle!50!black}
 \setbeamercolor{author in sidebar}{fg=bottle!50!white}
+\setbeamercolor{itemize item}{fg=bottle}
 \setbeamertemplate{sidebar canvas right}[vertical shading][top=black,bottom=bottle]
 
 \begin{document}
@@ -35,10 +36,74 @@
   \end{quotation}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
   \frametitle{Why? Spectre!}
-  \vss
-  {\fboxrule=1ex\fboxsep=0pt\fbox{\includegraphics[height=.8\textheight]{omg-tweet.png}}}
+
+  {\fboxrule=1ex\fboxsep=0pt\fbox{\includegraphics[height=.8\textheight]{omg-tweet.png}}}\quad\pause
+  \begin{minipage}[b]{.45\textwidth}\raggedright
+    Attacks bypass dynamic security checks:
+
+\begin{verbatim}
+if (canReadSecret) {
+  doStuffWith(SECRET);
+}
+\end{verbatim}
+
+    Information flow from \verb|SECRET|
+    even though \verb|canReadSecret| is false.
+    \bigskip
+
+    Most formal models ignore code in branches
+    that aren't taken.
+
+    \bigskip
+  \end{minipage}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Models that include speculation?}
+
+  There are some models that include speculation\\
+  \emph{relaxed memory models}:
+
+  \begin{itemize}\footnotesize
+  \item \emph{The Java Memory Model}\\
+    Manson, Pugh and Adve, 2005.
+  \item \emph{Generative Operational Semantics for Relaxed Memory Models}\\
+    Jagadeesan, Pitcher and Riely, 2010.
+  \item \emph{A promising semantics for relaxed-memory concurrency}\\
+    Kang, Hur, Lahav, Vafeiadis and Dreyer, 2017.
+  \end{itemize}
+
+  \pause
+  \emph{Question}: is there a simple model similar to
+  those of relaxed memory, that can model speculation?
+\end{frame}
+
+\begin{frame}
+  \frametitle{Information flow attacks on speculation}
+  Speculation happens in many places:
+  \begin{itemize}\footnotesize
+  \item \emph{Speculation in hardware}\\
+    Attacked by Spectre (Kocher \emph{et al.}~2019).
+  \item \emph{Transactions}\\
+    Attacked by Prime+Abort (Disselokoen \emph{et al.}~2017).
+  \item \emph{Relaxed memory}\\
+    No known attacks.
+  \end{itemize}
+  
+  \pause
+  \emph{Question}: Do all three lead to information flow attacks?
+\end{frame}
+
+\begin{frame}
+  \frametitle{Contributions}
+  \begin{itemize}\footnotesize
+  \item A simple compositional model.
+  \item Examples.
+  \item Attacks (including a new attack on relaxed memory).
+  \item Experiments (testing practicality of new attacks).
+  \end{itemize}
 \end{frame}
 
 \section{Model}
