@@ -84,16 +84,17 @@ if (canReadSecret) {
   \frametitle{Information flow attacks on speculation}
   Speculation happens in many places:
   \begin{itemize}\footnotesize
-  \item \emph{Speculation in hardware}\\
-    Attacked by Spectre (Kocher \emph{et al.}~2019).
-  \item \emph{Transactions}\\
-    Attacked by Prime+Abort (Disselokoen \emph{et al.}~2017).
-  \item \emph{Relaxed memory}\\
-    No known attacks.
+  \item \emph{Speculation in hardware} (branch prediction,\ldots) \\
+    \onslide<2->{Attacked by Spectre (Kocher \emph{et al.}~2019).}
+  \item \emph{Transactions} (transactional memory,\ldots)\\
+    \onslide<2->{Attacked by Prime+Abort (Disselokoen \emph{et al.}~2017).}
+  \item \emph{Relaxed memory} (compiler optimizations,\ldots)\\
+    \onslide<2->{No known attacks.}
   \end{itemize}
   
   \pause
-  \emph{Question}: Do all three lead to information flow attacks?
+  \emph{Question}: are there information flow attacks against
+  compiler optimizations?
 \end{frame}
 
 \begin{frame}
