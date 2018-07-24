@@ -11,6 +11,8 @@
 \setbeamercolor{itemize item}{fg=bottle}
 \setbeamertemplate{sidebar canvas right}[vertical shading][top=black,bottom=bottle]
 
+\usepackage{../doc/macros}
+
 \begin{document}
 
 \begin{frame}[plain]
@@ -109,7 +111,165 @@ if (canReadSecret) {
 
 \section{Model}
 \begin{frame}
-  \frametitle{Model goes here}
+  \frametitle{Pomsets}
+  C11-style models are based on \emph{events} \\
+  with \emph{labels} (e.g.~$(\DR{x}{3})$ or~$(\DW{x}{3})$)\\
+  and \emph{relations} (e.g.~happens-before or reads-from).
+
+  \bigskip\pause
+  Simplest such is \emph{partially ordered multisets} (Gisher, 1988).
+
+  \bigskip
+  Only one relation, a partial order modelling dependency\pause, e.g.
+
+\[\only<3>{\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \event{wz2}{\DW{\cLoc}{2}}{right=of wy1}
+  \po[out=25,in=155]{rx1}{wz2}
+\end{tikzpicture}}
+\only<4>{\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \nonevent{wy2}{\DW{\bLoc}{2}}{below=of wy1}
+  \po{rx1}{wy1}
+  \po{rx1}{wy2}
+\end{tikzpicture}}
+\]
+
+  \only<3>{is an execution of $(\aReg\GETS\aLoc\SEMI \bLoc\GETS1\SEMI \cLoc\GETS\aReg+1)$.}
+
+  \only<4>{is an execution of $(\IF(\aLoc)\THEN \bLoc\GETS1 \ELSE \bLoc\GETS2 \FI)$.}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Compositional pomset model}
+
+  First off, straight-line code.
+
+  \pause\bigskip
+  \emph{New idea}: put preconditions on events\pause, e.g.
+
+\[\begin{tikzpicture}[node distance=1em]
+  \onslide<5->{\event{rx1}{\DR{\aLoc}{1}}{}}
+  \onslide<4->{\event{wy1}{\DW{\bLoc}{1}}{right=of rx1}}
+  \onslide<3->{\event{wz2}{\only<3-4>{r=1\mid}\only<5>{1=1\mid} \DW{\cLoc}{2}}{right=of wy1}}
+  \onslide<5->{\po[out=25,in=155]{rx1}{wz2}}
+\end{tikzpicture}\]
+
+  is an execution of $(\onslide<5->{\aReg\GETS\aLoc\SEMI} \onslide<4->{\bLoc\GETS1\SEMI} \cLoc\GETS\aReg+1)$.
+
+  \bigskip
+  \only<4>{\emph{Note}: no dependency because $\aReg$ does not depend on $\bLoc\GETS1$.}
+
+  \only<5>{\emph{Note}: dependency because $\aReg$ depends on $\aReg\GETS\aLoc$.}
+
+  \only<5>{\emph{Also note}: performing a substitution $[1/\aReg]$.}
+
+  \only<6>{\emph{Visualize}: elide tautologies}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Compositional pomset model}
+
+  Next, conditionals.
+
+  \pause\bigskip
+  \emph{New idea}: an execution of $\IF M \THEN \aCmd \ELSE \bCmd \FI$\\
+  comes from an execution of $\aCmd$ \emph{and} an execution of $\bCmd$\pause, e.g.
+
+\[\begin{tikzpicture}[node distance=1em]
+  \onslide<6->{\event{rx1}{\DR{\aLoc}{1}}{}}
+  \onslide<3,5->{\event{wy1}{\only<3,5>{\aReg\neq0 \mid}\only<6>{1\neq0 \mid} \DW{\bLoc}{1}}{right=of rx1}}
+  \onslide<4-6>{\event{wy2}{\only<4,5>{\aReg=0 \mid}\only<6->{1=0 \mid} \DW{\bLoc}{2}}{below=of wy1}}
+  \onslide<7>{\nonevent{nwy2}{\DW{\bLoc}{2}}{below=of wy1}}
+  \onslide<6->{\po{rx1}{wy1}}
+  \onslide<6>{\po{rx1}{wy2}}
+  \onslide<7>{\po{rx1}{nwy2}}
+\end{tikzpicture}\]
+
+  is an execution of \((
+    \onslide<6->{\aReg\GETS\aLoc\SEMI}
+    \onslide<5->{\IF(\aReg)\THEN}
+    \onslide<3,5->{\bLoc\GETS1}
+    \onslide<5->{\ELSE}
+    \onslide<4->{\bLoc\GETS2}
+    \onslide<5->{\FI}
+  )\)
+  \only<3>{when $\aReg\neq0$}
+  \only<4>{when $\aReg=0$}
+
+  \bigskip
+  \only<7>{\emph{Visualize}: elide tautologies and cross out unsatisfiables}
+
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Compositional pomset model}
+
+  But\dots\pause
+  any execution of $\aCmd$ should be\\
+  an execution of $\IF M \THEN \aCmd \ELSE \aCmd \FI$\pause, e.g.
+
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \nonevent{nwy1}{\DW{\bLoc}{1}}{below=of wy1}
+  \po{rx1}{wy1}
+  \po{rx1}{nwy1}
+\end{tikzpicture}\]
+  is an execution of $(\IF \aLoc\THEN \bLoc\GETS1 \ELSE \bLoc\GETS1 \FI)$\pause,
+  but so is
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+\end{tikzpicture}\]
+
+  \pause
+  \emph{New idea}: events from different branches can merge.
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Compositional pomset model}
+
+  Lastly, concurrency.
+
+  \bigskip\pause
+  \emph{Old idea}: match reads with matching
+  writes (\`a la C11)\pause, e.g.
+
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{y}{1}}{}
+  \event{wx1}{\DW{x}{1}}{below=of ry1}
+  \event{rx1}{\DR{x}{1}}{right=2.5em of ry1}
+  \event{wy1}{\DW{y}{1}}{below=of rx1}
+  \po{ry1}{wx1}
+  \rf{wx1}{rx1}
+  \rf{wy1}{ry1}
+\end{tikzpicture}\]
+
+  is an execution of
+\((
+  x\GETS y \PAR r\GETS x\SEMI y \GETS 1
+)\).
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Compositional pomset model}
+
+  Glossed over some details:
+  \begin{itemize}\footnotsize
+  \item 3-valued pomsets for negative constraints $d \ltN e$,
+  \item sanity conditions on reads-from,
+  \item precise rules for dependency,
+  \item scoping and scope extrusion,
+  \item $\cdots$
+  \end{itemize}
+  All in the paper!
+  
 \end{frame}
 
 \section{Examples}
