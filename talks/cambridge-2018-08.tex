@@ -422,15 +422,88 @@ are executions of \(\BEGIN\SEMI x\GETS x+1\SEMI \END\)\pause, but \emph{not}
 \end{tikzpicture}\]
   Information flow from $\SEC$ to $x$.
 
-
 \end{frame}
 
 \begin{frame}
   \frametitle{New store reordering attack}
+
+  An attack on relaxed memory,
+  \emph{discovered from this model}.
+\[\begin{array}[t]{@{}l}
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    \IF(y\EQ0)\THEN x\GETS1
+    \brELIF(\CANREAD(\SEC))\THEN x\GETS\SEC
+    \brELSE x\GETS1\SEMI z\GETS1 \FI
+\end{array}\end{array}\]
+
+If $\SEC$ is $1$, there is an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy1}{\DW{y}{1}}{below=of rx1}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{wx1}{\DW{x}{1}}{above=of ry1}
+  \event{wz1}{\DW{z}{1}}{right=of ry1}
+  \po{rx1}{wy1}
+  \po{ry1}{wz1}
+  \rf{wx1}{rx1}
+  \rf{wy1}{ry1}
+\end{tikzpicture}\]
+
+If $\SEC$ is $2$, there is no execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy1}{\DW{y}{1}}{below=of rx1}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{wx1}{\DW{x}{1}}{above=of ry1}
+  \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
+  \event{wz1}{\DW{z}{1}}{right=of ry1}
+  \po{rx1}{wy1}
+  \po{ry1}{wx1}
+  \po{ry1}{wx2}
+  \po{ry1}{wz1}
+  \rf{wx1}{rx1}
+  \rf{wy1}{ry1}
+\end{tikzpicture}\]
+
 \end{frame}
 
 \begin{frame}
   \frametitle{New dead store elimination attack}
+
+  Another attack
+  \emph{discovered from this model}.
+\[\begin{array}[t]{@{}l}
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    x\GETS 1\SEMI\\
+    \IF(\CANREAD(\SEC))\THEN \IF(\SEC)\THEN x\GETS 2\FI
+    \brELSE x\GETS 2\FI
+\end{array}\end{array}\]
+If $\SEC$ is $0$, there is an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \event{wx1}{\DW{x}{1}}{right=2.5em of wy1}
+  \event{wx2}{\lnot\CANREAD(\SEC) \mid \DW{x}{2}}{right=of wx1}
+  \rf[out=160,in=20]{wx1}{rx1}
+  \po{rx1}{wy1}
+  \po{wx1}{wx2}
+\end{tikzpicture}\]
+If $\SEC$ is $1$,
+\only<1>{\\there is an execution:}%
+\only<2>{and dead store elimination is performed,\\there is \emph{no} execution:}
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \only<1>{\event{wx1}{\DW{x}{1}}{right=2.5em of wy1}}
+  \only<2>{\nonevent{nwx1}{\DW{x}{1}}{right=2.5em of wy1}}
+  \event{wx2}{\DW{x}{2}}{right=of wx1}
+  \rf[out=160,in=20]{wx1}{rx1}
+  \po{rx1}{wy1}
+  \po{wx1}{wx2}
+\end{tikzpicture}\]
+
 \end{frame}
 
 \section{Experiments}
