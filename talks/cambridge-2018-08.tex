@@ -32,29 +32,22 @@
 \end{frame}
 
 \section{Introduction}
-\begin{frame}{Overview}
-  \begin{quotation}
-  \tableofcontents
-  \end{quotation}
-\end{frame}
 
 \begin{frame}[fragile]
   \frametitle{Why? Spectre!}
 
   {\fboxrule=1ex\fboxsep=0pt\fbox{\includegraphics[height=.8\textheight]{omg-tweet.png}}}\quad\pause
   \begin{minipage}[b]{.45\textwidth}\raggedright
+    Allows reading whole process address space.
+    
+    \bigskip
     Attacks bypass dynamic security checks:
 
 \begin{verbatim}
-if (canReadSecret) {
+if canRead(SECRET) {
   doStuffWith(SECRET);
 }
 \end{verbatim}
-
-    Information flow from \verb|SECRET|
-    even though \verb|canReadSecret| is false.
-    \bigskip
-
     Most formal models ignore code in branches
     that aren't taken.
 
@@ -89,7 +82,7 @@ if (canReadSecret) {
   \item \emph{Speculation in hardware} (branch prediction,\ldots) \\
     \onslide<2->{Attacked by Spectre (Kocher \emph{et al.}~2019).}
   \item \emph{Transactions} (transactional memory,\ldots)\\
-    \onslide<2->{Attacked by Prime+Abort (Disselokoen \emph{et al.}~2017).}
+    \onslide<2->{Attacked by Prime+Abort (Disselkoen \emph{et al.}~2017).}
   \item \emph{Relaxed memory} (compiler optimizations,\ldots)\\
     \onslide<2->{No known attacks.}
   \end{itemize}
@@ -103,7 +96,6 @@ if (canReadSecret) {
   \frametitle{Contributions}
   \begin{itemize}\footnotesize
   \item A simple compositional model.
-  \item Examples.
   \item Attacks (including a new attack on relaxed memory).
   \item Experiments (testing practicality of new attacks).
   \end{itemize}
@@ -120,7 +112,7 @@ if (canReadSecret) {
   Simplest such is \emph{partially ordered multisets} (Gisher, 1988).
 
   \bigskip
-  Only one relation, a partial order modelling dependency\pause, e.g.
+  Only one relation, a partial order modeling dependency\pause, e.g.
 
 \[\only<3>{\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{\aLoc}{1}}{}
@@ -142,6 +134,7 @@ if (canReadSecret) {
   \only<4>{is an execution of $(\IF(\aLoc)\THEN \bLoc\GETS1 \ELSE \bLoc\GETS2 \FI)$.}
 \end{frame}
 
+\subsection{Loads and stores}
 \begin{frame}
   \frametitle{Compositional pomset model}
 
@@ -169,6 +162,7 @@ if (canReadSecret) {
   \only<6>{\emph{Visualize}: elide tautologies}
 \end{frame}
 
+\subsection{Conditionals}
 \begin{frame}
   \frametitle{Compositional pomset model}
 
@@ -231,6 +225,7 @@ if (canReadSecret) {
 
 \end{frame}
 
+\subsection{Concurrency}
 \begin{frame}
   \frametitle{Compositional pomset model}
 
@@ -292,7 +287,7 @@ if (canReadSecret) {
 \end{tikzpicture}\]
   is an execution of
   \(
-     \IF y \THEN \IF \CANREAD(\SEC) \THEN x\GETS\SEC \ELSE x\GETS1 \FI \FI
+     \IF y \THEN \IF \CANREAD(\SEC) \THEN x\GETS\SEC \ELSE x\GETS2 \FI \FI
   \).
 
   \pause\bigskip
@@ -300,6 +295,7 @@ if (canReadSecret) {
   
 \end{frame}
 
+\subsection{Branch prediction}
 \begin{frame}
   \frametitle{Modeling Spectre attack}
 
@@ -325,8 +321,8 @@ if (canReadSecret) {
   \).
 
   \pause\bigskip
-  Require that any event labelled $(\DT{x})$
-  must be preceded by an event labelled $(\DR{x}{v})$ or $(\DW{x}{v})$.
+  Require that if there is an event labeled $(\DT{x})$
+  then there must be an event labeled $(\DR{x}{v})$ or $(\DW{x}{v})$.
   
 \end{frame}
 
@@ -354,10 +350,11 @@ if (canReadSecret) {
   
 \end{frame}
 
+\subsection{Transactions}
 \begin{frame}
   \frametitle{Modeling Prime+Abort attack}
 
-  Prime+Abort is an information flow attsck on Intel's transactional memory.
+  Prime+Abort is an information flow attack on Intel's transactional memory.
   So first model transactions\pause, e.g.
 
 \[\begin{tikzpicture}[node distance=1em]
@@ -399,7 +396,7 @@ are executions of \(\BEGIN\SEMI x\GETS x+1\SEMI \END\)\pause, but \emph{not}
   Transactions are fine, but not if we add a reason for an abort.
 
   \bigskip
-  If the attacker knows that every aborted transaction does so
+  If the attacker knows an aborted transaction does so
   because of a read/write or write/write conflict, then in
   \[\begin{array}{l}
     \IF \CANREAD(\SEC) \THEN a[\SEC]\GETS1 \FI \PAR{}\\
@@ -424,6 +421,7 @@ are executions of \(\BEGIN\SEMI x\GETS x+1\SEMI \END\)\pause, but \emph{not}
 
 \end{frame}
 
+\subsection{Compiler optimizations}
 \begin{frame}
   \frametitle{New store reordering attack}
 
@@ -480,28 +478,26 @@ If $\SEC$ is $2$, there is no execution:
     \IF(\CANREAD(\SEC))\THEN \IF(\SEC)\THEN x\GETS 2\FI
     \brELSE x\GETS 2\FI
 \end{array}\end{array}\]
-If $\SEC$ is $0$, there is an execution:
+If $\SEC$ is $1$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx1}{\DR{x}{1}}{}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
   \event{wx1}{\DW{x}{1}}{right=2.5em of wy1}
-  \event{wx2}{\lnot\CANREAD(\SEC) \mid \DW{x}{2}}{right=of wx1}
-  \rf[out=160,in=20]{wx1}{rx1}
-  \po{rx1}{wy1}
-  \po{wx1}{wx2}
-\end{tikzpicture}\]
-If $\SEC$ is $1$,
-\only<1>{\\there is an execution:}%
-\only<2>{and dead store elimination is performed,\\there is \emph{no} execution:}
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1}{\DR{x}{1}}{}
-  \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \only<1>{\event{wx1}{\DW{x}{1}}{right=2.5em of wy1}}
-  \only<2>{\nonevent{nwx1}{\DW{x}{1}}{right=2.5em of wy1}}
   \event{wx2}{\DW{x}{2}}{right=of wx1}
   \rf[out=160,in=20]{wx1}{rx1}
   \po{rx1}{wy1}
   \po{wx1}{wx2}
+\end{tikzpicture}\]
+\pause
+If dead store elimination is performed, there is \emph{no} execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \nonevent{nwx1}{\DW{x}{1}}{right=2.5em of wy1}
+  \event{wx2}{\DW{x}{2}}{right=of wx1}
+  \rf[out=160,in=20]{wx1}{rx1}
+  \po{rx1}{wy1}
+  \po{nwx1}{wx2}
 \end{tikzpicture}\]
 
 \end{frame}
@@ -510,8 +506,8 @@ If $\SEC$ is $1$,
 \begin{frame}
   \frametitle{Implementing the new attacks}
 
-  Spectre and Prime+Abort are implemented.
-  What about the new attacks?
+  Spectre and Prime+Abort are implemented.\\
+  What about the attacks on compiler optimizations?
 
   \pause\bigskip
   \emph{Yes}\pause, under unrealistic assumptions:
@@ -581,7 +577,7 @@ label1:\\
   Works against clang as well as gcc.
 
   \bigskip
-  Attack is 99.9\% accurate at 400Kbps for clang, and 2Mbps for gcc.
+  Attack is 99.9\% accurate at 400Kbps (clang), 2Mbps (gcc).
 
 \end{frame}
 
