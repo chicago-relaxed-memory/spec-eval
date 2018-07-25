@@ -273,8 +273,164 @@ if (canReadSecret) {
 \end{frame}
 
 \section{Attacks}
+
 \begin{frame}
-  \frametitle{Information flow attacks go here}
+  \frametitle{Information flow example}
+  Imagine a $\SEC$, protected by a run-time security check:
+  \[
+     \IF \CANREAD(\SEC) \THEN \dots\mbox{use } \SEC\dots \ELSE \dots \FI
+  \]
+  For attacker code $\CANREAD(\SEC)$ is always false\pause, e.g.
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{y}{1}}{}
+  \event{wx2}{\DW{x}{2}}{right=of ry1}
+  \nonevent{rs1}{\DR{\SEC}{1}}{below=of wx2}
+  \nonevent{wx1}{\DW{x}{1}}{right=of rs1}
+  \po{ry1}{wx2}
+  \po{ry1}{rs1}
+  \po{rs1}{wx1}
+\end{tikzpicture}\]
+  is an execution of
+  \(
+     \IF y \THEN \IF \CANREAD(\SEC) \THEN x\GETS\SEC \ELSE x\GETS1 \FI \FI
+  \).
+
+  \pause\bigskip
+  Attacker goal: learn if $\SEC$ is $0$ or $1$.
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Modeling Spectre attack}
+
+  Spectre uses cache timing to discover if a memory location
+  has been touched.
+
+  \pause\bigskip
+  Glossing over a lot of details, this is
+  \[
+     \IF \TOUCHED(x) \THEN \cdots \ELSE \cdots \FI
+  \]
+
+  \pause
+  Modeled with a new action $(\DT{x})$\pause, e.g.
+\[\begin{tikzpicture}[node distance=1em]
+  \event{tx}{\DT{x}}{}
+  \event{wy1}{\DW{y}{1}}{right=of tx}
+  \po{tx}{wy1}
+\end{tikzpicture}\]
+  is an execution of
+  \(
+     \IF \TOUCHED(x) \THEN y\GETS1 \FI
+  \).
+
+  \pause\bigskip
+  Require that any event labelled $(\DT{x})$
+  must be preceded by an event labelled $(\DR{x}{v})$ or $(\DW{x}{v})$.
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Modeling Spectre attack}
+
+  A very simplified Spectre attack:
+  \[\begin{array}{l}
+    \IF \CANREAD(\SEC) \THEN a[\SEC]\GETS1
+    \brELIF \TOUCHED(a[0]) \THEN x\GETS0 
+    \brELIF \TOUCHED(a[1]) \THEN x\GETS1 \FI 
+  \end{array}\]
+  \pause
+  e.g.~with execution
+\[\begin{tikzpicture}[node distance=1em]
+  \nonevent{rs1}{\DR{\SEC}{1}}{}
+  \nonevent{wa1}{\DW{a[1]}{1}}{right=of rs1}
+  \event{ta1}{\DT{a[1]}} {right=of wa1}
+  \event{wx1}{\DW{x}{1}} {right=of ta1}
+  \po{rs1}{wa1}
+  \po{wa1}{ta1}
+  \po{ta1}{wx1}
+\end{tikzpicture}\]
+  Information flow from $\SEC$ to $x$.
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Modeling Prime+Abort attack}
+
+  Prime+Abort is an information flow attsck on Intel's transactional memory.
+  So first model transactions\pause, e.g.
+
+\[\begin{tikzpicture}[node distance=1em]
+  \event{b}{\DB}{}
+  \event{rx1}{\DR{x}{1}}{right=of b}
+  \event{wx2}{\DW{x}{2}}{right=of rx1}
+  \event{c}{\DC}{right=of wx2}
+  \po{b}{rx1}
+  \po{rx1}{wx2}
+  \po{wx2}{c}
+\end{tikzpicture}\]
+  and
+\[\begin{tikzpicture}[node distance=1em]
+  \event{b}{\DB}{}
+  \nonevent{rx1}{\DR{x}{1}}{right=of b}
+  \nonevent{wx2}{\DW{x}{2}}{right=of rx1}
+  \nonevent{c}{\DC}{right=of wx2}
+  \po{b}{rx1}
+  \po{rx1}{wx2}
+  \po{wx2}{c}
+\end{tikzpicture}\]
+are executions of \(\BEGIN\SEMI x\GETS x+1\SEMI \END\)\pause, but \emph{not}
+\[\begin{tikzpicture}[node distance=1em]
+  \event{b}{\DB}{}
+  \event{rx1}{\DR{x}{1}}{right=of b}
+  \nonevent{wx2}{\DW{x}{2}}{right=of rx1}
+  \nonevent{c}{\DC}{right=of wx2}
+  \po{b}{rx1}
+  \po{rx1}{wx2}
+  \po{wx2}{c}
+\end{tikzpicture}\]
+
+  
+\end{frame}
+
+\begin{frame}
+  \frametitle{Modeling Prime+Abort attack}
+
+  Transactions are fine, but not if we add a reason for an abort.
+
+  \bigskip
+  If the attacker knows that every aborted transaction does so
+  because of a read/write or write/write conflict, then in
+  \[\begin{array}{l}
+    \IF \CANREAD(\SEC) \THEN a[\SEC]\GETS1 \FI \PAR{}\\
+    \BEGIN\SEMI a[1]\GETS2\SEMI \texttt{loop}\SEMI \END\SEMI x\GETS1
+  \end{array}\]
+  the transaction aborts only when $\SEC$ is $1$.
+
+  \[\begin{tikzpicture}[node distance=1em]
+  \nonevent{rs1}{\DR{\SEC}{1}}{}
+  \nonevent{wa1}{\DW{a[1]}{1}}{right=of rs1}
+  \event{b}{\DB}{below=of rs1}
+  \nonevent{wa2}{\DW{a[1]}{2}}{right=of b}
+  \nonevent{c}{\DC}{right=of wa2}
+  \event{wx1}{\DW{x}{1}}{right=of c}
+  \po{rs1}{wa1}
+  \po{b}{wa2}
+  \po{wa2}{c}
+  \po{c}{wx1}
+  \rf{wa1}{wa2}
+\end{tikzpicture}\]
+  Information flow from $\SEC$ to $x$.
+
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{New store reordering attack}
+\end{frame}
+
+\begin{frame}
+  \frametitle{New dead store elimination attack}
 \end{frame}
 
 \section{Experiments}
