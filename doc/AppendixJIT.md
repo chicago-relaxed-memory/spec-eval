@@ -136,13 +136,14 @@ SpiderMonkey.
 ### Pure JavaScript
 
 With respect to the code snippet from Section 3.10, testing reveals that
-SpiderMonkey performs the `if(y==0)` before any `x=1` in all cases; there is
-no load-store reordering that would enable us to potentially observe `z==1`.
+SpiderMonkey performs the `if(y==0)` before any `x=1` in all cases; it does not
+perform the load-store reordering that would enable us to potentially observe
+`z==1`.
 In fact, testing seems to show that SpiderMonkey never hoists common statements
 from both branches of an `if`, or at least not in the case where the common
 statement is an assignment to a global (and the condition is a global as well).
-The 3.10 attack fundamentally relies on this hoisting, so it will not be
-possible to mount against SpiderMonkey.
+The 3.10 attack fundamentally relies on this kind of hoisting, so it will not
+be possible to mount against SpiderMonkey.
 
 In our testing with the code snippet from 4.2, SpiderMonkey doesn't ever
 reorder the read of `y` above the write of `x`.
