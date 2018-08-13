@@ -1,7 +1,7 @@
 # Our attacks vs. JIT compilers
 
 This brief appendix to the paper --- "Code That Never Ran", found
-[here in this repo](doc/paper.pdf) --- details our (so-far-negative) results
+[here in this repo](paper.pdf) --- details our (so-far-negative) results
 attempting to extend the paper's attacks to JIT compilers.
 Some justification for why this is a topic worth investigating can be found in
 the paper; this document will assume thorough familiarity with the contents of
