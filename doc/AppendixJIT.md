@@ -45,8 +45,8 @@ Therefore, we investigated Cranelift as well, and a cursory examination of
 Cranelift source code at the time of this writing seems to indicate that it,
 like IonMonkey, also never removes store instructions except if unreachable.
 Cranelift's dead code elimination pass specifically always retains stores.
-However, no actual experimentation has yet been done on Cranelift to support
-this conclusion.
+Finally, we confirmed with Dan Gohman that Cranelift currently does not perform
+dead store elimination.
 
 ## V8
 
@@ -153,11 +153,38 @@ start of a function, i.e. to move variable reads "up" as much as possible.
 
 ### Wasm
 
-TODO
+Regarding IonMonkey (the current optimizing wasm backend for SpiderMonkey), I
+haven't yet been able to determine whether it's vulnerable, although I suspect
+not, as IonMonkey is the same engine which SpiderMonkey uses to optimize JS,
+and we saw above that SpiderMonkey wasn't vulnerable to our attacks when using
+JS.
+Regarding Cranelift (see notes on SpiderMonkey-Wasm for the dead store
+elimination attack), Dan Gohman also confirmed that Cranelift doesn't
+(currently) perform load-store reordering.
 
 ## V8
 
-TODO
+### Pure JavaScript
+
+For the Section 3.10 attack, experimentation appears to show that V8 does not
+hoist common statements froom both branches of an `if`, or at least not when
+the common statement is an assignment to a global.
+This is the same behavior we observed with SpiderMonkey.
+
+For the Section 4.2 attack, V8 does not appear to do any reordering.
+This is relatively unsurprising for the same reasons as explained with respect
+to SpiderMonkey (regarding the 4.2 attack being pretty specific to `gcc`).
+
+### Wasm
+
+For the Section 3.10 attack, again, V8 appears to never hoist common statements
+from both branches of an `if`, or at least not when the common statement is a
+store to wasm linear memory.
+This was verified to be the case even when compiling the wasm with TurboFan,
+which I understand to be V8's most aggressively optimizing wasm compiler.
+
+For the Section 4.2 attack, again V8 does not appear to do any reordering, and
+again this is relatively unsurprising.
 
 ## Java (HotSpot)
 
