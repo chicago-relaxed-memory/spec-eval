@@ -188,4 +188,27 @@ again this is relatively unsurprising.
 
 ## Java (HotSpot)
 
-TODO
+As discussed above (in conjunction with dead store elimination), HotSpot does
+not appear to hoist common statements from both branches of an `if`, unless the
+condition is a compile-time constant (i.e. `final`).
+Even if HotSpot profiles the `if` statement as always going a certain direction,
+and requires a bailout if the `if` statement goes the other direction, the
+common statement is still not hoisted --- it is only executed after the bailout
+check.
+This makes the Section 3.10 attack infeasible against HotSpot (except possibly
+for compile-time constant secrets, which are less interesting).
+
+For the Section 4.2 attack, HotSpot actually does reorder the read of y above
+the write to x, and this reordering does not appear in the bytecode, so it is
+in fact HotSpot itself doing the reordering rather than `javac`.
+Unfortunately for the attacker, however, this reordering only occurs when the
+security check is known _at compile time_ to be `false`.
+Furthermore, when the security check is known at compile time, `javac`
+eliminates the security check and access of `SECRET` altogether (i.e. they do
+not appear in the bytecode).
+Therefore the value of `SECRET` has no effect on the reordering --- it happens
+regardless of the value of `SECRET` --- and there is no way to infer the
+secret's value.
+When the security check is not known to be false at compile time but rather is
+only _profiled_ as always `false`, HotSpot does not perform the reordering.
+This was tested with operations both on static and instance variables in Java.
