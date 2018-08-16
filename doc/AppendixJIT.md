@@ -167,7 +167,7 @@ elimination attack), Dan Gohman also confirmed that Cranelift doesn't
 ### Pure JavaScript
 
 For the Section 3.10 attack, experimentation appears to show that V8 does not
-hoist common statements froom both branches of an `if`, or at least not when
+hoist common statements from both branches of an `if`, or at least not when
 the common statement is an assignment to a global.
 This is the same behavior we observed with SpiderMonkey.
 
