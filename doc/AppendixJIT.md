@@ -188,9 +188,9 @@ again this is relatively unsurprising.
 
 ## Java (HotSpot)
 
-As discussed above (in conjunction with dead store elimination), HotSpot does
+As discussed above in conjunction with dead store elimination, HotSpot does
 not appear to hoist common statements from both branches of an `if`, unless the
-condition is a compile-time constant (i.e. `final`).
+condition is a compile-time constant, e.g. marked `final`.
 Even if HotSpot profiles the `if` statement as always going a certain direction,
 and requires a bailout if the `if` statement goes the other direction, the
 common statement is still not hoisted --- it is only executed after the bailout
@@ -211,4 +211,29 @@ regardless of the value of `SECRET` --- and there is no way to infer the
 secret's value.
 When the security check is not known to be false at compile time but rather is
 only _profiled_ as always `false`, HotSpot does not perform the reordering.
-This was tested with operations both on static and instance variables in Java.
+This was tested with operations on both static and instance variables in Java.
+
+The fact that reordering does exist here at least in some cases leaves open the
+question, specifically for HotSpot, whether some other pattern might exist
+which leads to a successful attack.
+The key issue here is that a successful attack requires the presence of
+load-store reordering to be _secret-dependent_, i.e. requires that load-store
+reordering occurs for some value of the secret but doesn't occur for some other
+value.
+Furthermore, the load-store reordering has to occur in _live_ code, that is, it
+can't just occur inside the branch of the `if` statement that passes the
+security check --- hereafter the "security-checked area".
+Since the secret can only be accessed inside the security-checked area, but the
+load-store reordering must be observed outside the security-checked area (and
+in particular, even when failing the security check), this
+means that some load or store (to an instance or static variable) has to,
+in some manner, be moved across an `if` statement, or alternately, be moved or
+not depending on something that happens inside an `if` statement.
+In my experimentation with HotSpot, I haven't found that it ever does either
+of these things (unless, as discussed above, the `if` condition is a
+compile-time constant --- but in that case HotSpot doesn't even see an `if`
+statement in the first place, as `javac` has eliminated it).
+HotSpot may move stores to _local_ variables across `if` statements, but never
+stores to instance or static variables, at least in my experimentation.
+Therefore, it seems impossible for the presence or absence of load-store
+reordering to ever leak the value of the secret in HotSpot.
