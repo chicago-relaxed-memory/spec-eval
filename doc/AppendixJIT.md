@@ -204,13 +204,13 @@ in fact HotSpot itself doing the reordering rather than `javac`.
 Unfortunately for the attacker, however, this reordering only occurs when the
 security check is known _at compile time_ to be `false`.
 Furthermore, when the security check is known at compile time, `javac`
-eliminates the security check and access of `SECRET` altogether (i.e. they do
-not appear in the bytecode).
-Therefore the value of `SECRET` has no effect on the reordering --- it happens
-regardless of the value of `SECRET` --- and there is no way to infer the
-secret's value.
-When the security check is not known to be false at compile time but rather is
-only _profiled_ as always `false`, HotSpot does not perform the reordering.
+eliminates the security check and access of `SECRET` altogether, and they do
+not appear in the bytecode.
+Therefore the value of `SECRET` has no effect on the reordering done by HotSpot
+--- it happens regardless of the value of `SECRET` --- and there is no way to
+infer the secret's value.
+When the security check is not known to be `false` at compile time but rather
+is only _profiled_ as always `false`, HotSpot does not perform the reordering.
 This was tested with operations on both static and instance variables in Java.
 
 The fact that reordering does exist here at least in some cases leaves open the
@@ -220,20 +220,37 @@ The key issue here is that a successful attack requires the presence of
 load-store reordering to be _secret-dependent_, i.e. requires that load-store
 reordering occurs for some value of the secret but doesn't occur for some other
 value.
-Furthermore, the load-store reordering has to occur in _live_ code, that is, it
-can't just occur inside the branch of the `if` statement that passes the
-security check --- hereafter the "security-checked area".
-Since the secret can only be accessed inside the security-checked area, but the
-load-store reordering must be observed outside the security-checked area (and
-in particular, even when failing the security check), this
-means that some load or store (to an instance or static variable) has to,
-in some manner, be moved across an `if` statement, or alternately, be moved or
-not depending on something that happens inside an `if` statement.
-In my experimentation with HotSpot, I haven't found that it ever does either
-of these things (unless, as discussed above, the `if` condition is a
-compile-time constant --- but in that case HotSpot doesn't even see an `if`
-statement in the first place, as `javac` has eliminated it).
-HotSpot may move stores to _local_ variables across `if` statements, but never
-stores to instance or static variables, at least in my experimentation.
-Therefore, it seems impossible for the presence or absence of load-store
-reordering to ever leak the value of the secret in HotSpot.
+This in turn requires at least two things which turn out to be problematic
+for the attacker: sufficiently aggressive code motion in the appropriate
+circumstances, and value-based profiling.
+
+* First we discuss the issue of code motion.
+  We note that the load-store reordering has to occur in _live_ code, that is,
+  it can't just occur inside the branch of the `if` statement that passes the
+  security check --- hereafter referred to as the "security-checked area".
+  Since the secret can only be accessed inside the security-checked area, but
+  the load-store reordering must be observed outside the security-checked area
+  (and in particular, even when failing the security check), this
+  means that some load or store (to an instance or static variable) has to,
+  in some manner, be moved across an `if` statement, or alternately, be moved
+  or not moved depending on something that happens inside an `if` statement.
+  In my experimentation with HotSpot, I haven't found that it ever does either
+  of these things (unless, as discussed above, the `if` condition is a
+  compile-time constant --- but in that case HotSpot doesn't even see an `if`
+  statement in the first place, as `javac` has eliminated it).
+  HotSpot may move stores to _local_ variables across `if` statements, but
+  never stores to instance or static variables, at least in my experimentation.
+* Second, we need value-based profiling, at least to conduct the attack in the
+  form presented in Section 4.2 of the paper.
+  Even though HotSpot will profile the direction of `if` statements and
+  optimize for the common case, it appears to never profile the value of an
+  instance or static variable, preferring instead to always reload it even on
+  the fast path.
+  This means that, in effect, the value of the secret (assuming it is a
+  "runtime secret" whose value is not known at compile time, i.e. not known to
+  `javac`) will never influence any of the decisions or optimizations made by
+  HotSpot.
+
+Both of these issues seem to be severe obstacles for the attacker, leading us
+to conclude that it seems impossible for the presence or absence of
+load-store reordering to ever leak the value of a runtime secret in HotSpot.
