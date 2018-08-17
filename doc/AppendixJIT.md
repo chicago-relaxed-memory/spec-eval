@@ -232,25 +232,41 @@ circumstances, and value-based profiling.
   the load-store reordering must be observed outside the security-checked area
   (and in particular, even when failing the security check), this
   means that some load or store (to an instance or static variable) has to,
-  in some manner, be moved across an `if` statement, or alternately, be moved
-  or not moved depending on something that happens inside an `if` statement.
+  in some manner, be moved across/into/out of an `if` statement, or
+  alternately, be moved or not moved depending on something that happens inside
+  an `if` statement.
   In my experimentation with HotSpot, I haven't found that it ever does either
   of these things (unless, as discussed above, the `if` condition is a
   compile-time constant --- but in that case HotSpot doesn't even see an `if`
   statement in the first place, as `javac` has eliminated it).
-  HotSpot may move stores to _local_ variables across `if` statements, but
-  never stores to instance or static variables, at least in my experimentation.
-* Second, we need value-based profiling, at least to conduct the attack in the
-  form presented in Section 4.2 of the paper.
+  HotSpot may move stores to _local_ variables across/into `if` statements, but
+  it never moves stores to instance or static variables in that way, at least
+  in my experimentation.
+* Second, we need value-based profiling, at least to conduct load-store
+  reordering attacks of the form presented in the paper.
   Even though HotSpot will profile the direction of `if` statements and
   optimize for the common case, it appears to never profile the value of an
   instance or static variable, preferring instead to always reload it even on
-  the fast path.
+  the fast path, without making assumptions or optimizations based on its
+  commonly-observed value.
   This means that, in effect, the value of the secret (assuming it is a
   "runtime secret" whose value is not known at compile time, i.e. not known to
   `javac`) will never influence any of the decisions or optimizations made by
   HotSpot.
+  The only way to avoid this seems to be to use the value of the secret in an
+  inner branch condition, much as the dead store elimination attack from the
+  paper does.
+  However, this seems to make it even less likely that the profiling happening
+  inside the security-checked area would influence optimizations happening
+  outside it.
+  At least, both the 3.10 and 4.2 attacks rely on the _value_ of the secret
+  causing an assignment operation to be combined (or not) with another
+  assignment operation outside the security-checked area.
+  It is very unclear that any pattern would exist where the profiling of an
+  inner branch inside the security-checked area would influence a load-store
+  reordering outside of, into, or out of the security-checked area.
 
-Both of these issues seem to be severe obstacles for the attacker, leading us
-to conclude that it seems impossible for the presence or absence of
-load-store reordering to ever leak the value of a runtime secret in HotSpot.
+Both of these issues --- code motion and value-based profiling --- seem to
+present severe obstacles for the attacker, leading us to conclude that it seems
+impossible for the presence or absence of load-store reordering to leak the
+value of a runtime secret in HotSpot.
