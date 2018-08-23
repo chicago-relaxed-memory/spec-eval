@@ -1,0 +1,26 @@
+aVeryRecognizableFunctionName()
+  returns the value of rax (calling conventions) at 26c
+  which comes from rcx at 265
+  comes from rcx+rbx at 259
+    - rbx comes from 20e where we add 0x11=17 ('x' in source)
+      to rbx from 1e1 (note that 20b is skipped over)
+      1e1 loads the value from arr[1] (note address 1dd, store 1d2-1d6)
+    - so rcx must represent 'y.foo'
+  rcx comes from 22f where it loads rdx+0x1b
+    - so rdx holds address of 'y' probably? and 0x1b is offset of 'foo'
+  rdx@22f comes from 217 where it loads rbp-0x20
+    - so 0x20 is offset of 'y' in stack frame probably?
+    - edit: at rbp-0x20 is where *pointer to y* (heap-allocated?) is stored
+  where did value at rbp-0x20 get *stored*?
+  candidate: bf, where rax is stored there (assume no aliasing in between)
+  rax@bf comes from 6e via 91... going to assume it's just some
+    allocator-provided address
+  real question is where did value at 0x1b[rbp-0x20] get stored?
+  appears to be at ab-bb, which paints the region with the value at r13-0x60
+  r13 appears to be passed in as argument, and r13-0x60 not written before ab-bb
+  got it! it's the store at e5.
+    At e5, rax holds the value at [rbp-0x20] (see bf)
+    the store of the complicated constant in rcx (from db) must end up
+      putting 0x19 into the 0x1b offset after accounting for whatever
+      little-endianness.
+  All this confirms that DSE did occur on stores to y.foo in the source.
