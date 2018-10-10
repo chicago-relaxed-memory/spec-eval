@@ -1,0 +1,18 @@
+\paragraph*{Speculation in Information flow}
+
+The information flow literature has largely, with the exceptions noted below, not addressed matters of speculation and the side channels that arise from the observations  of efficiency of executions such as execution time and  power consumption.  For example, the well-known Smith-Volpano type system (which guarantees noninterference) will allow the Prime-Abort attack as formalized
+in the paper (and Spectre attack as well, if we were to add cache sets to the semantics of a ``touch'' primitive that we study). 
+
+~\citet{Zhang:2012:LCM:2345156.2254078}  models hardware (and thus the
+microarchitecture) with timing attacks, and explore explicit and static annotations to address timing side channels for hardware description languages.  However, this paper does not address speculative execution. 
+
+This paper's primary focus is not weak memory.  However, hardware relaxed memory (such as Total and Partial Store ordering~\cite{SparcV9}) supports differing views of the memory between threads, that can be viewed as a form of thread-specific speculation.  So, the research into the impact of hardware relaxed memory on information flow in programs~\cite{6957104,Vaughan:2012:SIF} is relevant.  These papers show that the information flow exhibited by a program  depends crucially on the particular model of relaxed memory; for example, they demonstrate progams that have no information flow when executed in the in usual {\em sequentially consistent} memory, and yet exhibit information flow when executed in the TSO model. 
+
+In contrast to the hardware relaxed memory models addressed in these papers, software relaxed memory models (such as the JMM~\cite{Manson:2005:JMM:1047659.1040336} and C11~\cite{Boehm:2008:FCC:1375581.1375591} ) also incorporate speculation on conditionals.   
+
+Our model captures enough detail  enough to reveal and analyze the presence of side
+channels revealed by speculative executions that are implicit in the literature on hardware and software relaxed memory models. Thus, we are able to demonstrate example attacks that show that ordinary compiler optimizations can
+violate some intuitively expected informal information flow guarantees.  Furthermore,  as far as we know, the observation that compiler optimizations can result in information flows that can be observed without timers, is new to this paper.  
+
+Self-composition~\cite{Barthe:2004:SIF:1009380.1009669} reduces the problem of secure information flow of a program to a {\em safety} property of a program derived by composing the program with a renaming of itself.  Our work shows that the traditional conditional serves as a self-composition operator in the presence of speculation.  
+
