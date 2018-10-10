@@ -126,7 +126,8 @@
 \usepackage{alltt}
 \usepackage{makecell}
 \usepackage{tikz}
-\usetikzlibrary{shapes}
+\usetikzlibrary{shapes.misc}
+\usetikzlibrary{shapes.geometric}
 \usetikzlibrary{topaths}
 \usetikzlibrary{arrows}
 \usetikzlibrary{positioning}
@@ -144,7 +145,6 @@
 \tikzstyle{wk} = [->,dashed]
 \tikzstyle{lift} = [->,double]
 \tikzstyle{rf} = [->,thick,draw=black!50!green]
-\tikzstyle{cloudy} = [draw=black, fill=blue!10, cloud, aspect=2,rounded corners, minimum size=2ex]
 
 \tikzset{
     nonevent/.style={
@@ -164,7 +164,6 @@
 
 \newcommand{\event}[3]{\node[event](#1)[#3]{$\mathstrut#2$};}
 \newcommand{\nonevent}[3]{\node[nonevent](#1)[#3]{$\mathstrut#2$};}
-\newcommand{\cloud}[3]{\node[cloudy](#1)[#3]{$\mathstrut#2$};}
 \newcommand{\po}[3][]{\draw[po,#1](#2)to(#3);}
 \newcommand{\lift}[3][]{\draw[lift,#1](#2)to(#3);}
 \newcommand{\rf}[3][]{\draw[rf,#1](#2)to(#3);}

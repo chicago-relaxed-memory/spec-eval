@@ -1,45 +1,55 @@
-% \documentclass[acmsmall,review,anonymous]{acmart}
-\documentclass[acmsmall]{acmart}
-\settopmatter{printfolios=true,printacmref=false}
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
 
-%% \acmJournal{PACMPL}
-%% \acmVolume{1}
-%% \acmNumber{CONF} % CONF = POPL or ICFP or OOPSLA
-%% \acmArticle{1}
-%% \acmYear{2018}
-%% \acmMonth{1}
-%% \acmDOI{} % \acmDOI{10.1145/nnnnnnn.nnnnnnn}
-%% \startPage{1}
+\usepackage{natbib}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{hyperref}
+\newcommand{\email}[1]{\href{mailto:#1}{{\UrlFont #1}}}
+\usepackage{amsthm}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+% \usepackage{verbatim}
+% \makeatletter
+% \def\verbatim@font{\sffamily\upshape}
+% \makeatother
 
-%\setcopyright{none}
-\setcopyright{rightsretained}
 \bibliographystyle{ACM-Reference-Format}
-
 \usepackage{macros}
 \newcommand{\ignore}[1]{}
 \newcommand{\todo}[1]{{\color{red}\textbf{\{#1\}}}}
 
 \begin{document}
 
-\title{Code that never ran}
-\subtitle{Modeling attacks on speculative evaluation}
+\title{The Code That Never Ran\\Modeling Attacks on Speculative Evaluation
+  \thanks{Identify applicable funding agency here. If none, delete this.}
+}
 
-\author{Craig Disselkoen}
-\affiliation{\institution{University of California San Diego}}
-\affiliation{\institution{Mozilla Research Internship}}
-\email{cdisselk@cs.ucsd.edu}
+\author{
+\IEEEauthorblockN{Craig Disselkoen}
+\IEEEauthorblockA{\textit{University of California San Diego}\\
+  \textit{Mozilla Research Internship}\\
+  \email{cdisselk@cs.ucsd.edu}}
+\and
+\IEEEauthorblockN{Radha Jagadeesan}
+\IEEEauthorblockA{\textit{DePaul University}\\
+  \email{rjagadeesan@cs.depaul.edu}}
+\and
+\IEEEauthorblockN{Alan Jeffrey}
+\IEEEauthorblockA{\textit{Mozilla Research}\\
+  \email{ajeffrey@mozilla.com}}
+\and
+\IEEEauthorblockN{James Riely}
+\IEEEauthorblockA{\textit{DePaul University}\\
+  \email{jriely@cs.depaul.edu}}
+}
 
-\author{Radha Jagadeesan}
-\affiliation{\institution{DePaul University}}
-\email{rjagadeesan@cs.depaul.edu}
 
-\author{Alan Jeffrey}
-\affiliation{\institution{Mozilla Research}}
-\email{ajeffrey@mozilla.com}
-
-\author{James Riely}
-\affiliation{\institution{DePaul University}}
-\email{jriely@cs.depaul.edu}
+\maketitle
 
 \begin{abstract}
   This paper studies information flow caused by speculation mechanisms
@@ -59,8 +69,6 @@
   gcc and clang.  We develop a simple temporal logic that supports 
   invariant reasoning.
 \end{abstract}
-
-\maketitle
 
 \input{intro}
 \input{model}
