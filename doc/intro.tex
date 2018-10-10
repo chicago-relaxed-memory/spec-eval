@@ -55,12 +55,15 @@ for a side-channel attack:
   optimized.  
 \end{itemize}
 
-We develop a model to capture such attacks.
+We develop a model to capture such attacks.  From a hardware perspective, ~\citet{Chien:2018} argues that  the Spectre family of attacks forces one to
+``extend the functional specification of the architecture to include its detailed performance''.    In analogy, our model is a first step on how to ``extend the functional specification of a programming language  to include its detailed performance''.  
 %% This line of research was initiated by~\citet{Zhang:2012:LCM:2345156.2254078}.  
 %% Whereas they explore static annotations to address side channels in the context of hardware description languages, we explore a model of programs
 %% that captures enough detail to reveal and analyze the presence of side
 %% channels revealed by speculative execution.  
 %
+
+
 Our model is based on \emph{partially ordered multisets}~\cite{GISCHER1988199,Plotkin:1997:TSP:266557.266600}
 (``pomsets''), whose labels are given by read and write actions. These can be
 visualized as a graph where the edges indicate dependencies, for example
