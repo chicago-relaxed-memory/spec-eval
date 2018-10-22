@@ -63,7 +63,7 @@ To model speculative evaluation, we need to allow a pomset
 in $\sem{\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI}$ to be given by
 both a pomset in $\sem{\aCmd}$ \emph{and} a pomset in $\sem{\bCmd}$.
 For example, $\sem{\IF(\aExp)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI}$
-contains the pomset:
+contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\aExp\neq0 \mid \DW{\aLoc}{1}}{}
   \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
@@ -75,14 +75,14 @@ The precondition of the merged event is the disjunction of the preconditions
 of the original events.
 For example
 $\sem{\IF(\aExp)\THEN \aLoc\GETS1\SEMI \bLoc\GETS3 \ELSE \aLoc\GETS2\SEMI \bLoc\GETS3 \FI}$
-contains the pomset:
+contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{\aExp\neq0 \mid \DW{\aLoc}{1}}{}
   \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
-  \event{wy3}{(\aExp\neq0) \lor (\aExp=0) \mid \DW{\bLoc}{3}}{right=of wx2}
+  \event{wy3}{(\aExp\neq0) \lor (\aExp=0) \mid \DW{\bLoc}{3}}{below=3ex of $(wx1)!0.5!(wx2)$}
 \end{tikzpicture}\]
 and since $(\aExp\neq0) \lor (\aExp=0)$ is a tautology, this is:
-\[\begin{tikzpicture}[node distance=1em]
+\[\begin{tikzpicture}[node distance=1em]1
   \event{wx1}{\aExp\neq0 \mid \DW{\aLoc}{1}}{}
   \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
   \event{wy3}{\DW{\bLoc}{3}}{right=of wx2}
@@ -90,7 +90,7 @@ and since $(\aExp\neq0) \lor (\aExp=0)$ is a tautology, this is:
 Combining this model of conditionals with the model of memory using substitutions
 gives that
 $\sem{\IF(\cLoc)\THEN \aLoc\GETS1\SEMI \bLoc\GETS3 \ELSE \aLoc\GETS2\SEMI \bLoc\GETS3 \FI}$
-contains the pomset:
+contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz1}{\DR{\cLoc}{1}}{}
   \event{wx1}{1\neq0 \mid \DW{\aLoc}{1}}{right=of rz1}
@@ -99,7 +99,7 @@ contains the pomset:
   \po{rz1}{wx1}
   \po[out=25,in=155]{rz1}{wx2}
 \end{tikzpicture}\]
-and since $(1\neq0)$ is a tautology and $(1=0)$ is unsatisfiable, this is:
+and we visualize unsatisfiable preconditions an crossed out:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rz1}{\DR{\cLoc}{1}}{}
   \event{wx1}{\DW{\aLoc}{1}}{right=of rz1}
@@ -217,13 +217,13 @@ $\bEv\le\aEv$. For example:
   \po[out=30,in=150]{rx1}{wy1}
 \end{tikzpicture}\]
 is a visualization of the pomset where:
-\[
+\[\begin{array}{c}
   0 \le 1 \quad
   0 \le 2 \quad
-  \labelling(0) = (\TRUE, \DR{\aLoc}{1}) \quad
+  \labelling(0) = (\TRUE, \DR{\aLoc}{1}) \\
   \labelling(1) = (\FALSE, \DW{\bLoc}{0}) \quad
   \labelling(2) = (\TRUE, \DW{\bLoc}{1}) \quad
-\]
+\end{array}\]
 We are building a compositional semantics of shared memory
 concurrency, which means we require a notion of when
 a read has a matching write. This is a property we require
@@ -468,9 +468,9 @@ there is $\aPS\in\aPSS$ such that:
   \begin{itemize}
   \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
   \item $\bForm'$ implies \(\left\{\begin{array}{l@{~}ll}
-    \bForm[\aVal/\aLoc]                     & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} & \textsc{[dependent read]} \\
-    \bForm[\aVal/\aLoc] \text{ and } \bForm & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$}                  & \textsc{[independent read]} \\
-    \bForm                                  & \mbox{otherwise}                                              & \textsc{[non-read]} \\
+    \bForm[\aVal/\aLoc]                     \\\quad \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} \\\qquad \textsc{[dependent read]} \\[\jot]
+    \bForm[\aVal/\aLoc] \text{ and } \bForm \\\quad \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$}                  \\\qquad \textsc{[independent read]} \\[\jot]
+    \bForm                                  \\\quad \mbox{otherwise}                                              \\\qquad \textsc{[non-read]} \\
   \end{array}\right.\)
   \item if $\aAct$ and $\bAct$ both write to $\bLoc$,
     then $\cEv \gtN' \aEv$.
@@ -538,10 +538,10 @@ $\aPS$ is $\aLoc$-closed and partially $\aLoc$-coherent.
 \end{definition}
 
 We can use the operations defined above to give the
-semantics of a simple concurrent imperative programming language.
+semantics of a simple concurrent imperative programming language
+in Figure~\ref{fig:programs}.
 
-\begin{definition}
-  \label{def:programs}
+\begin{figure*}
 \begin{eqnarray*}
   \sem{\SKIP} & = & \{ \emptyset \} \\
   \sem{\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; \bigl((\aExp=\aVal) \guard (\DW\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]\bigr) \\
@@ -550,15 +550,17 @@ semantics of a simple concurrent imperative programming language.
   \sem{\aCmd \PAR \bCmd} & = & \sem{\aCmd} \parallel \sem{\bCmd} \\
   \sem{\VAR\aLoc\SEMI \aCmd} & = & \nu \aLoc \st \sem{\aCmd}
 \end{eqnarray*}
-\end{definition}
+\caption{Semantics of a concurrent shared-memory language}
+\label{fig:programs}
+\end{figure*}
 
-A write generates a write event that may be visible
-to other threads.  A read may see a
-thread-local value, or it may generate a read event that must be justified by
-another thread.  In the latter case, occurrences of $\aReg$ are replaced with
-$\aLoc$ (rather than $\aVal$) to ensure that dependencies are tracked
-properly.  The subsequent substitution of $\aVal$ for $\aLoc$ occurs in
-Definition~\ref{def:prefix} of prefixing.
+%% A write generates a write event that may be visible
+%% to other threads.  A read may see a
+%% thread-local value, or it may generate a read event that must be justified by
+%% another thread.  In the latter case, occurrences of $\aReg$ are replaced with
+%% $\aLoc$ (rather than $\aVal$) to ensure that dependencies are tracked
+%% properly.  The subsequent substitution of $\aVal$ for $\aLoc$ occurs in
+%% Definition~\ref{def:prefix} of prefixing.
 
 We have completed the formal definition of our model of speculative
 evaluation, and now turn to examples of this model in use.

@@ -213,158 +213,6 @@ in hardware models of memory,
 since $r$ occurs free in $(y\GETS r+2-r)$, there would be
 a dependency between $(r\GETS x)$ and $(y\GETS r+2-r)$.
 
-\subsection{Blockers}
-\label{sec:blockers}
-
-Recall the preliminary definition of reads-from in \S\ref{sec:pomsets}, which
-defined an $\aLoc$-blocker to be and event $\cEv$ that writes to $\aLoc$ such that
-$\bEv < \cEv < \aEv$.  Were we to adopt this definition, then concurrent
-threads could turn events that were not $\aLoc$-blockers into an
-$\aLoc$-blocker, even if the new thread does not mention $\aLoc$.
-
-To see this, consider the program
-\begin{math}
-  (
-  \aLoc\GETS1\SEMI
-  \bLoc\GETS\aLoc
-  \PAR
-  \aLoc\GETS\cLoc+1\SEMI
-  \bLoc\GETS\aLoc
-  \PAR
-  \IF(z=2)\THEN\aReg\GETS\aLoc\FI
-  )
-\end{math}
-with execution:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
-  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
-  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
-  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
-  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
-  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
-  \rf{wx1}{rx1a}
-  \po{rx1a}{wy1}
-  \rf{wx2}{rx2a}
-  \po{rx2a}{wy2}
-  \po{rz1}{wx2}
-  \po{rz2}{rx1}
-  \rf[out=20,in=160]{wx1}{rx1}
-\end{tikzpicture}\]
-and the program
-\begin{math}
-  (
-  \cLoc\GETS\bLoc\SEMI
-  \cLoc\GETS\bLoc
-  )
-\end{math}
-with execution:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{ry1}{\DR{\bLoc}{1}}{}
-  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
-  \event{ry2}{\DR{\bLoc}{2}}{right=of wz1}
-  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
-  \po{ry1}{wz1}
-  \po{ry2}{wz2}
-\end{tikzpicture}\]
-If these are placed in parallel, then a possible execution is:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
-  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
-  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
-  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
-  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
-  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
-  \rf{wx1}{rx1a}
-  \po{rx1a}{wy1}
-  \rf{wx2}{rx2a}
-  \po{rx2a}{wy2}
-  \po{rz1}{wx2}
-  \po{rz2}{rx1}
-  \event{ry1}{\DR{\bLoc}{1}}{below=of wy1}
-  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
-  \event{ry2}{\DR{\bLoc}{2}}{below=of wy2}
-  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
-  \po{ry1}{wz1}
-  \po{ry2}{wz2}
-  \rf{wy1}{ry1}
-  \rf{wz1}{rz1}
-  \rf{wy2}{ry2}
-  \rf{wz2}{rz2}
-\end{tikzpicture}\]
-and now the $(\DW{\aLoc}{2})$ event is an $\aLoc$-blocker,
-so $(\DR{\aLoc}{1})$ cannot
-read from $(\DW{\aLoc}{1})$.
-
-In the final definition of reads-from in \S\ref{sec:pomsets} we
-ruled out $\aLoc$-blockers by requring that any
-event $\cEv$ that writes to $\aLoc$ has
-either $\bEv \ltN \cEv$ or $\cEv \ltN \aEv$.
-With this definition, in order for $(\DR{\aLoc}{1})$ to read from
-$(\DW{\aLoc}{1})$, we either need $(\DW{\aLoc}{1}) \ltN (\DW{\aLoc}{2})$
-or $(\DW{\aLoc}{2}) \ltN (\DR{\aLoc}{1})$, for example:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
-  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
-  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
-  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
-  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
-  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
-  \rf{wx1}{rx1a}
-  \po{rx1a}{wy1}
-  \rf{wx2}{rx2a}
-  \po{rx2a}{wy2}
-  \po{rz1}{wx2}
-  \po{rz2}{rx1}
-  \rf[out=20,in=160]{wx1}{rx1}
-  \wk[out=-150,in=-30]{rx1}{wx2}
-  \wk{wy1}{wy2}
-\end{tikzpicture}\]
-then putting this in parallel as before results in:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{\aLoc}{1}}{}
-  \event{rz1}{\DR{\cLoc}{1}}{right=of wx1}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of rz1}
-  \event{rz2}{\DR{\cLoc}{2}}{right=of wx2}
-  \event{rx1}{\DR{\aLoc}{1}}{right=of rz2}
-  \event{rx1a}{\DR{\aLoc}{1}}{below=of wx1}
-  \event{wy1}{\DW{\bLoc}{1}}{below=of rx1a}
-  \event{rx2a}{\DR{\aLoc}{2}}{below=of wx2}
-  \event{wy2}{\DW{\bLoc}{2}}{below=of rx2a}
-  \rf{wx1}{rx1a}
-  \po{rx1a}{wy1}
-  \rf{wx2}{rx2a}
-  \po{rx2a}{wy2}
-  \po{rz1}{wx2}
-  \po{rz2}{rx1}
-  \rf[out=20,in=160]{wx1}{rx1}
-  \wk[out=-150,in=-30]{rx1}{wx2}
-  \wk{wy1}{wy2}
-  \event{ry1}{\DR{\bLoc}{1}}{below=of wy1}
-  \event{wz1}{\DW{\cLoc}{1}}{right=of ry1}
-  \event{ry2}{\DR{\bLoc}{2}}{below=of wy2}
-  \event{wz2}{\DW{\cLoc}{2}}{right=of ry2}
-  \po{ry1}{wz1}
-  \po{ry2}{wz2}
-  \rf{wy1}{ry1}
-  \rf{wz1}{rz1}
-  \rf{wy2}{ry2}
-  \rf{wz2}{rz2}
-  \wk[out=30,in=150]{wz1}{wz2}
-\end{tikzpicture}\]
-but this is \emph{not} a valid 3-valued pomset,
-since $(\DW{\aLoc}{2}) < (\DR{\aLoc}{1})$ but also $(\DW{\aLoc}{2}) \ltN (\DR{\aLoc}{1})$,
-which is a contradiction.
-
-
 \subsection{Control dependencies}
 \label{sec:control-dep}
 
@@ -464,11 +312,11 @@ of $1$ to $x$ are merged, resulting in no dependency:
 \end{tikzpicture}\]
 To see how this arises,
 consider the definition of $\sem{\IF(r)\THEN x\GETS1\SEMI\SKIP \ELSE x\GETS1\SEMI\SKIP \FI}$:
-\[
-   \aPSS_1 \parallel \aPSS_2 \quad\mbox{where}\quad
-   \aPSS_1 = (r\neq 0) \guard \sem{x\GETS1\SEMI\SKIP}  \quad\mbox{and}\quad
+\[\begin{array}{rl}
+   \aPSS_1 \parallel \aPSS_2 \quad\mbox{where}\quad&
+   \aPSS_1 = (r\neq 0) \guard \sem{x\GETS1\SEMI\SKIP} \\&
    \aPSS_2 = (r=0) \guard \sem{x\GETS1\SEMI\SKIP}
-\]
+\end{array}\]
 Now, one pomset in $\aPSS_1$ is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx1}{r\neq0 \mid \DW{x}{1}}{}
@@ -557,10 +405,10 @@ This is a low-security program, which is attempting to discover the
 value of a high-security variable $\SEC$. The low-security program
 is allowed to attempt to escalate its privileges by checking that it is
 allowed to read a high-security variable:
-\[
-  \IF(\CANREAD(\SEC))\THEN \cdots\mbox{code allowed to read $\SEC$}\cdots
-  \ELSE \cdots \FI
-\]
+\[\begin{array}{l}
+  \IF(\CANREAD(\SEC))\THEN \mbox{code allowed to read $\SEC$}
+  \brELSE \mbox{code not allowed to read $\SEC$} \FI
+\end{array}\]
 In this case, $\CANREAD(\SEC)$ is false, so the fallback code
 is executed. Unfortunately, the escalated code is speculatively
 evaluated, which allows information to leak by testing for which
@@ -568,9 +416,9 @@ memory locations have been touched.
 
 We model the $\TOUCHED$ test by introducing a new action
 $(\DT{\aLoc})$ and defining:
-\begin{eqnarray*}
-  \sem{\IF (\TOUCHED\aLoc) \THEN \aCmd \ELSE \bCmd \FI} & = & ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
-\end{eqnarray*}
+\[\begin{array}{l}
+  \sem{\IF (\TOUCHED\aLoc) \THEN \aCmd \ELSE \bCmd \FI} \\[\jot]\quad =  ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
+\end{array}\]
 The additional requirement we need to add for $\aLoc$-closure is:
 \begin{itemize}
 \item if $\labelling(\aEv)=(\aForm \mid \DT{\aLoc})$
@@ -588,26 +436,12 @@ and indeed Spectre has the execution:
   \wk{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
-Putting this in parallel with a high-security write to \verb|SECRET| gives:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{ws}{\DW{\SEC}{1}}{}
-  \nonevent{rs}{\DR{\SEC}{1}}{right=2.5em of ws}
-  \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
-  \event{ta}{\DT{a[1]}}{right=of wa}
-  \event{wx}{\DW{x}{1}}{right=of ta}
-  \rf{ws}{rs}
-  \po{rs}{wa}
-  \wk{wa}{ta}
-  \po{ta}{wx}
-\end{tikzpicture}\]
 but due the requirement of $a$-closure we do \emph{not} have:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{ws}{\DW{\SEC}{0}}{}
-  \nonevent{rs}{\DR{\SEC}{0}}{right=2.5em of ws}
+  \nonevent{rs}{\DR{\SEC}{0}}{}
   \nonevent{wa}{\DW{a[0]}{1}}{right=of rs}
   \event{ta}{\DT{a[1]}}{right=of wa}
   \event{wx}{\DW{x}{1}}{right=of ta}
-  \rf{ws}{rs}
   \po{rs}{wa}
   \wk{wa}{ta}
   \po{ta}{wx}
@@ -634,29 +468,30 @@ reads-from.
 Since we are allowing events to be partially ordered, this gives a simple
 model of relaxed memory.  For example an independent read independent write
 (IRIW) example is:
-\[
+\[\begin{array}{l}
   x\GETS0\SEMI x\GETS x+1
   \PAR
   y\GETS0\SEMI y\GETS y+1
+\\{}
   \PAR
   \IF(x)\THEN r\GETS y \FI
   \PAR
   \IF(y)\THEN s\GETS x \FI
-\]
+\end{array}\]
 which includes the execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
   \event{wx1}{\DW{x}{1}}{right=of wx0}
   \event{wy0}{\DW{y}{0}}{right=2.5em of wx1}
   \event{wy1}{\DW{y}{1}}{right=of wy0}
-  \event{ry1}{\DR{y}{1}}{right=2.5 em of wy1}
+  \event{ry1}{\DR{y}{1}}{below=4ex of wx0}
   \event{rx0}{\DR{x}{0}}{right=of ry1}
   \event{rx1}{\DR{x}{1}}{right=2.5 em of rx0}
   \event{ry0}{\DR{y}{0}}{right=of rx1}
-  \rf[out=20,in=160]{wx1}{rx1}
-  \rf[out=20,in=160]{wy0}{ry0}
-  \rf[out=20,in=160]{wy1}{ry1}
-  \rf[out=20,in=160]{wx0}{rx0}
+  \rf{wx1}{rx1}
+  \rf{wy0}{ry0}
+  \rf[out=210,in=30]{wy1}{ry1}
+  \rf{wx0}{rx0}
   \wk{wx0}{wx1}
   \wk{wy0}{wy1}
   \po{rx1}{ry0}
@@ -752,9 +587,9 @@ one of which is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ix}{\DW{x}{0}}{}
   \event{iy}{\DW{y}{0}}{right=of ix}
-  \event{rx0}{\DR{x}{0}}{right=2.5 em of iy}
+  \event{rx0}{\DR{x}{0}}{below=of wx0}
   \event{wy0}{\DW{y}{0}}{right=of rx0}
-  \event{ry0}{\DR{y}{0}}{right=2.5em of wy0}
+  \event{ry0}{\DR{y}{0}}{below=of wy0}
   \event{wx1}{\DW{x}{1}}{right=of ry0}
   \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
   \nonevent{wz1}{\DW{z}{1}}{right=of wx2}
@@ -762,9 +597,9 @@ one of which is:
   \po{ry0}{wx1}
   \po[out=30,in=150]{ry0}{wz1}
   \po[out=25,in=155]{ry0}{wx2}
-  \rf[out=25,in=155]{ix}{rx0}
+  \rf{ix}{rx0}
   \rf{wy0}{ry0}
-  \wk[out=25,in=155]{iy}{wy0}
+  \wk{iy}{wy0}
 \end{tikzpicture}\]
 but there are no executions which exhibit
 $(\DW{z}{1})$, since any attempt to do so
@@ -772,9 +607,9 @@ produces a cycle:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ix}{\DW{x}{0}}{}
   \event{iy}{\DW{y}{0}}{right=of ix}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
+  \event{rx1}{\DR{x}{1}}{below=of ix}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5em of wy0}
+  \event{ry1}{\DR{y}{1}}{below=of wy1}
   \event{wx1}{\DW{x}{1}}{right=of ry0}
   \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
   \event{wz1}{\DW{z}{1}}{right=of wx2}
@@ -782,27 +617,28 @@ produces a cycle:
   \po{ry1}{wx1}
   \po[out=30,in=150]{ry1}{wz1}
   \po[out=25,in=155]{ry1}{wx2}
-  \rf[in=-25,out=-160]{wx1}{rx1}
+  \rf[in=-90,out=-150]{wx1}{rx1}
   \rf{wy1}{ry1}
-  \wk[out=-20,in=-150]{ix}{wx1}
-  \wk[out=-20,in=-155]{ix}{wx2}
-  \wk[out=25,in=155]{iy}{wy1}
+  \wk[out=-20,in=90]{ix}{wx1}
+  \wk[out=-20,in=120]{ix}{wx2}
+  \wk{iy}{wy1}
 \end{tikzpicture}\]\vskip-\bigskipamount\noindent
 In the case where \verb|SECRET| is $1$, there is an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ix}{\DW{x}{0}}{}
   \event{iy}{\DW{y}{0}}{right=of ix}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
+  \event{rx1}{\DR{x}{1}}{below=of ix}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5em of wy0}
+  \event{ry1}{\DR{y}{1}}{below=of wy1}
   \event{wx1}{\DW{x}{1}}{right=of ry0}
   \event{wz1}{\DW{z}{1}}{right=of wx1}
   \po{rx1}{wy1}
   \po[out=30,in=150]{ry1}{wz1}
-  \rf[in=-25,out=-160]{wx1}{rx1}
+  \rf[in=-90,out=-150]{wx1}{rx1}
   \rf{wy1}{ry1}
-  \wk[out=-20,in=-150]{ix}{wx1}
-  \wk[out=25,in=155]{iy}{wy1}
+  \wk[out=-20,in=90]{ix}{wx1}
+  \wk[out=-20,in=120]{ix}{wx2}
+  \wk{iy}{wy1}
 \end{tikzpicture}\]\vskip-\bigskipamount\noindent
 Note that in this case, there is no dependency from
 $(\DR{y}{1})$ to $(\DW{x}{1})$.  This lack of dependency makes the
@@ -814,25 +650,20 @@ attack.
 This attack is not just an artifact of the model,
 since the same behavior can be exhibited by
 compiler optimizations. Consider the program fragment:
-\[
+\[\begin{array}{l}
     \IF(y = 0)\THEN x\GETS1
-    \ELIF(\CANREAD(\SEC))\THEN x\GETS\SEC
-    \ELSE x\GETS1\SEMI z\GETS1 \FI
-\]
+    \brELIF(\CANREAD(\SEC))\THEN x\GETS\SEC
+    \brELSE x\GETS1\SEMI z\GETS1 \FI
+\end{array}\]
 In the case where \verb|SECRET| is a constant \verb|1|,
-the compiler can inline it:
-\[
-    \IF(y = 0)\THEN x\GETS1
-    \ELIF(\CANREAD(\SEC))\THEN x\GETS1
-    \ELSE x\GETS1\SEMI z\GETS1 \FI
-\]
+the compiler can inline it
 and lift the assignment to $x$ out of the $\IF$ statement:
-\[
+\[\begin{array}{l}
     x\GETS1\SEMI
     \IF(y = 0)\THEN
-    \ELIF(\CANREAD(\SEC))\THEN
-    \ELSE z\GETS1 \FI
-\]
+    \brELIF(\CANREAD(\SEC))\THEN
+    \brELSE z\GETS1 \FI
+\end{array}\]
 After these optimizations, a sequentially consistent execution
 exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
 further in \S\ref{sec:experiments}.

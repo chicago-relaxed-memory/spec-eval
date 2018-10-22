@@ -48,33 +48,33 @@ This has an execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
   \event{wf0}{\DW{f}{0}}{right=of wx0}
-  \event{wx1}{\DW{x}{1}}{right=2.5em of wf0}
+  \event{wx1}{\DW{x}{1}}{below=of wx0}
   \event{wf1}{\DWRel{f}{1}}{right=of wx1}
   \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx1}{\DR{x}{1}}{right=of rf1}
-  \po[out=20,in=160]{wx0}{wf1}
-  \po[out=20,in=160]{wf0}{wf1}
+  \po{wx0}{wf1}
+  \po{wf0}{wf1}
   \po{wx1}{wf1}
   \po{rf1}{rx1}
   \rf{wf1}{rf1}
   \rf[out=20,in=160]{wx1}{rx1}
-  \wk[out=20,in=160]{wx0}{wx1}
+  \wk{wx0}{wx1}
 \end{tikzpicture}\]
 but \emph{not}:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
   \event{wf0}{\DW{f}{0}}{right=of wx0}
-  \event{wx1}{\DW{x}{1}}{right=2.5em of wf0}
+  \event{wx1}{\DW{x}{1}}{below=of wx0}
   \event{wf1}{\DWRel{f}{1}}{right=of wx1}
   \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx0}{\DR{x}{0}}{right=of rf1}
-  \po[out=20,in=160]{wx0}{wf1}
-  \po[out=20,in=160]{wf0}{wf1}
+  \po{wx0}{wf1}
+  \po{wf0}{wf1}
   \po{wx1}{wf1}
   \po{rf1}{rx1}
   \rf{wf1}{rf1}
-  \rf[out=20,in=160]{wx0}{rx0}
-  \wk[out=20,in=160]{wx0}{wx1}
+  \rf[out=-20,in=160]{wx0}{rx0}
+  \wk{wx0}{wx1}
 \end{tikzpicture}\]
 since $(\DW x0) \gtN (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
 requirements to be $x$-closed.
@@ -83,15 +83,15 @@ with a plain write, then the outcome $(\DRAcq f1)$ and $(\DR x0)$ is possible:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{x}{0}}{}
   \event{wf0}{\DW{f}{0}}{right=of wx0}
-  \event{wx1}{\DW{x}{1}}{right=2.5em of wf0}
+  \event{wx1}{\DW{x}{1}}{below=of wx0}
   \event{wf1}{\DW{f}{1}}{right=of wx1}
   \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
   \event{rx0}{\DR{x}{0}}{right=of rf1}
-  \wk[out=20,in=160]{wf0}{wf1}
+  \wk{wf0}{wf1}
   \po{rf1}{rx0}
   \rf{wf1}{rf1}
-  \rf[out=20,in=160]{wx0}{rx0}
-  \wk[out=20,in=160]{wx0}{wx1}
+  \rf[out=-20,in=160]{wx0}{rx0}
+  \wk{wx0}{wx1}
 \end{tikzpicture}\]
 since no order is required between $(\DW x1)$ and $(\DW f1)$.  
 Symmetrically, if we replace the acquire of the original program
@@ -159,57 +159,57 @@ with a plain read, then the outcome $(\DR f1)$ and $(\DR x0)$ is possible.
 % $(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily imply $\bEv < \aEv$, instead
 % requiring that $(\mathord< \cup \mathord\RF)$ be acyclic.
 
-To see the need for the second constraint on prefixing, consider the program:
-\begin{displaymath}
-  (
-  x\GETS1\SEMI
-  \REL f\GETS 1\SEMI
-  \ACQ r\GETS f\SEMI
-  y\GETS x
-  )
-  \PAR
-  (
-  \ACQ s\GETS f\SEMI
-  x\GETS2\SEMI
-  \REL f\GETS 2\SEMI
-  )
-\end{displaymath}
-whose semantics includes execution:
-\begin{displaymath}
-\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{x}{1}}{}
-  \event{wf1}{\DWRel{f}{1}}{right=of wx1}
-  \event{rf1}{\DRAcq{f}{2}}{below=of wf1}
-  \event{wx2}{\DW{x}{2}}{right=of rf1}
-  \event{wf2}{\DWRel{f}{1}}{right=of wx2}
-  \event{rf2}{\DRAcq{f}{2}}{above=of wf2}
-  \event{wy1}{\DW{y}{1}}{right=of rf2}
-  \po{wx1}{wf1}
-  \rf{wf1}{rf1}
-  \po{rf1}{wx2}
-  \po{wx2}{wf2}
-  \rf{wf2}{rf2}
-  \po{rf2}{wy1}
-\end{tikzpicture}
-\end{displaymath}
-This execution exists because
-\begin{math}
-  \sem{y\GETS x}
-\end{math}
-includes
-\begin{math}
-  (x=1\mid \DW{y}{1})
-\end{math}
-and the precondition $x=1$ is fulfilled by the preceding write $x\GETS1$.  In
-implementation term, this execution is reading $1$ from $x$ in a ``stale
-cache.''  The alternative execution that attempts to read $1$ from the $x$ in
-``main memory,'' has an explicit $(\DR{x}{1})$ between $(\DRAcq{f}{2})$ and
-$(\DW{y}{1})$, and thus will fail to be $x$-closed.
+%% To see the need for the second constraint on prefixing, consider the program:
+%% \begin{displaymath}
+%%   (
+%%   x\GETS1\SEMI
+%%   \REL f\GETS 1\SEMI
+%%   \ACQ r\GETS f\SEMI
+%%   y\GETS x
+%%   )
+%%   \PAR
+%%   (
+%%   \ACQ s\GETS f\SEMI
+%%   x\GETS2\SEMI
+%%   \REL f\GETS 2\SEMI
+%%   )
+%% \end{displaymath}
+%% whose semantics includes execution:
+%% \begin{displaymath}
+%% \begin{tikzpicture}[node distance=1em]
+%%   \event{wx1}{\DW{x}{1}}{}
+%%   \event{wf1}{\DWRel{f}{1}}{right=of wx1}
+%%   \event{rf1}{\DRAcq{f}{2}}{below=of wf1}
+%%   \event{wx2}{\DW{x}{2}}{right=of rf1}
+%%   \event{wf2}{\DWRel{f}{1}}{right=of wx2}
+%%   \event{rf2}{\DRAcq{f}{2}}{above=of wf2}
+%%   \event{wy1}{\DW{y}{1}}{right=of rf2}
+%%   \po{wx1}{wf1}
+%%   \rf{wf1}{rf1}
+%%   \po{rf1}{wx2}
+%%   \po{wx2}{wf2}
+%%   \rf{wf2}{rf2}
+%%   \po{rf2}{wy1}
+%% \end{tikzpicture}
+%% \end{displaymath}
+%% This execution exists because
+%% \begin{math}
+%%   \sem{y\GETS x}
+%% \end{math}
+%% includes
+%% \begin{math}
+%%   (x=1\mid \DW{y}{1})
+%% \end{math}
+%% and the precondition $x=1$ is fulfilled by the preceding write $x\GETS1$.  In
+%% implementation term, this execution is reading $1$ from $x$ in a ``stale
+%% cache.''  The alternative execution that attempts to read $1$ from the $x$ in
+%% ``main memory,'' has an explicit $(\DR{x}{1})$ between $(\DRAcq{f}{2})$ and
+%% $(\DW{y}{1})$, and thus will fail to be $x$-closed.
 
-To prevent thread-local writes from crossing release/acquire pairs, we
-require that pomsets in the semantics of acquire have no free locations.
-This corresponds to the idea that acquires flush the read cache, and
-therefore reads must reload values from main memory after an acquire.
+%% To prevent thread-local writes from crossing release/acquire pairs, we
+%% require that pomsets in the semantics of acquire have no free locations.
+%% This corresponds to the idea that acquires flush the read cache, and
+%% therefore reads must reload values from main memory after an acquire.
 
 % In addition, we must change the semantics of write from
 % \S\ref{sec:sets-of-pomsets} to ensure that an action is generated for every
@@ -233,15 +233,13 @@ The action $(\DB{\aVal})\in\Acq$ represents the begin of a transaction with
 id $\aVal$ and $(\DC{\aVal})\in \Rel$ represents the corresponding commit.
 We model a language in which transactions have explicit identifiers (which we
 elide in examples) and abort handlers (which we elide when they are empty):
-\begin{eqnarray*}
-  \sem{\BEGINVAL\SEMI \aCmd\SEMI \RECOVERYVAL \bCmd \ENDREC}
-  & = &
-  (\DB{\aVal}) \prefix \bigl(\sem{\aCmd} \cup \bigl((\FALSE \guard \sem{\aCmd}) \parallel \sem{\bCmd}\bigr)\bigr)
-  \\
-  \sem{\COMMITVAL\SEMI \bCmd}
-  & = &
-  (\DC{\aVal}) \prefix \sem{\bCmd}
-\end{eqnarray*}
+\[\begin{array}{l}
+  \sem{\BEGINVAL\SEMI \aCmd\SEMI \RECOVERYVAL \bCmd \ENDREC} \\\quad
+  = (\DB{\aVal}) \prefix \bigl(\sem{\aCmd} \cup \bigl((\FALSE \guard \sem{\aCmd}) \parallel \sem{\bCmd}\bigr)\bigr)
+  \\[\jot]
+  \sem{\COMMITVAL\SEMI \bCmd} \\\quad
+  = (\DC{\aVal}) \prefix \sem{\bCmd}
+\end{array}\]
 The semantics of a transaction has two cases: a committed case
 (executing only the transaction body) and an aborted case (executing both the body and the
 recovery code, where the body is marked unsatisfiable). For example, two executions of
@@ -249,7 +247,7 @@ recovery code, where the body is marked unsatisfiable). For example, two executi
   (\BEGIN\SEMI \aLoc\GETS1\SEMI \aLoc\GETS2\SEMI \COMMIT\SEMI \RECOVERY \bLoc\GETS1\ENDREC)
 \end{math}
 are:
-\[\begin{tikzpicture}[node distance=1em]
+\[\begin{array}{c}\begin{tikzpicture}[node distance=1em]
   \event{b0}{\DB{}}{}
   \event{wx0}{\DW{x}{0}}{right=of b0}
   \event{wx1}{\DW{x}{1}}{right=of wx0}
@@ -260,7 +258,7 @@ are:
   \po{wx1}{c0}
   \wk{wx0}{wx1}
 \end{tikzpicture}
-\qquad\qquad
+\\
 \begin{tikzpicture}[node distance=1em]
   \event{b0}{\DB{}}{}
   \nonevent{wx0}{\DW{x}{0}}{right=of b0}
@@ -273,7 +271,7 @@ are:
   \po[out=30,in=150]{wx0}{c0}
   \po{wx1}{c0}
   \wk{wx0}{wx1}
-\end{tikzpicture}\]
+\end{tikzpicture}\end{array}\]
 At top level, we require that pomsets be \emph{serializable}, as defined below.
 \begin{definition}
   We say that event $\comEv$ \emph{matches} $\begEv$ if
@@ -324,7 +322,7 @@ events in aborted transactions are unsatisfiable.
 %
 For example Conditions \ref{tx:5} and \ref{tx:7} rule out
 executions (which violate strong isolation and atomicity):
-\[\begin{tikzpicture}[node distance=1em]
+\[\begin{array}{c}\begin{tikzpicture}[node distance=1em]
   \event{b0}{\DB{}}{}
   \event{wx0}{\DW{x}{0}}{right=of b0}
   \event{wx1}{\DW{x}{1}}{right=of wx0}
@@ -337,7 +335,7 @@ executions (which violate strong isolation and atomicity):
   \wk{wx0}{wx1}
   \rf[out=30,in=150]{wx0}{rx0}
 \end{tikzpicture}
-\qquad\qquad
+\\
 \begin{tikzpicture}[node distance=1em]
   \event{b0}{\DB{}}{}
   \event{wx0}{\DW{x}{0}}{right=of b0}
@@ -350,7 +348,7 @@ executions (which violate strong isolation and atomicity):
   \po[out=30,in=150]{wx0}{c0}
   \po{wx1}{c0}
   \wk{wx0}{wx1}
-\end{tikzpicture}\]
+\end{tikzpicture}\end{array}\]
 
 In order to model \textsc{Prime+Abort}, we need a mechanism for modeling
 \emph{why} a transaction aborts, as this can be used as a back channel.
