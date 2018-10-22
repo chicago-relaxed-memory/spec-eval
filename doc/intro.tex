@@ -27,18 +27,22 @@ shown that side-channels arise from speculative evaluation.
 There are several sources of speculative evaluation.  Each of these is
 designed so that failed speculation does not affect the input-output behavior
 of the program, but may affect other observable behavior, opening an opportunity
-for a side-channel attack:
+for side-channels:
 \begin{itemize}
-\item To facilitate pipelining, microprocessors use heuristics to predict the
-  outcome of instructions. Execution proceeds speculatively until these predictions can be
-  validated, at which point instructions are either committed or
-  aborted.  The Spectre family of
-  attacks~\cite{DBLP:journals/corr/abs-1801-01203} exploit the timing
-  differences between successful and unsuccessful predictions.  This means,
-  for example, that a single execution of
-  $(\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI)$ may depend on both $\aCmd$ and
-  $\bCmd$.  This differs from the standard semantics of the conditional, in
-  which executions of $\aCmd$ and $\bCmd$ are disjoint.
+\item Hardware micro-architectures make use of
+  speculation, using \emph{branch prediction}
+  to speculatively execute the result of
+  a conditional jump or indirect jump instruction.
+  These are intended to be micro-architectural optimizations
+  that are not visible at the architectural leve, but
+  the Spectre family of
+  attacks~\cite{DBLP:journals/corr/abs-1801-01203} have shown that it is possible to exploit the timing
+  differences between successful and unsuccessful predictions.
+  %% This means,
+  %% for example, that a single execution of
+  %% $(\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI)$ may depend on both $\aCmd$ and
+  %% $\bCmd$.  This differs from the standard semantics of the conditional, in
+  %% which executions of $\aCmd$ and $\bCmd$ are disjoint.
 \item Some modern microprocessors also support transactional
   memory~\cite{ChongSW18}, where aborted transactions are meant to be
   unobservable.  Transactions may abort due to cache conflicts, however, and
@@ -48,11 +52,12 @@ for a side-channel attack:
   \cite{Manson:2005:JMM:1047659.1040336,Boehm:2008:FCC:1375581.1375591,DBLP:conf/popl/ZhaoNMZ12}
   allow for the observation of control and data dependencies. This creates an
   opportunity for information flows caused by optimizing compilers, whose
-  behavior is driven by dependency analysis.  For example,
-  $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$ can be optimized to
-  $(\aLoc\GETS1)$, whereas
-  $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$ cannot be so
-  optimized.  
+  behavior is driven by dependency analysis.
+  %% For example,
+  %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$ can be optimized to
+  %% $(\aLoc\GETS1)$, whereas
+  %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$ cannot be so
+  %% optimized.  
 \end{itemize}
 
 We develop a model to capture such attacks.  From a hardware perspective, ~\citet{Chien:2018} argues that  the Spectre family of attacks forces one to
@@ -76,9 +81,15 @@ has an execution modeled by the pomset:
   \po[out=25,in=155]{rx1}{wz2}
 \end{tikzpicture}\]
 The edge from $(\DR{\aLoc}{1})$ to $(\DW{\cLoc}{2})$ indicates a
-data dependency. The novel aspect of the model is that events have
+data dependency. Since there is no dependency between
+$(\DW{\bLoc}{1})$ and $(\DW{\cLoc}{2})$, the write actions may
+take place in either order, becuase of optimizations in
+hardware (for example caching) or the compiler (for example
+instruction reordering).
+
+The novel aspect of the model is that events have
 \emph{preconditions} which may be false. These are used in giving the
-semantics of conditionals, for example
+semantics of conditionals, for example the program
 $(\IF(\aLoc)\THEN \bLoc\GETS1\SEMI\cLoc\GETS1 \ELSE \bLoc\GETS2\SEMI\cLoc\GETS1\FI)$
 has an execution:
 \[\begin{tikzpicture}[node distance=1em]
@@ -92,11 +103,52 @@ has an execution:
 The edges from $(\DR{\aLoc}{1})$ to $(\DW{\bLoc}{1})$ and
 $(\DW{\bLoc}{2})$ indicate control dependencies. The presence of
 a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precondition.
+Since the $\DW{\cLoc}{1}$ action is performed on both branches of the conditional,
+there is no control dependency from $(\DR{\aLoc}{1})$.
+
+There do exist models of programs which include speculation, notably
+the Java Memory Model~\cite{Manson:2005:JMM:1047659.1040336}, and the
+generative~\cite{Jagadeesan:2010:GOS:2175486.2175503} and
+promising~\cite{DBLP:conf/popl/KangHLVD17} operational semantics for
+relaxed memory.  In all of these models a valid execution is defined
+with reference to other possible executions of the program. These
+models are not, however, designed for modelling Spectre-style attacks
+on speculation. For example all of these models will consider the
+straight-line code:
+\[
+  r\GETS x\SEMI s\GETS\SEC \SEMI
+  a[r]\GETS 1
+\]
+to be the same as the conditional:
+\[\begin{array}{ll}
+  r\GETS x\SEMI s\GETS\SEC \SEMI \\[\jot]
+  \IF(r\EQ s) \THEN a[s]\GETS 1 \ELSE a[r]\GETS 1 \FI
+\end{array}\]
+An attacker can mount a Spectre-style attack on the
+conditional code, for example by setting $x$ to be~$0$,
+flushing the cache,
+executing the program, then using timing effects to
+determine if $a[1]$ is in the cache. If it is, then $\SEC$
+must have been~$1$. This attack is not possible against
+the straight-line code, and so any model trying to
+capture Spectre must distinguish them.
+
+In our model, these programs are
+not equated, since the conditional code has the execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx0}{\DR{\aLoc}{0}}{}
+  \event{rs1}{\DR{\SEC}{1}}{right=of rx0}
+  \event{wa01}{\DW{a[0]}{1}}{right=of rs1}
+  \nonevent{wa11}{\DW{a[1]}{1}}{right=of wa01}
+  \po[out=25,in=155]{rx0}{wa01}
+  \po[out=25,in=155]{rs1}{wa11}
+\end{tikzpicture}\]
+which is not matched in the straight-line code.
 
 The novel contributions of this paper are:
 \begin{itemize}
 
-\item a model of program execution that includes speculation (\S\ref{sec:model}),
+\item a compositional model of program execution that includes speculation (\S\ref{sec:model}),
 
 \item examples showing how the model can be applied,
   including existing information flow attacks on
