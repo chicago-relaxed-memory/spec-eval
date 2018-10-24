@@ -138,6 +138,11 @@ must have been~$1$. This attack is not possible against
 the straight-line code, and so any model trying to
 capture Spectre must distinguish them.
 
+The only existing models of non-interference which capture this
+information flow are ones such
+as~\cite{Zhang:2012:LCM:2345156.2254078} which model
+micro-architectural features such as caching and timing.
+
 In our model, these programs are
 not equated, since the conditional code has the execution:
 \[\begin{tikzpicture}[node distance=1em]
@@ -151,6 +156,19 @@ not equated, since the conditional code has the execution:
   \po{rs1}{wa11}
 \end{tikzpicture}\]
 which is not matched in the straight-line code.
+
+The model in this paper leads to new attacks on optimizing
+compilers~(\S\ref{sec:info-flow-attack} and~\S\ref{sec:dse}) which
+were discovered as a consequence of building the model. A natural
+question is whether these attacks are an artefact of the model, or if
+they can be mounted in practice? We mounted the attacks on gcc and
+clang, where they succeeded in leaking a $\SEC$ as long as the secret
+was a constant known at compile time. By itself this is not too
+worrying, since secrets are not normally static constants. If the same
+attacks could be mounted against Just-In-Time~(JIT) compilers, this
+is potentially significant, as secrets are often known at JIT-compile
+time. Fortunately, our attempts to mount the attacks against SpiderMonkey,
+V8 and HotSpot did not succeed.
 
 The novel contributions of this paper are:
 \begin{itemize}
