@@ -42,7 +42,7 @@ Now $\sem{r \GETS x\SEMI y \GETS r+1\SEMI \SKIP}$
 has two cases, the sequential case
 (which does not introduce a read action)
 and the concurrent case (which does).
-For the moment, we are interested in the sequential case, which is:
+For the moment, we are interested in the sequential case:
 \[
    \sem{y \GETS r+1\SEMI \SKIP}[x/r]
 \]
@@ -145,73 +145,6 @@ $(\DR \aLoc\aVal)$, if the execution is
 $\aLoc$-closed, then there must be an event
 it reads from, for example one labelled
 $(\DW \aLoc\aVal)$.
-
-\subsection{Independent writes}
-
-Consider an example with two independent writes
-$(\aLoc\GETS1\SEMI \bLoc\GETS2)$.
-This has semantics including:
-\[
-  (\DW x1) \prefix
-    (\DW y2) \prefix
-      \{\emptyset\}
-\]
-One of the executions this contains is:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{x}{1}}{}
-  \event{wy2}{\DW{y}{2}}{right=of wx1}
-  \po{wx1}{wy2}
-\end{tikzpicture}\]
-but it also contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{x}{1}}{}
-  \event{wy2}{\DW{y}{2}}{right=of wx1}
-\end{tikzpicture}\]
-and:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{wx1}{\DW{x}{1}}{}
-  \event{wy2}{\DW{y}{2}}{right=of wx1}
-  \po{wy2}{wx1}
-\end{tikzpicture}\]
-since there is no requirement that
-$(\DW{x}{1}) < (\DW{y}{2})$.
-
-Thus, the semantics of $(\aLoc\GETS1\SEMI \bLoc\GETS2)$
-is the same as the semantics of $(\bLoc\GETS2\SEMI \aLoc\GETS1)$.
-
-\subsection{Independent reads and writes}
-
-Whereas write prefixing introduces weak dependencies on events which write
-to the same location, read prefixing introduces strong dependencies on
-preconditions which depend on the location being read. For example
-in \S\ref{sec:concurrent-memory} we saw that the program
-$(\bLoc\GETS\aLoc+1)$ includes the pomset:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1}{\DR{x}{1}}{}
-  \event{wy2}{\DW{y}{2}}{right=of rx1}
-  \po{rx1}{wy2}
-\end{tikzpicture}\]
-but since $(x+1=2)$ depends on $x$,
-we have the requirement that $(\DR{x}{1}) \le (\DW{y}{2})$.
-
-This is in contrast to the program 
-$(\aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+2-\aReg)$.
-Since $(x+2-x=2)$ is independent of $x$
-(at least for integer arithmetic)
-this contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{rx1}{\DR{x}{1}}{}
-  \event{wy2}{\DW{y}{2}}{right=of rx1}
-\end{tikzpicture}\]
-and so the semantics of $(\aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+2-\aReg)$
-is the same as the semantics of $(\bLoc\GETS2\SEMI \aReg\GETS\aLoc)$.
-
-This example shows that our notion of dependency is based on logical
-implication, and is therefore semantic rather than
-syntactic.  In syntactic dependency, which is common
-in hardware models of memory,
-since $r$ occurs free in $(y\GETS r+2-r)$, there would be
-a dependency between $(r\GETS x)$ and $(y\GETS r+2-r)$.
 
 \subsection{Control dependencies}
 \label{sec:control-dep}
@@ -392,7 +325,7 @@ setting.
 \label{sec:spectre}
 
 We give a simplified model of Spectre attacks, ignoring the details of
-timing.  In this model, we extend programs with the ability to tell
+cache timing.  In this model, we extend programs with the ability to tell
 whether a memory location has been touched (in practice this is
 implemented using timing attacks on the cache). For example,
 we can model Spectre by:
@@ -415,11 +348,12 @@ evaluated, which allows information to leak by testing for which
 memory locations have been touched.
 
 We model the $\TOUCHED$ test by introducing a new action
-$(\DT{\aLoc})$ and defining:
+$(\DT{\aLoc})$, and defining:
 \[\begin{array}{l}
   \sem{\IF (\TOUCHED\aLoc) \THEN \aCmd \ELSE \bCmd \FI} \\[\jot]\quad =  ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
 \end{array}\]
-The additional requirement we need to add for $\aLoc$-closure is:
+Implementations of $\TOUCHED$ use cache timing, but their success can be modeled
+without needing to be precise about such microarchitectural details:
 \begin{itemize}
 \item if $\labelling(\aEv)=(\aForm \mid \DT{\aLoc})$
   then there is $\bEv\gtN\aEv$
@@ -436,7 +370,7 @@ and indeed Spectre has the execution:
   \wk{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
-but due the requirement of $a$-closure we do \emph{not} have:
+but (assuming a successful implementation of $\TOUCHED$) \emph{not}:
 \[\begin{tikzpicture}[node distance=1em]
   \nonevent{rs}{\DR{\SEC}{0}}{}
   \nonevent{wa}{\DW{a[0]}{1}}{right=of rs}
@@ -451,7 +385,8 @@ location to a low-security one: if $(\DW x1)$ is observed, the \verb|SECRET|
 must have been 1.
 
 This shows how our model of speculation can express
-(very abstract, untimed) Spectre attacks.
+the way in which Spectre-like attacks bypass dynamic security checks,
+without giving a treatment of microarchitecture.
 
 \subsection{Relaxed memory}
 \label{sec:relaxed-memory}
@@ -474,9 +409,9 @@ model of relaxed memory.  For example an independent read independent write
   y\GETS0\SEMI y\GETS y+1
 \\{}
   \PAR
-  \IF(x)\THEN r\GETS y \FI
+  r_1\GETS x\SEMI r_2\GETS y
   \PAR
-  \IF(y)\THEN s\GETS x \FI
+  s_1\GETS y\SEMI s_2\GETS x
 \end{array}\]
 which includes the execution:
 \[\begin{tikzpicture}[node distance=1em]
@@ -492,10 +427,8 @@ which includes the execution:
   \rf{wy0}{ry0}
   \rf[out=210,in=30]{wy1}{ry1}
   \rf{wx0}{rx0}
-  \wk{wx0}{wx1}
-  \wk{wy0}{wy1}
-  \po{rx1}{ry0}
-  \po{ry1}{rx0}
+  \wk{rx0}{wx1}
+  \wk{ry0}{wy1}
 \end{tikzpicture}\]
 This model does not introduce thin-air reads (TAR).
 For example the TAR pit
@@ -546,18 +479,18 @@ Although it is not the primary focus of this paper, our model may be an
 attractive model of relaxed memory.  Many prior models either permit
 thin-air executions that our model forbids or forbid desirable executions
 that our model permits.
-In \S\ref{sec:logic}, we develop a logic which allows us to prove that our
-semantics forbids thin air examples that are permitted by prior speculative
-models
-\cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17}.
-
+%% In \S\ref{sec:logic}, we develop a logic which allows us to prove that our
+%% semantics forbids thin air examples that are permitted by prior speculative
+%% models
+%% \cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17}.
 Our model passes all of the causality test cases
-\cite{PughWebsite}.  Significantly, this
-includes test case 9, which is forbidden by \cite{DBLP:conf/lics/JeffreyR16},
-one of the few models that disallows the thin air example from
-\S\ref{sec:logic}.  We present this test case in the appendix, where we also
-discuss the thread inlining examples from
-\cite{Manson:2005:JMM:1047659.1040336}.
+\cite{PughWebsite}.
+%% Significantly, this
+%% includes test case 9, which is forbidden by \cite{DBLP:conf/lics/JeffreyR16},
+%% one of the few models that disallows the thin air example from
+%% \S\ref{sec:logic}.  We present this test case in the appendix, where we also
+%% discuss the thread inlining examples from
+%% \cite{Manson:2005:JMM:1047659.1040336}.
 
 \citet{DBLP:conf/esop/BattyMNPS15} showed that the thin-air problem has
 no per-candidate-execution solution for C++.  This result does not apply to
@@ -568,7 +501,7 @@ our model, which has a different notion of dependency.
 \subsection{Information flow attacks on relaxed memory}
 \label{sec:info-flow-attack}
 
-Consider an attacker program, again using security checks to
+Consider an attacker program, again using dynamic security checks to
 try to learn a \verb|SECRET|. Whereas \verb|SPECTRE| uses
 hardware capabilities, which have to be modeled by adding
 extra capabilities to the language, this new attacker works
@@ -668,16 +601,6 @@ After these optimizations, a sequentially consistent execution
 exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
 further in \S\ref{sec:experiments}.
 
-This approach can be generalized to detect information flows in arbitrary
-code.  If we replace the code fragment above with:
-\[
-    \IF(y = 0)\THEN x\GETS P(0)
-    \ELSE x\GETS P(1)\SEMI z\GETS1 \FI
-\]
-then $(\DW{z}{1})$ is possible only if $P$ is independent of its
-input.  Thus, the conditional is able to capture multiple executions, as in
-\cite{Barthe:2004:SIF:1009380.1009669}.
-
 \subsection{Dead store elimination}
 \label{sec:dse}
 
@@ -694,17 +617,18 @@ one execution of $(x \GETS 1\SEMI x \GETS 2) \PAR (r \GETS x)$ is:
   \rf{wx2}{rx2}
 \end{tikzpicture}\]
 Recall that for any satisfiable $\aEv$, if $\aEv$ reads $\aLoc$ from $\bLoc$
-then $\bEv$ is a tautology. This means that, although we can eliminate
+then $\bEv$ is satisfiable. This means that, although we can eliminate
 $(\DW{x}{1})$ we cannot eliminate $(\DW{x}{2})$.
 
 One heuristic that a compiler might adopt is to only eliminate
 writes that are guaranteed to be followed by another write
 to the same variable. This can be formalized by saying that
-$\bEv$ is eliminable if there is a $\aEv \ltN \bEv$ such
-that $\aEv$ is a tautology and $\bEv$ writes to every location
-$\aEv$ writes to. A model of dead store elimination is one where,
+a write event $\bEv$ is eliminable if
+there is a tautology $\aEv \ltN \bEv$
+which writes to the same location.
+A model of dead store elimination is one where,
 in every pomset, every eliminable event is unsatisfiable.
-This simple model includes the examples above.
+This model includes the example above.
 
 Note that if dead store
 elimination is \emph{always} performed, then there is an information

@@ -1,3 +1,190 @@
+\subsection{Operations on sets of pomsets}
+\label{app:sets-of-pomsets}
+
+\begin{definition}
+Let $\aPS_0 \in (\aPSS_1 \parallel \aPSS_2)$
+whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
+\begin{itemize}
+\item $\Event_0 = \Event_1 \cup \Event_2$,
+\item if $\aEv \le_1 \bEv$ or $\aEv \le_2 \bEv$ then $\aEv \le_0 \bEv$,
+\item if $\aEv \ltN_1 \bEv$ or $\aEv \ltN_2 \bEv$ then $\aEv \ltN_0 \bEv$,
+\item if $\labelling_0(\aEv) = (\aForm_0 \mid \aAct)$ then either:
+  \begin{itemize}
+  \item $\labelling_1(\aEv) = (\aForm_1 \mid \aAct)$ and $\labelling_2(\aEv) = (\aForm_2 \mid \aAct)$
+    and $\aForm_0$ implies $\aForm_1 \lor \aForm_2$,
+  \item $\labelling_1(\aEv) = (\aForm_1 \mid \aAct)$ and $\aEv \not\in \Event_2$
+    and $\aForm_0$ implies $\aForm_1$, or
+  \item $\labelling_2(\aEv) = (\aForm_2 \mid \aAct)$ and $\aEv \not\in \Event_1$
+    and $\aForm_0$ implies $\aForm_2$.
+  \end{itemize}
+\end{itemize}
+\end{definition}
+We use $\aPSS_1 \parallel \aPSS_2$ in defining the semantics of conditionals
+and concurrency.
+It contains the union of pomsets from $\aPSS_1$ and $\aPSS_2$,
+allowing overlap as long as they agree on actions. For example, if
+$\aPSS_1$ and $\aPSS_2$ contain:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm_1 \mid \bAct}{right=of a}
+  \po{a}{b}
+\end{tikzpicture}\qquad\qquad\begin{tikzpicture}[node distance=1em]
+  \event{b}{\bForm_2 \mid \bAct}{}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \wk{b}{c}
+\end{tikzpicture}\]
+then $\aPSS_1 \parallel \aPSS_2$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm_1 \lor \bForm_2 \mid \bAct}{right=of a}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \po{a}{b}
+  \wk{b}{c}
+\end{tikzpicture}\]
+
+\begin{definition}
+  \label{def:prefix}
+Let $\aAct \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
+there is $\aPS\in\aPSS$ such that:
+\begin{itemize}
+\item $\Event' = \Event \cup \{\cEv\}$,
+\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
+\item if $\bEv \ltN \aEv$ then $\bEv \ltN' \aEv$,
+\item $\labelling'(\cEv) = (\aForm, \aAct)$, and
+\item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then:
+  \begin{itemize}
+  \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
+  \item $\bForm'$ implies \(\left\{\begin{array}{l@{~}ll}
+    \bForm[\aVal/\aLoc]                     \\\quad \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} \\\qquad \textsc{[dependent read]} \\[\jot]
+    \bForm[\aVal/\aLoc] \text{ and } \bForm \\\quad \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$}                  \\\qquad \textsc{[independent read]} \\[\jot]
+    \bForm                                  \\\quad \mbox{otherwise}                                              \\\qquad \textsc{[non-read]} \\
+  \end{array}\right.\)
+  \item if $\aAct$ and $\bAct$ both write to $\bLoc$,
+    then $\cEv \gtN' \aEv$.
+  \end{itemize}
+\end{itemize}
+\end{definition}
+Prefixing is used to define the semantics of reads and writes, and
+adds a new event $\cEv$ with action $\aAct$.  As in the definition
+of parallel composition, the definition allows the new event to overlap with
+events in $\aPSS$ as long as they agree on the action.
+
+The tricky parts of the
+definition are the named cases, which place requirements on read
+dependencies.  If $\aAct$ reads $\aVal$ from $\aLoc$, we have to
+decide whether $\aEv$ depends on $\cEv$ for some $\aEv$ with old
+precondition $\bForm$ and new precondition $\bForm'$. The first case
+\textsc{[dependent read]} is that the dependency exists, in which case
+$\bForm'$ just has to imply $\bForm[\aVal/\aLoc]$. The more interesting 
+case is \textsc{[independent read]}, in which case $\bForm'$ has to imply
+$\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
+$\aEv$ can be performed with or without $\cEv$.
+In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
+$\bForm'$ to be $\bForm$, and the independent read case will apply.
+For example,
+if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$,
+and
+$\aPSS$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{b}{\bForm \mid \bAct}{}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \po{b}{c}
+\end{tikzpicture}\]
+then $\aAct\prefix\aPSS$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm \mid \bAct}{right=of a}
+  \event{c}{\cForm[\vec\aVal/\vec\aLoc] \mid \cAct}{right=of b}
+  \po[out=25,in=155]{a}{c}
+  \wk{a}{b}
+  \po{b}{c}
+\end{tikzpicture}\]
+
+\begin{definition}
+Let $\aPSS[\aExp/\aLoc]$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
+there is $\aPS\in\aPSS$ such that:
+\begin{itemize}
+\item $\Event' = \Event$,
+\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$, and
+\item if $\bEv \ltN \aEv$ then $\bEv \ltN' \aEv$, and
+\item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\labelling'(\aEv) = (\bForm[\aExp/\aLoc] \mid \aAct)$.
+\end{itemize}
+and similarly for $\aPSS[\aLoc/\aReg]$.
+\end{definition}
+
+\begin{definition}
+Let $(\aForm \guard \aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ whenever:
+\begin{itemize}
+\item if $\labelling(\aEv) = (\bForm \mid \aAct)$ then $\aForm$ implies $\bForm$.
+\end{itemize}
+\end{definition}
+
+
+
+\begin{definition}
+\label{def:x-closed}
+  A 3-valued pomset is $\aLoc$-closed if,
+  for every $\aEv\in\Event$:
+  \begin{itemize}
+  \item $\aEv$ is independent of $\aLoc$, and
+  \item if $\aEv$ reads from $\aLoc$, then there is a $\bEv$ such that $\aEv$ can read $\aLoc$ from $\bEv$.
+  \end{itemize}
+\end{definition}
+
+The definitions as they stand allow cycles in weak edges. This is necessary for examples such
+as $(\aLoc\GETS\bLoc-1\SEMI \aLoc\GETS1 \PAR \bLoc\GETS\aLoc-1\SEMI\bLoc\GETS1)$
+which has execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{\bLoc}{1}}{}
+  \event{wx0}{\DW{\aLoc}{0}}{right=of ry1}
+  \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
+  \event{rx1}{\DR{\aLoc}{1}}{right=2.5em of wx1}
+  \event{wy0}{\DW{\bLoc}{0}}{right=of rx1}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of wy0}
+  \wk{wx0}{wx1}
+  \wk{wy0}{wy1}
+  \po{ry1}{wx0}
+  \po{rx1}{wy0}
+  \rf{wx1}{rx1}
+  \rf[in=20,out=160]{wy1}{ry1}
+\end{tikzpicture}\]
+However, in order to model release/acquire fencing in \S\ref{sec:ra}, we need to ban
+executions such as:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{\aLoc}{0}}{}
+  \event{wx1}{\DW{\aLoc}{1}}{below=7ex of wx0}
+  \event{wy1}{\DWRel{\bLoc}{1}}{below right=of wx0}
+  \event{ry1}{\DRAcq{\bLoc}{1}}{right=2.5em of wy1}
+  \event{rx0}{\DR{\aLoc}{0}}{above right=of ry1}
+  \event{rx1}{\DR{\aLoc}{1}}{below=7ex of rx0}
+  \wk[out=-75,in=75]{wx0}{wx1}
+  \wk[out=105,in=-105]{wx1}{wx0}
+  \po{wx0}{wy1}
+  \po{wx1}{wy1}
+  \po{ry1}{rx0}
+  \po{ry1}{rx1}
+  \rf{wy1}{ry1}
+  \rf{wx0}{rx0}
+  \rf{wx1}{rx1}
+\end{tikzpicture}\]
+The problem here is the weak cycle between $(\DW\aLoc0)$ and $(\DW\aLoc1)$,
+which according to Definition~\ref{def:rf}, allows both $(\DR\aLoc0)$ and
+$(\DR\aLoc1)$, even though one of them must be a stale value. This can be addressed by
+requiring $\ltN$ to form a \emph{per-location} partial order. This is a form
+of partial coherence, and can be strengthened to total coherence by requiring
+$\ltN$ to be a per-location total order.
+
+\begin{definition}
+  A 3-valued pomset is \emph{partially} (resp.~\emph{totally}) $\aLoc$-\emph{coherent}
+  if, when restricted to events which write to $\aLoc$,
+  $\ltN$ forms a partial (resp.~total) order.
+\end{definition}
+
+\begin{definition}
+Let $(\nu\aLoc\st\aPSS)$ be the subset of $\aPSS$ such that $\aPS\in\aPSS$ whenever
+$\aPS$ is $\aLoc$-closed and partially $\aLoc$-coherent.
+\end{definition}
+
 \subsection{Blockers}
 \label{sec:blockers}
 
