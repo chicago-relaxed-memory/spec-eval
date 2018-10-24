@@ -15,11 +15,11 @@ simplified, compared for example to
 C11~\cite{Boehm:2008:FCC:1375581.1375591,Batty:2011:MCC:1926385.1926394}.
 In particular our model of reads-from is strong, and could be weakened
 by replacing the requirement $\bEv<\aEv$ in Definition~\ref{def:rf}
-by $\aEv\ltN\bEv$. It remains to be seen how this impacts the model,
-in particular the logical formulation of $\aLoc$-closure in
-\S\ref{sec:logic} as
-$((\DR{\aLoc}{\aVal}) \Rightarrow \once(\DW{\aLoc}{\aVal}))$
-would no longer be sound.
+by $\aEv\ltN\bEv$. It remains to be seen how this impacts the model.
+%% in particular the logical formulation of $\aLoc$-closure in
+%% \S\ref{sec:logic} as
+%% $((\DR{\aLoc}{\aVal}) \Rightarrow \once(\DW{\aLoc}{\aVal}))$
+%% would no longer be sound.
 % The model is also not considering coherence, though we speculate it
 % can be added by requiring that for each $\aLoc$, $\ltN$ form a total
 % order when restricted to events that write to $\aLoc$.
