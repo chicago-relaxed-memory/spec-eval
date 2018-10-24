@@ -23,11 +23,11 @@
 \newcommand{\ignore}[1]{}
 \newcommand{\todo}[1]{{\color{red}\textbf{\{#1\}}}}
 
+\pagestyle{plain}
+
 \begin{document}
 
-\title{The Code That Never Ran\\Modeling Attacks on Speculative Evaluation
-  \thanks{Identify applicable funding agency here. If none, delete this.}
-}
+\title{The Code That Never Ran\\Modeling Attacks on Speculative Evaluation}
 
 \author{
 \IEEEauthorblockN{Craig Disselkoen}
@@ -65,7 +65,7 @@
   dependencies, relaxed memory and transactions. We provide models for
   existing information flow attacks based on speculative evaluation
   and transactions.  We also model new information flow attacks based on compiler
-  optimizations. The new attacks are experimentally validated against
+  optimizations, which are experimentally validated against
   gcc and clang.  We develop a simple temporal logic that supports 
   invariant reasoning.
 \end{abstract}
@@ -76,7 +76,7 @@
 \input{examples}
 \input{tx}
 \input{experiments}
-\input{logic}
+% \input{logic}
 \input{outro}
 
 \begin{small}

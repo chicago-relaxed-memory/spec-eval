@@ -21,7 +21,8 @@ it has long been known~\cite{Lampson:1973:NCP:362375.362389,Biswas:2017:STC:3058
 information arise from other observables such as execution time and
 power consumption.
 Recently, the Spectre family of attacks~\cite{DBLP:journals/corr/abs-1801-01203} has
-shown that side-channels arise from speculative evaluation.
+shown that speculative evaluation, in conjunction with cache-timing side-channels,
+allows adversaries to bypass dynamic security checks.
 %In this paper, we develop a formal model of such attacks.
 
 There are several sources of speculative evaluation.  Each of these is
@@ -34,10 +35,10 @@ for side-channels:
   to speculatively execute the result of
   a conditional jump or indirect jump instruction.
   These are intended to be micro-architectural optimizations
-  that are not visible at the architectural leve, but
+  that are not visible at the architectural level, but
   the Spectre family of
-  attacks~\cite{DBLP:journals/corr/abs-1801-01203} have shown that it is possible to exploit the timing
-  differences between successful and unsuccessful predictions.
+  attacks~\cite{DBLP:journals/corr/abs-1801-01203} have shown how to exploit
+  cache timing to create side channels.
   %% This means,
   %% for example, that a single execution of
   %% $(\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI)$ may depend on both $\aCmd$ and
@@ -59,15 +60,18 @@ for side-channels:
   %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$ cannot be so
   %% optimized.  
 \end{itemize}
-
 We develop a model to capture such attacks.  From a hardware perspective, ~\citet{Chien:2018} argues that  the Spectre family of attacks forces one to
-``extend the functional specification of the architecture to include its detailed performance''.    In analogy, our model is a first step on how to ``extend the functional specification of a programming language  to include its detailed performance''.  
+``extend the functional specification of the architecture to include its detailed performance''.    In analogy, our model intends to ``extend the functional specification of a programming language  to include speculation''.
 %% This line of research was initiated by~\citet{Zhang:2012:LCM:2345156.2254078}.  
 %% Whereas they explore static annotations to address side channels in the context of hardware description languages, we explore a model of programs
 %% that captures enough detail to reveal and analyze the presence of side
 %% channels revealed by speculative execution.  
 %
 
+The model is designed to capture information flow attacks on speculative evaluation,
+but in contrast to existing work such as~\cite{Zhang:2012:LCM:2345156.2254078}, we do \emph{not} model micro-architectural
+details such as caches or timing. We try to give as simple a model as possible, while still
+capturing shared-memory concurrency and speculation.
 
 Our model is based on \emph{partially ordered multisets}~\cite{GISCHER1988199,Plotkin:1997:TSP:266557.266600}
 (``pomsets''), whose labels are given by read and write actions. These can be
@@ -102,8 +106,9 @@ has an execution:
 \end{tikzpicture}\]
 The edges from $(\DR{\aLoc}{1})$ to $(\DW{\bLoc}{1})$ and
 $(\DW{\bLoc}{2})$ indicate control dependencies. The presence of
-a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precondition.
-Since the $\DW{\cLoc}{1}$ action is performed on both branches of the conditional,
+a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precondition,
+modelling an unsuccessful speculation.
+Since the $(\DW{\cLoc}{1})$ action is performed on both branches of the conditional,
 there is no control dependency from $(\DR{\aLoc}{1})$.
 
 There do exist models of programs which include speculation, notably
@@ -137,11 +142,13 @@ In our model, these programs are
 not equated, since the conditional code has the execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx0}{\DR{\aLoc}{0}}{}
-  \event{rs1}{\DR{\SEC}{1}}{right=of rx0}
-  \event{wa01}{\DW{a[0]}{1}}{right=of rs1}
-  \nonevent{wa11}{\DW{a[1]}{1}}{right=of wa01}
-  \po[out=25,in=155]{rx0}{wa01}
-  \po[out=25,in=155]{rs1}{wa11}
+  \event{rs1}{\DR{\SEC}{1}}{below=of rx0}
+  \event{wa01}{\DW{a[0]}{1}}{right=3em of rx0}
+  \nonevent{wa11}{\DW{a[1]}{1}}{below=of wa01}
+  \po{rx0}{wa01}
+  \po{rs1}{wa01}
+  \po{rx0}{wa11}
+  \po{rs1}{wa11}
 \end{tikzpicture}\]
 which is not matched in the straight-line code.
 
@@ -152,12 +159,10 @@ The novel contributions of this paper are:
 
 \item examples showing how the model can be applied,
   including existing information flow attacks on
-  hardware and transactional memory, and new attacks on optimizing compilers (\S\ref{sec:examples}),
+  hardware and transactional memory, and new attacks on optimizing compilers (\S\ref{sec:examples}), and
 
 \item experimental evidence about how practical it is to mount
-  the new class of attacks (\S\ref{sec:experiments}), and
-
-\item a temporal logic which supports compositional proof (\S\ref{sec:logic}).
+  the new class of attacks (\S\ref{sec:experiments}).
 
 \end{itemize}
 Readers who wish to focus on the impact of the model can skip past \S\ref{sec:model}
