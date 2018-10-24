@@ -1,6 +1,3 @@
-\newcommand{\LOW}{{\mbox {\texttt LOW}}}
-\newcommand{\HIGH}{{\mbox {\texttt HIGH}}}
-
 \section{Introduction}
 
 This paper studies information flow caused by speculation mechanisms
@@ -77,7 +74,7 @@ We develop a model to capture such attacks.  From a hardware perspective, ~\cite
 The information flow literature, with the notable exceptions of ~\cite{Zhang:2012:LCM:2345156.2254078,hyperflow},  does not address observables such as execution time and  power consumption.  For example, the well-known Smith-Volpano type system (which guarantees noninterference) will allow the \textsc{Prime+Abort} attacks~\cite{DBLP:conf/uss/DisselkoenKPT17}.     While~\cite{6957104,Vaughan:2012:SIF} analyze  information flow arising from thread-specific speculation in hardware relaxed memory~\cite{SparcV9}, they do not address branch-speculation.  
 
 The model of this paper is designed to capture information flow attacks on speculative evaluation,
-but in contrast to existing work such as~\cite{Zhang:2012:LCM:2345156.2254078,hyperflow}, we do \emph{not} model micro-architectural
+but in contrast to~\cite{Zhang:2012:LCM:2345156.2254078,hyperflow}, we do \emph{not} model micro-architectural
 details such as caches or timing. We try to give as simple a model as possible, while still
 capturing shared-memory concurrency and speculation.
 
@@ -138,6 +135,9 @@ to be the same as the conditional:
   r\GETS x\SEMI s\GETS\SEC \SEMI \\[\jot]
   \IF(r\EQ s) \THEN a[s]\GETS 1 \ELSE a[r]\GETS 1 \FI
 \end{array}\]
+and indeed an optimizing compiler might choose to rewrite
+either of these programs to be the other.
+
 An attacker can mount a Spectre-style attack on the
 conditional code, for example by setting $x$ to be~$0$,
 flushing the cache,
@@ -147,8 +147,18 @@ must have been~$1$. This attack is not possible against
 the straight-line code, and so any model trying to
 capture Spectre must distinguish them.
 
-If $r,x,a$ (resp. $\SEC,s$) are at security level $\LOW$ (resp. security level $\HIGH$), there is no information flow from $\HIGH$ to $\LOW$ in either of the above programs in the usual approaches.   Thus, the only existing models of non-interference which capture this
-information flow are ones such as~\cite{Zhang:2012:LCM:2345156.2254078} which model micro-architectural features such as caching and timing.  
+Most defininitions of non-interference will say that in both
+programs, there is no observable dependency of the low-security
+outputs ($a$) on the high-security inputs ($\SEC$) and so both programs
+are safe.
+  The only existing models of
+non-interference which capture this information flow are ones such
+as~\cite{Zhang:2012:LCM:2345156.2254078} which model
+micro-architectural features such as caching and timing.
+Static analyses such as the Smith-Volpano type
+system~\cite{Smith:1998:SIF:268946.268975} will reject the conditional
+program, due to $a[s]\GETS 1$, in which a low-security assignment
+depends on a high-security variable.
 
 In our model, these programs are not equated, since the conditional code has the execution:
 \[\begin{tikzpicture}[node distance=1em]
@@ -161,9 +171,7 @@ In our model, these programs are not equated, since the conditional code has the
   \po{rx0}{wa11}
   \po{rs1}{wa11}
 \end{tikzpicture}\]
-which is not matched in the straight-line code.  Thus, ordinary compiler optimizations can
-violate intuitively expected informal information flow guarantees, resulting in information flows that might even be observable without timers.
-
+which is not matched in the straight-line code.
 
 The model in this paper leads to new attacks on optimizing
 compilers~(\S\ref{sec:info-flow-attack} and~\S\ref{sec:dse}) which
