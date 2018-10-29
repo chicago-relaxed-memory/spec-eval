@@ -1,5 +1,5 @@
-\section{Logic}
-\label{sec:logic}
+\subsection{Logic}
+\label{app:logic}
 
 \newcommand{\closed}{\textsf{closed}}
 \newcommand{\pLTL}{\textsf{PLTL}}
@@ -167,15 +167,15 @@ closed if $\mods{(\afo)}$ is prefix-closed\footnote{$\aPS'$ is a prefix of
 \end{proof}
 
 We now turn the conditional TAR-pit program, which is a variant of \cite[Figure 8]{DBLP:journals/toplas/Lochbihler13}:
-\[
-  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI \VAR z\GETS0\SEMI  (
+\begin{multline*}
+  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI \VAR z\GETS0\SEMI  \\[-.5ex] (
     y\GETS x
   \PAR
     \IF(z)\THEN x\GETS1 \ELSE x\GETS y\SEMI a\GETS y \FI
   \PAR
     z\GETS1
   )
-\]
+\end{multline*}
 This program is allowed to write $1$ to $a$ under many speculative
 memory models
 \cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17},
@@ -187,11 +187,11 @@ thread arises out of thin air.   In contrast, we prove the formula
 holds for the models of this program in our semantics.  We start with the following invariant,
 which holds for each of the three threads, and thus, by composition, for the
 aggregate program:
-\begin{displaymath}
-  [\once(\DW{y}{1}) \Rightarrow \once(\DR{x}{1})]
-  \land
-  [\once(\DW{a}{1}) \Rightarrow (\once(\DR{y}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DR{y}{1})))]
-\end{displaymath}
+\begin{align*}
+  &[\once(\DW{y}{1}) \Rightarrow \once(\DR{x}{1})]
+  \land\\[-.5ex]
+  &[\once(\DW{a}{1}) \Rightarrow (\once(\DR{y}{1}) \land \always(\DW{x}{1} \Rightarrow \once(\DR{y}{1})))]
+\end{align*}
 Closing $y$, we have,
 \begin{math}
   \once(\DR{y}{1}) \Rightarrow \once(\DW{y}{1}) % \Rightarrow \once(\DR{x}{1})

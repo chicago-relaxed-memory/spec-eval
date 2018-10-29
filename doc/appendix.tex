@@ -1,6 +1,87 @@
 \subsection{Operations on sets of pomsets}
 \label{app:sets-of-pomsets}
 
+Here we give the formal definitions for the operations described at the
+beginning of \S\ref{sec:semantics}.
+
+In transactional memory, begin and commit actions are memory fences: that is,
+they are a barrier to reordering memory accesses.  To capture this (and other
+memory barriers), we identify sets $\Rel$ and $\Acq \subseteq\Act$.  For
+transactions, we have $(\DB{\aVal})\in\Acq$ for begins,
+$(\DC{\aVal})\in \Rel$ for commits.  We say that $\aAct$ is a \emph{release}
+if $\aAct\in\Rel$ and $\aAct$ is an \emph{acquire} if $\aAct\in\Acq$.
+% In a pomset, a release event is one
+% labelled with a release action, and an acquire event is one labelled by an
+% acquire action.  
+
+\begin{definition}
+  \label{def:prefix}
+Let $\aAct \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
+there is $\aPS\in\aPSS$ such that:
+\begin{itemize}
+\item $\Event' = \Event \cup \{\cEv\}$,
+\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
+\item if $\bEv \ltN \aEv$ then $\bEv \ltN' \aEv$,
+\item $\labelling'(\cEv) = (\aForm, \aAct)$, and
+\item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then $\labelling'(\aEv) =
+  (\bForm' \mid \bAct)$, where:
+  \begin{itemize}
+  \item $\cEv <' \aEv$ whenever $\aAct$ is an acquire or $\bAct$ is a release, 
+  \item if $\aAct$ is an acquire then $\bForm'$ is independent of every $\bLoc$,
+  \item if $\aAct$ and $\bAct$ both write to some $\bLoc$,
+    then $\cEv \gtN' \aEv$, and
+  \item $\bForm'$ implies \(\left\{\begin{array}{l@{~}ll}
+    % \bForm[\aVal/\aLoc]                     & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} & \textsc{[dependent read]} \\
+    % \bForm[\aVal/\aLoc] \text{ and } \bForm & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$}                  & \textsc{[independent read]} \\
+    % \bForm                                  & \mbox{otherwise}                                              & \textsc{[non-read]} \\        
+    \bForm[\aVal/\aLoc]                     \\\quad \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} \\\qquad \textsc{[dependent read]} \\[\jot]
+    \bForm[\aVal/\aLoc] \text{ and } \bForm \\\quad \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$}                  \\\qquad \textsc{[independent read]} \\[\jot]
+    \bForm                                  \\\quad \mbox{otherwise}                                              \\\qquad \textsc{[non-read]} \\
+  \end{array}\right.\)
+  \end{itemize}
+\end{itemize}
+\end{definition}
+The first constraint ensures that events are ordered before a release and
+after an acquire.  The second constraint ensures that thread-local reads do
+not cross acquire fences.
+
+% Prefixing is used to define the semantics of reads and writes, and
+% adds a new event $\cEv$ with action $\aAct$.  As in the definition
+% of parallel composition, the definition allows the new event to overlap with
+% events in $\aPSS$ as long as they agree on the action.
+
+The tricky parts of the
+definition are the named cases, which place requirements on read
+dependencies.  If $\aAct$ reads $\aVal$ from $\aLoc$, we have to
+decide whether $\aEv$ depends on $\cEv$ for some $\aEv$ with old
+precondition $\bForm$ and new precondition $\bForm'$. The first case
+\textsc{[dependent read]} is that the dependency exists, in which case
+$\bForm'$ just has to imply $\bForm[\aVal/\aLoc]$. The more interesting 
+case is \textsc{[independent read]}, in which case $\bForm'$ has to imply
+$\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
+$\aEv$ can be performed with or without $\cEv$.
+In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
+$\bForm'$ to be $\bForm$, and the independent read case will apply.
+For example,
+if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$,
+and
+$\aPSS$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{b}{\bForm \mid \bAct}{}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \po{b}{c}
+\end{tikzpicture}\]
+then $\aAct\prefix\aPSS$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm \mid \bAct}{right=of a}
+  \event{c}{\cForm[\vec\aVal/\vec\aLoc] \mid \cAct}{right=of b}
+  \po[out=25,in=155]{a}{c}
+  \wk{a}{b}
+  \po{b}{c}
+\end{tikzpicture}\]
+
+
 \begin{definition}
 Let $\aPS_0 \in (\aPSS_1 \parallel \aPSS_2)$
 whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
@@ -41,64 +122,6 @@ whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
 %   \po{a}{b}
 %   \wk{b}{c}
 % \end{tikzpicture}\]
-
-\begin{definition}
-  \label{def:prefix}
-Let $\aAct \prefix \aPSS$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
-there is $\aPS\in\aPSS$ such that:
-\begin{itemize}
-\item $\Event' = \Event \cup \{\cEv\}$,
-\item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
-\item if $\bEv \ltN \aEv$ then $\bEv \ltN' \aEv$,
-\item $\labelling'(\cEv) = (\aForm, \aAct)$, and
-\item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then:
-  \begin{itemize}
-  \item $\labelling'(\aEv) = (\bForm' \mid \bAct)$,
-  \item $\bForm'$ implies \(\left\{\begin{array}{l@{~}ll}
-    \bForm[\aVal/\aLoc]                     \\\quad \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} \\\qquad \textsc{[dependent read]} \\[\jot]
-    \bForm[\aVal/\aLoc] \text{ and } \bForm \\\quad \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$}                  \\\qquad \textsc{[independent read]} \\[\jot]
-    \bForm                                  \\\quad \mbox{otherwise}                                              \\\qquad \textsc{[non-read]} \\
-  \end{array}\right.\)
-  \item if $\aAct$ and $\bAct$ both write to $\bLoc$,
-    then $\cEv \gtN' \aEv$.
-  \end{itemize}
-\end{itemize}
-\end{definition}
-% Prefixing is used to define the semantics of reads and writes, and
-% adds a new event $\cEv$ with action $\aAct$.  As in the definition
-% of parallel composition, the definition allows the new event to overlap with
-% events in $\aPSS$ as long as they agree on the action.
-
-The tricky parts of the
-definition are the named cases, which place requirements on read
-dependencies.  If $\aAct$ reads $\aVal$ from $\aLoc$, we have to
-decide whether $\aEv$ depends on $\cEv$ for some $\aEv$ with old
-precondition $\bForm$ and new precondition $\bForm'$. The first case
-\textsc{[dependent read]} is that the dependency exists, in which case
-$\bForm'$ just has to imply $\bForm[\aVal/\aLoc]$. The more interesting 
-case is \textsc{[independent read]}, in which case $\bForm'$ has to imply
-$\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
-$\aEv$ can be performed with or without $\cEv$.
-In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
-$\bForm'$ to be $\bForm$, and the independent read case will apply.
-For example,
-if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$,
-and
-$\aPSS$ contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{b}{\bForm \mid \bAct}{}
-  \event{c}{\cForm \mid \cAct}{right=of b}
-  \po{b}{c}
-\end{tikzpicture}\]
-then $\aAct\prefix\aPSS$ contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{a}{\aForm \mid \aAct}{}
-  \event{b}{\bForm \mid \bAct}{right=of a}
-  \event{c}{\cForm[\vec\aVal/\vec\aLoc] \mid \cAct}{right=of b}
-  \po[out=25,in=155]{a}{c}
-  \wk{a}{b}
-  \po{b}{c}
-\end{tikzpicture}\]
 
 \begin{definition}
 Let $\aPSS[\aExp/\aLoc]$ be the set $\aPSS'$ where $\aPS'\in\aPSS'$ whenever
@@ -148,13 +171,15 @@ which has execution:
   \rf{wx1}{rx1}
   \rf[in=20,out=160]{wy1}{ry1}
 \end{tikzpicture}\]
-However, in order to model release/acquire fencing in \S\ref{sec:ra}, we need to ban
+However, in order to model release/acquire fencing in transactions, we need to ban
 executions such as:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
   \event{wx1}{\DW{\aLoc}{1}}{below=7ex of wx0}
-  \event{wy1}{\DWRel{\bLoc}{1}}{below right=of wx0}
-  \event{ry1}{\DRAcq{\bLoc}{1}}{right=2.5em of wy1}
+  \event{wy1}{\DC{}}{below right=of wx0}
+  \event{ry1}{\DB{}}{right=2.5em of wy1}
+  % \event{wy1}{\DWRel{\bLoc}{1}}{below right=of wx0}
+  % \event{ry1}{\DRAcq{\bLoc}{1}}{right=2.5em of wy1}
   \event{rx0}{\DR{\aLoc}{0}}{above right=of ry1}
   \event{rx1}{\DR{\aLoc}{1}}{below=7ex of rx0}
   \wk[out=-75,in=75]{wx0}{wx1}
@@ -186,7 +211,7 @@ $\aPS$ is $\aLoc$-closed and partially $\aLoc$-coherent.
 \end{definition}
 
 \subsection{Blockers}
-\label{sec:blockers}
+\label{app:blockers}
 
 Recall the preliminary definition of reads-from in \S\ref{sec:pomsets}, which
 defined an $\aLoc$-blocker to be and event $\cEv$ that writes to $\aLoc$ such that
@@ -337,8 +362,233 @@ since $(\DW{\aLoc}{2}) < (\DR{\aLoc}{1})$ but also $(\DW{\aLoc}{2}) \ltN (\DR{\a
 which is a contradiction.
 
 
-\section{Causality test cases}
-\label{sec:tc}
+\input{logic}
+
+
+\subsection{Release/acquire synchronization}
+\label{app:ra}
+
+% In relaxed memory models, synchronization actions act as memory fences: that
+% is, they are a barrier to reordering memory accesses.  In this section, we
+% present a simple model of release/acquire fencing. In
+% \S\ref{sec:transactions}, we show that this can be scaled up to a model of
+% transactional memory.
+
+% We assume there are sets $\Rel$ and $\Acq \subseteq\Act$.  We say that
+% $\aAct$ is a \emph{release action} if $\aAct\in\Rel$ and $\aAct$ is an
+% \emph{acquire action} if $\aAct\in\Acq$.
+% In a pomset, a release event is one labelled with a release action,
+% and an acquire event is one labelled by an acquire action.
+% To give the semantics of fences, we add extra constraints
+% to Definition~\ref{def:prefix} of prefixing %$\aAct\prefix\aPSS$
+% (recalling that $\cEv$ is the %$\aAct$-labelled
+% event being introduced):
+% \begin{itemize}
+% \item $\cEv \le \aEv$ whenever $\cEv$ is an acquire event or $\aEv$ is a release event, and
+% \item if $\cEv$ is an acquire event then $\aEv$ is independent of $\aLoc$,
+%   for every $\aLoc$.
+% \end{itemize}
+% The first constraint ensures that events are ordered before a release and
+% after an acquire.  The second constraint ensures that thread-local reads do
+% not cross acquire fences.
+
+We can develop a simple model of release/acquire synchronization using the
+following actions: % we will use
+% releasing writes and acquiring reads:
+\begin{itemize}
+\item $(\DWRel{\aLoc}{\aVal})$, a release action that writes $\aVal$ to $\aLoc$, and
+\item $(\DRAcq{\aLoc}{\aVal})$, an acquire action that reads $\aVal$ from $\aLoc$.
+\end{itemize}
+The semantics of programs with releasing write and acquiring read are similar
+to regular write and read, with $\DWRel\aLoc\aVal$ replacing
+$\DW\aLoc\aVal$ and $\DRAcq\aLoc\aVal$ replacing $\DR\aLoc\aVal$:
+\begin{eqnarray*}
+  \sem{\REL\aLoc\GETS\aExp\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; \bigl((\aExp=\aVal) \guard (\DWRel\aLoc\aVal) \prefix \sem{\aCmd}[\aExp/\aLoc]\bigr) \\
+  \sem{\ACQ\aReg\GETS\aLoc\SEMI \aCmd} & = & \textstyle\bigcup_\aVal\; (\DRAcq\aLoc\aVal) \prefix \sem{\aCmd}[\aLoc/\aReg]
+\end{eqnarray*}
+
+To see the need for the first constraint on prefixing, consider the program:
+\[
+  \VAR x\GETS0\SEMI \VAR f\GETS0\SEMI
+  (x\GETS 1\SEMI \REL f\GETS1 \PAR \ACQ r\GETS f; s\GETS x)
+\]
+This has an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wf0}{\DW{f}{0}}{right=of wx0}
+  \event{wx1}{\DW{x}{1}}{below=of wx0}
+  \event{wf1}{\DWRel{f}{1}}{right=of wx1}
+  \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
+  \event{rx1}{\DR{x}{1}}{right=of rf1}
+  \po{wx0}{wf1}
+  \po{wf0}{wf1}
+  \po{wx1}{wf1}
+  \po{rf1}{rx1}
+  \rf{wf1}{rf1}
+  \rf[out=20,in=160]{wx1}{rx1}
+  \wk{wx0}{wx1}
+\end{tikzpicture}\]
+but \emph{not}:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wf0}{\DW{f}{0}}{right=of wx0}
+  \event{wx1}{\DW{x}{1}}{below=of wx0}
+  \event{wf1}{\DWRel{f}{1}}{right=of wx1}
+  \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
+  \event{rx0}{\DR{x}{0}}{right=of rf1}
+  \po{wx0}{wf1}
+  \po{wf0}{wf1}
+  \po{wx1}{wf1}
+  \po{rf1}{rx1}
+  \rf{wf1}{rf1}
+  \rf[out=-20,in=160]{wx0}{rx0}
+  \wk{wx0}{wx1}
+\end{tikzpicture}\]
+since $(\DW x0) \gtN (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
+requirements to be $x$-closed.
+If we replace the release
+with a plain write, then the outcome $(\DRAcq f1)$ and $(\DR x0)$ is possible:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wf0}{\DW{f}{0}}{right=of wx0}
+  \event{wx1}{\DW{x}{1}}{below=of wx0}
+  \event{wf1}{\DW{f}{1}}{right=of wx1}
+  \event{rf1}{\DRAcq{f}{1}}{right=2.5em of wf1}
+  \event{rx0}{\DR{x}{0}}{right=of rf1}
+  \wk{wf0}{wf1}
+  \po{rf1}{rx0}
+  \rf{wf1}{rf1}
+  \rf[out=-20,in=160]{wx0}{rx0}
+  \wk{wx0}{wx1}
+\end{tikzpicture}\]
+since no order is required between $(\DW x1)$ and $(\DW f1)$.  
+Symmetrically, if we replace the acquire of the original program
+with a plain read, then the outcome $(\DR f1)$ and $(\DR x0)$ is possible.
+% \begin{verbatim}
+%   x := 0; rel f := 0; ||
+%   acq r := f; if (r == 0) { x := x+1; rel f := 1; } ||
+%   acq s := f; if (r == 1) { x := x+1; rel f := 2; }
+% \end{verbatim}
+% This has an execution:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{wx0}{\DW{x}{0}}{}
+%   \event{wf0}{\DWRel{f}{0}}{below=of wx0}
+%   \event{rf0}{\DRAcq{f}{0}}{right=2.5 em of wx0}
+%   \event{rx0}{\DR{x}{0}}{below=of rf0}
+%   \event{wx1}{\DW{x}{1}}{below=of rx0}
+%   \event{wf1}{\DWRel{f}{1}}{below=of wx1}
+%   \event{rf1}{\DRAcq{f}{1}}{right=2.5 em of rf0}
+%   \event{rx1}{\DR{x}{1}}{below=of rf1}
+%   \event{wx2}{\DW{x}{2}}{below=of rx1}
+%   \event{wf2}{\DWRel{f}{2}}{below=of wx2}
+%   \po{wx0}{wf0}
+%   \po{rf0}{rx0}
+%   \po{rx0}{wx1}
+%   \po{wx1}{wf1}
+%   \po{rf1}{rx1}
+%   \po{rx1}{wx2}
+%   \po{wx2}{wf2}
+%   \rf{wf0}{rf0}
+%   \rf{wx0}{rx0}
+%   \rf{wf1}{rf1}
+%   \rf{wx1}{rx1}
+% \end{tikzpicture}\]
+% but \emph{not}:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{wx0}{\DW{x}{0}}{}
+%   \event{wf0}{\DWRel{f}{0}}{below=of wx0}
+%   \event{rf0}{\DRAcq{f}{0}}{right=2.5 em of wx0}
+%   \event{rx0}{\DR{x}{0}}{below=of rf0}
+%   \event{wx1}{\DW{x}{1}}{below=of rx0}
+%   \event{wf1}{\DWRel{f}{1}}{below=of wx1}
+%   \event{rf1}{\DRAcq{f}{1}}{right=2.5 em of rf0}
+%   \event{rx0b}{\DR{x}{0}}{below=of rf1}
+%   \event{wx1b}{\DW{x}{1}}{below=of rx0b}
+%   \event{wf2}{\DWRel{f}{2}}{below=of wx1b}
+%   \po{wx0}{wf0}
+%   \po{rf0}{rx0}
+%   \po{rx0}{wx1}
+%   \po{wx1}{wf1}
+%   \po{rf1}{rx0b}
+%   \po{rx0b}{wx1b}
+%   \po{wx1b}{wf2}
+%   \rf{wf0}{rf0}
+%   \rf{wx0}{rx0}
+%   \rf{wf1}{rf1}
+%   \rf{wx0}{rx0b}
+% \end{tikzpicture}\]
+% since $(\DW x0) < (\DW x1) < (\DR x0)$, so this pomset does not satisfy the
+% requirements to be an rf-pomset.
+
+% The notion rf-pomset is sufficient to capture hardware models and
+% release/acquire access in C++, where reads-from implies happens-before
+% \cite{alglave}.  To model C++ relaxed access, it
+% would be necessary to use a more general notion of rf-pomset, where
+% $(\bEv,\aLoc,\aEv) \in \RF$ does not necessarily imply $\bEv < \aEv$, instead
+% requiring that $(\mathord< \cup \mathord\RF)$ be acyclic.
+
+%% To see the need for the second constraint on prefixing, consider the program:
+%% \begin{displaymath}
+%%   (
+%%   x\GETS1\SEMI
+%%   \REL f\GETS 1\SEMI
+%%   \ACQ r\GETS f\SEMI
+%%   y\GETS x
+%%   )
+%%   \PAR
+%%   (
+%%   \ACQ s\GETS f\SEMI
+%%   x\GETS2\SEMI
+%%   \REL f\GETS 2\SEMI
+%%   )
+%% \end{displaymath}
+%% whose semantics includes execution:
+%% \begin{displaymath}
+%% \begin{tikzpicture}[node distance=1em]
+%%   \event{wx1}{\DW{x}{1}}{}
+%%   \event{wf1}{\DWRel{f}{1}}{right=of wx1}
+%%   \event{rf1}{\DRAcq{f}{2}}{below=of wf1}
+%%   \event{wx2}{\DW{x}{2}}{right=of rf1}
+%%   \event{wf2}{\DWRel{f}{1}}{right=of wx2}
+%%   \event{rf2}{\DRAcq{f}{2}}{above=of wf2}
+%%   \event{wy1}{\DW{y}{1}}{right=of rf2}
+%%   \po{wx1}{wf1}
+%%   \rf{wf1}{rf1}
+%%   \po{rf1}{wx2}
+%%   \po{wx2}{wf2}
+%%   \rf{wf2}{rf2}
+%%   \po{rf2}{wy1}
+%% \end{tikzpicture}
+%% \end{displaymath}
+%% This execution exists because
+%% \begin{math}
+%%   \sem{y\GETS x}
+%% \end{math}
+%% includes
+%% \begin{math}
+%%   (x=1\mid \DW{y}{1})
+%% \end{math}
+%% and the precondition $x=1$ is fulfilled by the preceding write $x\GETS1$.  In
+%% implementation term, this execution is reading $1$ from $x$ in a ``stale
+%% cache.''  The alternative execution that attempts to read $1$ from the $x$ in
+%% ``main memory,'' has an explicit $(\DR{x}{1})$ between $(\DRAcq{f}{2})$ and
+%% $(\DW{y}{1})$, and thus will fail to be $x$-closed.
+
+%% To prevent thread-local writes from crossing release/acquire pairs, we
+%% require that pomsets in the semantics of acquire have no free locations.
+%% This corresponds to the idea that acquires flush the read cache, and
+%% therefore reads must reload values from main memory after an acquire.
+
+% In addition, we must change the semantics of write from
+% \S\ref{sec:sets-of-pomsets} to ensure that an action is generated for every
+% write that might be published by a subsequent release action.
+% Formally, $\sem{\aLoc\GETS\aExp\SEMI \aCmd}$ only includes pomsets
+% from $\sem{\aCmd}[\aExp/\aLoc]$ that contain a write to
+% $\aLoc$ that is not preceded by a release.
+
+
+\subsection{Causality test cases}
+\label{app:tc}
 
 \citet{PughWebsite} developed a set of twenty {causality test cases} in the
 process of revising the Java Memory Model (JMM)
@@ -357,7 +607,7 @@ In this section, we discuss three of the causality test cases and the thread
 inlining from \cite{Manson:2005:JMM:1047659.1040336}.  In presenting the
 examples, we unroll loops, correct typos and simplify the code.  
 
-\subsection{Causality test case 8}
+\subsubsection{Causality test case 8}
 
 Test case 8 asks whether:
 \begin{displaymath}
@@ -376,9 +626,9 @@ The semantics of TC8 includes
 \[\begin{tikzpicture}[node distance=1em]
   \event{ix}{\DW{x}{0}}{}
   \event{iy}{\DW{y}{0}}{right=of ix}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
+  \event{rx1}{\DR{x}{1}}{right=2.1em of iy}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{ry1}{\DR{y}{1}}{right=2.1em of wy1}
   \event{wx1}{\DW{x}{1}}{right=of ry1}
   \po{ry1}{wx1}
   \po[out=30,in=150]{ix}{rx1}
@@ -444,7 +694,7 @@ require
 \end{math}
 we can use this case since $\TRUE$ implies $0<2$.
 
-\subsection{Causality test case 9}
+\subsubsection{Causality test case 9}
 
 Test case 9 asks whether:
 \begin{displaymath}
@@ -466,35 +716,36 @@ Reasoning as for test case 8, the semantics of test case 9 includes:
 \[\begin{tikzpicture}[node distance=1em]
   \event{ix}{\DW{x}{0}}{}
   \event{iy}{\DW{y}{0}}{right=of ix}
-  \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
+  \event{rx1}{\DR{x}{1}}{right=2.2 em of iy}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{ry1}{\DR{y}{1}}{right=2.2em of wy1}
   \event{wx1}{\DW{x}{1}}{right=of ry1}
-  \event{wx2}{\DW{x}{2}}{right=2.5em of wx1}
+  \event{wx2}{\DW{x}{2}}{below=3ex of $(ix)!0.5!(iy)$}%{right=2.5em of wx1}
   \po{ry1}{wx1}
   \po[out=30,in=150]{ix}{rx1}
   \rf[in=-25,out=-160]{wx1}{rx1}
   \rf[out=20,in=160]{wy1}{ry1}
   \wk[out=-25,in=-150]{ix}{wx1}
   \wk[out=25,in=155]{iy}{wy1}
-  \wk[out=-25,in=-150]{ix}{wx2}
+  \wk{ix}{wx2}
+  % \wk[out=-25,in=-150]{ix}{wx2}
 \end{tikzpicture}\]
 
 Thus, with respect to the introduction of new threads, our model appears to
 be more robust than the event structures semantics of
 \cite{DBLP:conf/lics/JeffreyR16}, which fails on this test case.
 
-\subsection{Causality test case 14}
+\subsubsection{Causality test case 14}
 
 Test case 14 asks whether:
-\begin{displaymath}
+\begin{multline*}
   \VAR a\GETS 0\SEMI
   \VAR b\GETS 0\SEMI
-  \VAR y\GETS 0\SEMI
+  \VAR y\GETS 0\SEMI\\[-.5ex]
   (\IF(a)\THEN b\GETS 1\ELSE y\GETS 1\FI 
-  \PAR
+  \PAR\\[-.5ex]
   \WHILE(y+b==0) \THEN\SKIP\FI\; a\GETS1)
-\end{displaymath}
+\end{multline*}
 may read $1$ for $a$ and $b$, yet $0$ for $y$.  Here $a$ and $b$ are regular
 variables and $y$ is volatile, which is equivalent to release/acquire in this
 example.  This behavior is also disallowed, since ``in all sequentially
@@ -503,14 +754,14 @@ correctly synchronized. Since the program is correctly synchronized in all SC
 executions, no non-SC behaviors are allowed.''
 
 Unrolling the loop once, we have:
-\begin{displaymath}
+\begin{multline*}
   \VAR a\GETS 0\SEMI
   \VAR b\GETS 0\SEMI
-  \VAR y\GETS 0\SEMI
+  \VAR y\GETS 0\SEMI\\[-.5ex]
   (\IF(a)\THEN b\GETS 1\ELSE y\GETS 1\FI 
-  \PAR
+  \PAR\\[-.5ex]
   \IF(y\lor b)\THEN a\GETS 1\FI)
-\end{displaymath}
+\end{multline*}
 We argue that any execution with $(\DR{a}{1})$, $(\DR{b}{1})$, and
 $(\DR{y}{0})$ must be cyclic.  The closure requirements require that
 \begin{math}
@@ -543,7 +794,7 @@ the order from $(\DR{b}{1})$ to $(\DW{a}{1})$, since $b=1$ does not follow
 from the initialization of $b$.
 
 
-\subsection{Thread inlining}
+\subsubsection{Thread inlining}
 
 One property one could ask of a model of shared memory is thread
 inlining: any execution of $\sem{P\SEMI Q}$ is an execution of $\sem{P
@@ -583,7 +834,7 @@ results in a cycle:
   \event{rx1a}{\DR{x}{1}}{}
   \event{wz1}{\DW{z}{1}}{right=of rx1a}
   \nonevent{wx1a}{\DW{x}{1}}{right=of wz1}
-  \event{rx1b}{\DR{x}{1}}{right=2.5em of wx1a}
+  \event{rx1b}{\DR{x}{1}}{below=of wx1a}%{right=2.5em of wx1a}
   \event{wy1}{\DW{y}{1}}{right=of rx1b}
   \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
   \event{wx1b}{\DW{x}{1}}{right=of ry1}
@@ -641,13 +892,13 @@ so  $\sem{\IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELS
 \[\begin{tikzpicture}[node distance=1em]
   \event{wz1}{r_1=1 \mid \DW{z}{1}}{}
   \event{wx1a}{r_1\neq1 \mid \DW{x}{1}}{right=of wz1}
-  \event{wy1}{(r_1=x=1) \lor (r_1\neq1) \mid \DW{y}{1}}{right=of wx1a}
+  \event{wy1}{(r_1=x=1) \lor (r_1\neq1) \mid \DW{y}{1}}{below=3ex of $(wz1)!0.5!(wx1a)$}
 \end{tikzpicture}\]
 which means $\sem{\IF (r_1 = 1) \THEN z := 1\SEMI r_2 := x\SEMI y := r_2\SEMI \SKIP \ELSE x := 1\SEMI r_3 := x\SEMI y := r_3\SEMI \SKIP \FI}[x/r_1]$ includes:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wz1}{x=1 \mid \DW{z}{1}}{}
   \event{wx1a}{x\neq1 \mid \DW{x}{1}}{right=of wz1}
-  \event{wy1}{(x=x=1) \lor (x\neq1)) \mid \DW{y}{1}}{right=of wx1a}
+  \event{wy1}{(x=x=1) \lor (x\neq1)) \mid \DW{y}{1}}{below=3ex of $(wz1)!0.5!(wx1a)$}%{right=of wx1a}
 \end{tikzpicture}\]
 Now $(x=x=1) \lor (x\neq1)$ is a tautology, so this is just:
 \[\begin{tikzpicture}[node distance=1em]
@@ -706,7 +957,7 @@ agrees with the JMM in not supporting thread inlining.
 % \end{tikzpicture}\]
 % but also has executions in which the read of $x$ reads from both writes,
 % for example:
-g% \[\begin{tikzpicture}[node distance=1em]
+% \[\begin{tikzpicture}[node distance=1em]
 %   \event{wx00}{\DW{x}{[0,0]}}{}
 %   \event{wx11}{\DW{x}{[1,1]}}{right=2.5em of wx00}
 %   \event{rx01}{\DR{x}{[0,1]}}{right=2.5em of wx11}
