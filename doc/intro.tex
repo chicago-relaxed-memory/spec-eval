@@ -21,62 +21,82 @@ it has long been known~\cite{Lampson:1973:NCP:362375.362389,Biswas:2017:STC:3058
 information arise from other observables such as execution time and
 power consumption.
 Recently, the Spectre family of attacks~\cite{DBLP:journals/corr/abs-1801-01203} has
-shown that speculative evaluation, in conjunction with cache-timing side-channels,
+shown that branch prediction, in conjunction with cache-timing side-channels,
 allows adversaries to bypass dynamic security checks.
 
+\citet{Chien:2018} argues that Spectre-like attacks ``extend the functional
+specification of the architecture to include its detailed performance'' and
+thus ``making strong assurances of application security on a computing system
+requires detailed performance information.''
+This approach has been pursued in the information flow literature, by
+enriching language semantics with observables such as execution time and  power consumption
+\cite{Zhang:2012:LCM:2345156.2254078,hyperflow}.
+
+In this paper, we adopt the opposite approach, attempting to understand
+Spectre-like attacks as \emph{abstractly} as possible and thus to reveal the
+``essence'' of Spectre.  We develop a novel model of \emph{speculative
+  evaluation} and show that it sufficient to both capture known attacks and
+predict new attacks.  Our model is defined at the \emph{language} level,
+rather than the hardware level; thus, we do not model micro-architectural
+details such as caches or timing, as in
+\cite{Zhang:2012:LCM:2345156.2254078,hyperflow}.
+% We try to give as
+% simple a model as possible, while still capturing shared-memory concurrency
+% and speculation.
 
 
-%In this paper, we develop a formal model of such attacks.
-
-There are several sources of speculative evaluation.  Each of these is
-designed so that failed speculation does not affect the input-output behavior
-of the program, but may affect other observable behavior, opening an opportunity
-for side-channels:
+There are several sources of speculative evaluation in modern computer
+systems, intended to improve performance without effecting the observable
+behavior of the program: Failed speculations are meant to be
+undetectable. Yet, Spectre-like attacks show that failed speculations are not
+always undetectable.  Our model provides a unifying mechanism to understand
+these sources of speculation.  Because failed speculations are part of the
+model, it is easily enriched with operators to detect operations that occur
+in failed speculations.
+% so that failed speculation does not affect the input-output behavior
+% of the program, but may affect other observable behavior, opening an opportunity
+% for side-channels:
 \begin{itemize}
-\item Hardware micro-architectures make use of
-  speculation, using \emph{branch prediction}
+\item Relaxed memory models
+  \cite{SparcV9,Manson:2005:JMM:1047659.1040336,Boehm:2008:FCC:1375581.1375591,DBLP:conf/popl/ZhaoNMZ12}
+  allow speculative execution to varying degrees. Relaxed execution
+  is known affect the validity of information flow analyses
+  \cite{6957104,Vaughan:2012:SIF}.  More troubling, relaxed memory model
+  allow for the observation of control and data dependencies. This creates an
+  opportunity for information flows caused by optimizing compilers, whose
+  behavior is driven by dependency analysis.  Our basic model captures this
+  dependency analysis precisely.
+  %% For example,
+  %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$ can be optimized to
+  %% $(\aLoc\GETS1)$, whereas  %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$ cannot be so
+  %% optimized.  
+\item Pipelined micro-architectures use \emph{branch prediction}
   to speculatively execute the result of
   a conditional jump or indirect jump instruction.
-  These are intended to be micro-architectural optimizations
-  that are not visible at the architectural level, but
-  the Spectre family of
-  attacks~\cite{DBLP:journals/corr/abs-1801-01203} have shown how to exploit
-  cache timing to create side channels.
+  Spectre \cite{DBLP:journals/corr/abs-1801-01203} exploits
+  cache timing to detect the operations performed in a mispredicted branch
+  before being flushed from the pipeline.  We capture Spectre by enriching
+  our language with a single operation that allows one to test whether a
+  location has been touched, even in a failed speculation.
   %% This means,
   %% for example, that a single execution of
   %% $(\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI)$ may depend on both $\aCmd$ and
   %% $\bCmd$.  This differs from the standard semantics of the conditional, in
   %% which executions of $\aCmd$ and $\bCmd$ are disjoint.
-\item Some modern microprocessors also support transactional
+\item Some microprocessors support transactional
   memory~\cite{ChongSW18}, where aborted transactions are meant to be
-  unobservable.  Transactions may abort due to cache conflicts, however, and
-  this mechanism can be exploited to improve the efficacy of Spectre-like
-  attacks~\cite{DBLP:conf/uss/DisselkoenKPT17}.
-\item Relaxed memory models
-  \cite{Manson:2005:JMM:1047659.1040336,Boehm:2008:FCC:1375581.1375591,DBLP:conf/popl/ZhaoNMZ12}
-  allow for the observation of control and data dependencies. This creates an
-  opportunity for information flows caused by optimizing compilers, whose
-  behavior is driven by dependency analysis.
-  %% For example,
-  %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$ can be optimized to
-  %% $(\aLoc\GETS1)$, whereas
-  %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$ cannot be so
-  %% optimized.  
+  unobservable.  \textsc{Prime+Abort}
+  \cite{DBLP:conf/uss/DisselkoenKPT17} uses cache timing to detect the
+  operations performed in aborted transaction.  We capture \textsc{Prime+Abort} by enriching
+  our language with transactions that abort when a location used by the
+  transaction is touched outside the transaction, even in a failed speculation.
 \end{itemize}
-We develop a model to capture such attacks.  From a hardware perspective, ~\citet{Chien:2018} argues that  the Spectre family of attacks forces one to
-``extend the functional specification of the architecture to include its detailed performance''.    In analogy, our model intends to ``extend the functional specification of a programming language  to include speculation''.
+
 %% This line of research was initiated by~\citet{Zhang:2012:LCM:2345156.2254078}.  
 %% Whereas they explore static annotations to address side channels in the context of hardware description languages, we explore a model of programs
 %% that captures enough detail to reveal and analyze the presence of side
 %% channels revealed by speculative execution.  
 %
-
-The information flow literature, with the notable exceptions of ~\cite{Zhang:2012:LCM:2345156.2254078,hyperflow},  does not address observables such as execution time and  power consumption.  For example, the well-known Smith-Volpano type system (which guarantees noninterference) will allow the \textsc{Prime+Abort} attacks~\cite{DBLP:conf/uss/DisselkoenKPT17}.     While~\cite{6957104,Vaughan:2012:SIF} analyze  information flow arising from thread-specific speculation in hardware relaxed memory~\cite{SparcV9}, they do not address branch-speculation.  
-
-The model of this paper is designed to capture information flow attacks on speculative evaluation,
-but in contrast to~\cite{Zhang:2012:LCM:2345156.2254078,hyperflow}, we do \emph{not} model micro-architectural
-details such as caches or timing. We try to give as simple a model as possible, while still
-capturing shared-memory concurrency and speculation.
 
 Our model is based on \emph{partially ordered multisets}~\cite{GISCHER1988199,Plotkin:1997:TSP:266557.266600}
 (``pomsets''), whose labels are given by read and write actions. These can be
@@ -92,13 +112,14 @@ has an execution modeled by the pomset:
 The edge from $(\DR{\aLoc}{1})$ to $(\DW{\cLoc}{2})$ indicates a
 data dependency. Since there is no dependency between
 $(\DW{\bLoc}{1})$ and $(\DW{\cLoc}{2})$, the write actions may
-take place in either order, becuase of optimizations in
-hardware (for example caching) or the compiler (for example
+take place in either order.  Such reorderings may arise in
+hardware (for example, caching) or in the compiler (for example,
 instruction reordering).
 
 The novel aspect of the model is that events have
 \emph{preconditions} which may be false. These are used in giving the
-semantics of conditionals, for example the program
+semantics of conditionals and transactions, modeling failed branch
+prediction and aborted transactions. For example the program
 $(\IF(\aLoc)\THEN \bLoc\GETS1\SEMI\cLoc\GETS1 \ELSE \bLoc\GETS2\SEMI\cLoc\GETS1\FI)$
 has an execution:
 \[\begin{tikzpicture}[node distance=1em]
@@ -112,7 +133,7 @@ has an execution:
 The edges from $(\DR{\aLoc}{1})$ to $(\DW{\bLoc}{1})$ and
 $(\DW{\bLoc}{2})$ indicate control dependencies. The presence of
 a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precondition,
-modelling an unsuccessful speculation.
+modeling an unsuccessful speculation.
 Since the $(\DW{\cLoc}{1})$ action is performed on both branches of the conditional,
 there is no control dependency from $(\DR{\aLoc}{1})$.  Indeed, from an information-flow perspective,
 this refined treatment of dependencies in conditionals identifies a novel distinguishing feature of our model, namely that the traditional conditional is a self-composition operator in the sense of~\cite{Barthe:2004:SIF:1009380.1009669}.  
@@ -123,14 +144,14 @@ generative~\cite{Jagadeesan:2010:GOS:2175486.2175503} and
 promising~\cite{DBLP:conf/popl/KangHLVD17} operational semantics for
 relaxed memory.  In all of these models a valid execution is defined
 with reference to other possible executions of the program. These
-models are not, however, designed for modelling Spectre-style attacks
+models are not, however, designed for modeling Spectre-style attacks
 on speculation. For example all of these models will consider the
 straight-line code:
 \[
   r\GETS x\SEMI s\GETS\SEC \SEMI
   a[r]\GETS 1
 \]
-to be the same as the conditional:
+to be the same as the conditional code:
 \[\begin{array}{ll}
   r\GETS x\SEMI s\GETS\SEC \SEMI \\[\jot]
   \IF(r\EQ s) \THEN a[s]\GETS 1 \ELSE a[r]\GETS 1 \FI
@@ -147,7 +168,7 @@ must have been~$1$. This attack is not possible against
 the straight-line code, and so any model trying to
 capture Spectre must distinguish them.
 
-Most defininitions of non-interference will say that in both
+Most definitions of non-interference will say that in both
 programs, there is no observable dependency of the low-security
 outputs ($a$) on the high-security inputs ($\SEC$) and so both programs
 are safe.
@@ -155,12 +176,8 @@ are safe.
 non-interference which capture this information flow are ones such
 as~\cite{Zhang:2012:LCM:2345156.2254078} which model
 micro-architectural features such as caching and timing.
-Static analyses such as the Smith-Volpano type
-system~\cite{Smith:1998:SIF:268946.268975} will reject the conditional
-program, due to $a[s]\GETS 1$, in which a low-security assignment
-depends on a high-security variable.
 
-In our model, these programs are not equated, since the conditional code has the execution:
+In our model, the straight-line and conditional programs are not equated, since the conditional code has the execution:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx0}{\DR{\aLoc}{0}}{}
   \event{rs1}{\DR{\SEC}{1}}{below=of rx0}
@@ -173,10 +190,17 @@ In our model, these programs are not equated, since the conditional code has the
 \end{tikzpicture}\]
 which is not matched in the straight-line code.
 
+Static analyses such as the Smith-Volpano type
+system~\cite{Smith:1998:SIF:268946.268975} will reject the conditional
+program, due to $a[s]\GETS 1$, in which a low-security assignment depends on
+a high-security variable.  We show how to circumvent such analyses in
+\S\ref{sec:spectre}.
+
+
 The model in this paper leads to new attacks on optimizing
 compilers~(\S\ref{sec:info-flow-attack} and~\S\ref{sec:dse}) which
 were discovered as a consequence of building the model. A natural
-question is whether these attacks are an artefact of the model, or if
+question is whether these attacks are an artifact of the model, or if
 they can be mounted in practice? We mounted the attacks on gcc and
 clang, where they succeeded in leaking a $\SEC$ as long as the secret
 was a constant known at compile time. By itself this is not too

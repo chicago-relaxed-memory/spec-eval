@@ -19,28 +19,28 @@ whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
   \end{itemize}
 \end{itemize}
 \end{definition}
-We use $\aPSS_1 \parallel \aPSS_2$ in defining the semantics of conditionals
-and concurrency.
-It contains the union of pomsets from $\aPSS_1$ and $\aPSS_2$,
-allowing overlap as long as they agree on actions. For example, if
-$\aPSS_1$ and $\aPSS_2$ contain:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{a}{\aForm \mid \aAct}{}
-  \event{b}{\bForm_1 \mid \bAct}{right=of a}
-  \po{a}{b}
-\end{tikzpicture}\qquad\qquad\begin{tikzpicture}[node distance=1em]
-  \event{b}{\bForm_2 \mid \bAct}{}
-  \event{c}{\cForm \mid \cAct}{right=of b}
-  \wk{b}{c}
-\end{tikzpicture}\]
-then $\aPSS_1 \parallel \aPSS_2$ contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{a}{\aForm \mid \aAct}{}
-  \event{b}{\bForm_1 \lor \bForm_2 \mid \bAct}{right=of a}
-  \event{c}{\cForm \mid \cAct}{right=of b}
-  \po{a}{b}
-  \wk{b}{c}
-\end{tikzpicture}\]
+% We use $\aPSS_1 \parallel \aPSS_2$ in defining the semantics of conditionals
+% and concurrency.
+% It contains the union of pomsets from $\aPSS_1$ and $\aPSS_2$,
+% allowing overlap as long as they agree on actions. For example, if
+% $\aPSS_1$ and $\aPSS_2$ contain:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{a}{\aForm \mid \aAct}{}
+%   \event{b}{\bForm_1 \mid \bAct}{right=of a}
+%   \po{a}{b}
+% \end{tikzpicture}\qquad\qquad\begin{tikzpicture}[node distance=1em]
+%   \event{b}{\bForm_2 \mid \bAct}{}
+%   \event{c}{\cForm \mid \cAct}{right=of b}
+%   \wk{b}{c}
+% \end{tikzpicture}\]
+% then $\aPSS_1 \parallel \aPSS_2$ contains:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{a}{\aForm \mid \aAct}{}
+%   \event{b}{\bForm_1 \lor \bForm_2 \mid \bAct}{right=of a}
+%   \event{c}{\cForm \mid \cAct}{right=of b}
+%   \po{a}{b}
+%   \wk{b}{c}
+% \end{tikzpicture}\]
 
 \begin{definition}
   \label{def:prefix}
@@ -64,10 +64,10 @@ there is $\aPS\in\aPSS$ such that:
   \end{itemize}
 \end{itemize}
 \end{definition}
-Prefixing is used to define the semantics of reads and writes, and
-adds a new event $\cEv$ with action $\aAct$.  As in the definition
-of parallel composition, the definition allows the new event to overlap with
-events in $\aPSS$ as long as they agree on the action.
+% Prefixing is used to define the semantics of reads and writes, and
+% adds a new event $\cEv$ with action $\aAct$.  As in the definition
+% of parallel composition, the definition allows the new event to overlap with
+% events in $\aPSS$ as long as they agree on the action.
 
 The tricky parts of the
 definition are the named cases, which place requirements on read
@@ -378,8 +378,8 @@ The semantics of TC8 includes
   \event{iy}{\DW{y}{0}}{right=of ix}
   \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5em of wy0}
-  \event{wx1}{\DW{x}{1}}{right=of ry0}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{wx1}{\DW{x}{1}}{right=of ry1}
   \po{ry1}{wx1}
   \po[out=30,in=150]{ix}{rx1}
   \rf[in=-25,out=-160]{wx1}{rx1}
@@ -403,7 +403,7 @@ includes
 % \[\begin{tikzpicture}[node distance=1em]
 %   \event{wy1}{r<2\mid\DW{y}{1}}{}
 % \end{tikzpicture}\]
-Thus, by Definition~\ref{def:programs}, 
+Thus, by Figure~\ref{fig:programs}, 
 \begin{math}
   \sem{r\GETS x\SEMI \IF(r<2)\THEN y\GETS 1\FI}
 \end{math}
@@ -468,8 +468,8 @@ Reasoning as for test case 8, the semantics of test case 9 includes:
   \event{iy}{\DW{y}{0}}{right=of ix}
   \event{rx1}{\DR{x}{1}}{right=2.5 em of iy}
   \event{wy1}{\DW{y}{1}}{right=of rx1}
-  \event{ry1}{\DR{y}{1}}{right=2.5em of wy0}
-  \event{wx1}{\DW{x}{1}}{right=of ry0}
+  \event{ry1}{\DR{y}{1}}{right=2.5em of wy1}
+  \event{wx1}{\DW{x}{1}}{right=of ry1}
   \event{wx2}{\DW{x}{2}}{right=2.5em of wx1}
   \po{ry1}{wx1}
   \po[out=30,in=150]{ix}{rx1}

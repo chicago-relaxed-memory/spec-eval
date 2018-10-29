@@ -14,26 +14,29 @@ We make few requirements of the logic of preconditions, save that it
 has includes equalities between expressions, is closed under substitution,
 and supports a notion of implication.
 
-For example, the set of pomsets $\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1}$ contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{ry1}{\DR{\bLoc}{1}}{}
-  \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
-  \po{ry1}{wx2}
-\end{tikzpicture}\]
-The semantics is defined compositionally. First, $\sem{\aLoc\GETS\aReg+1}$
+% For example, the set of pomsets $\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1}$ contains:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{ry1}{\DR{\bLoc}{1}}{}
+%   \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
+%   \po{ry1}{wx2}
+% \end{tikzpicture}\]
+The semantics is defined compositionally. As an example, we show how to 
+construct one of the pomsets in
+$\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1}$.
+First, $\sem{\aLoc\GETS\aReg+1}$
 contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{wx2}{\aReg=1 \mid \DW{\aLoc}{2}}{right=of ry1}
+  \event{wx2}{\aReg=1 \mid \DW{\aLoc}{2}}{}
 \end{tikzpicture}\]
 Next, we perform the substitution of $\aReg$ with $1$ in every precondition,
 to get that $\sem{\aLoc\GETS\aReg+1}[1/\aReg]$
 contains the pomset:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{wx2}{1=1 \mid \DW{\aLoc}{2}}{right=of ry1}
+  \event{wx2}{1=1 \mid \DW{\aLoc}{2}}{}
 \end{tikzpicture}\]
 and since $(1=1)$ is a tautology, we elide it:
 \[\begin{tikzpicture}[node distance=1em]
-  \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
+  \event{wx2}{\DW{\aLoc}{2}}{}
 \end{tikzpicture}\]
 This substitution is performed in defining
 $\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1}$, which contains
@@ -43,7 +46,7 @@ the pomset:
   \event{wx2}{\DW{\aLoc}{2}}{right=of ry1}
   \po{ry1}{wx2}
 \end{tikzpicture}\]
-as required. There is an ordering $(\DR{\bLoc}{1}) < (\DW{\aLoc}{2})$
+There is an ordering $(\DR{\bLoc}{1}) < (\DW{\aLoc}{2})$ (represented pictorially as an arrow)
 because the precondition $(\aReg=1)$ depends on $\aReg$. If the precondition
 was independent of $\aReg$ then there would be no ordering, for example
 $\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1-\aReg}$ contains
@@ -54,14 +57,14 @@ the pomset:
 \end{tikzpicture}\]
 since the precondition $(\aReg+1-\aReg=1)$ is independent of $\aReg$.
 
-The main novelty of our semantics, since it is designed to model
-speculative evaluation, is in modeling conditionals. In most
+The main novelty of our semantics is the use of preconditions, which allow us
+to provide an unusual model of conditionals. In most
 models, an execution of
 $\sem{\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI}$ would either be
-given by an execution from $\sem{\aCmd}$ or from $\sem{\bCmd}$.
-To model speculative evaluation, we need to allow a pomset
-in $\sem{\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI}$ to be given by
-both a pomset in $\sem{\aCmd}$ \emph{and} a pomset in $\sem{\bCmd}$.
+given by an execution from $\sem{\aCmd}$ or from $\sem{\bCmd}$, but not both.
+In our semantics, a pomset
+in $\sem{\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI}$ may include
+both a pomset from $\sem{\aCmd}$ \emph{and} a pomset from $\sem{\bCmd}$.
 For example, $\sem{\IF(\aExp)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI}$
 contains:
 \[\begin{tikzpicture}[node distance=1em]
@@ -69,8 +72,9 @@ contains:
   \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
 \end{tikzpicture}\]
 that is we have behavior from both branches of execution.
-Moreover, an action which is performed on both sides of the
-conditional can be merged, producing only one event in the resulting pomset.
+
+Moreover, two events representing the same action on both sides of a
+conditional can be merged, producing a single event.
 The precondition of the merged event is the disjunction of the preconditions
 of the original events.
 For example
@@ -87,6 +91,7 @@ and since $(\aExp\neq0) \lor (\aExp=0)$ is a tautology, this is:
   \event{wx2}{\aExp=0    \mid \DW{\aLoc}{2}}{right=of wx1}
   \event{wy3}{\DW{\bLoc}{3}}{right=of wx2}
 \end{tikzpicture}\]
+
 Combining this model of conditionals with the previously discussed model of memory using substitutions
 gives that
 $\sem{\IF(\cLoc)\THEN \aLoc\GETS1\SEMI \bLoc\GETS3 \ELSE \aLoc\GETS2\SEMI \bLoc\GETS3 \FI}$
@@ -115,7 +120,7 @@ speculations such as the crossed out $(\DW\aLoc2)$.
 
 In summary, the features we need of the underlying data model are:
 \begin{itemize}
-\item \emph{actions}, which may read or write to memory locations, and
+\item \emph{actions}, which may read or write memory locations, and
 \item \emph{preconditions}, which form a logic closed under substitution.
 \end{itemize}
 We make data models precise in~\S\ref{sec:preliminaries},
@@ -203,6 +208,7 @@ is a visualization of the pomset where:
   \labelling(1) = (\FALSE, \DW{\bLoc}{0}) \quad
   \labelling(2) = (\TRUE, \DW{\bLoc}{1}) \quad
 \end{array}\]
+
 We are building a compositional semantics of shared memory
 concurrency, which means we require a notion of when
 a read has a matching write. This is a property we require
@@ -276,7 +282,8 @@ we also have negative statements $(\bEv \ltN \aEv)$
 (interpreted as $\aEv$ cannot depend on $\bEv$).
 
 \begin{definition}
-  A \emph{3-valued poset} $(\Event,{\le},{\ltN})$ is a poset $(\Event,{\le})$
+  A \emph{3-valued pomset} $(\Event, {\le}, {\ltN}, \labelling)$ 
+  is a \emph{pomset} $(\Event, {\le}, \labelling)$
   together with ${\ltN} \subseteq (\Event\times\Event)$ such that:
   \begin{itemize}
   \item if $\bEv \le \aEv$ then $\aEv \ltN \bEv$,
@@ -285,11 +292,21 @@ we also have negative statements $(\bEv \ltN \aEv)$
   \end{itemize}
 \end{definition}
 
-\begin{definition}
-  A \emph{3-valued pomset} $(\Event, {\le}, {\ltN}, \labelling)$
-  is a 3-valued poset $(\Event, {\le}, {\ltN})$ and
-  a pomset $(\Event, {\le}, \labelling)$.
-\end{definition}
+% \begin{definition}
+%   A \emph{3-valued poset} $(\Event,{\le},{\ltN})$ is a poset $(\Event,{\le})$
+%   together with ${\ltN} \subseteq (\Event\times\Event)$ such that:
+%   \begin{itemize}
+%   \item if $\bEv \le \aEv$ then $\aEv \ltN \bEv$,
+%   \item if $\bEv \le \aEv$ and $\bEv \ltN \aEv$ then $\bEv = \aEv$,
+%   \item if $\cEv \ge \bEv \ltN \aEv$ or $\cEv \ltN \bEv \ge \aEv$ then $\cEv \ltN \aEv$.
+%   \end{itemize}
+% \end{definition}
+
+% \begin{definition}
+%   A \emph{3-valued pomset} $(\Event, {\le}, {\ltN}, \labelling)$
+%   is a 3-valued poset $(\Event, {\le}, {\ltN})$ and
+%   a pomset $(\Event, {\le}, \labelling)$.
+% \end{definition}
 
 In diagrams, we visualize $(\aEv \ltN \bEv)$ as a dashed
 arrow from $\bEv$ to $\aEv$ (note the change of direction).
@@ -372,6 +389,65 @@ speculative evaluation.
 We can use them to give the
 semantics of a simple shared-memory concurrent language
 in Figure~\ref{fig:programs}.
+
+We use $\aPSS_1 \parallel \aPSS_2$ in defining the semantics of conditionals
+and concurrency.
+It contains the union of pomsets from $\aPSS_1$ and $\aPSS_2$,
+allowing overlap as long as they agree on actions. For example, if
+$\aPSS_1$ and $\aPSS_2$ contain:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm_1 \mid \bAct}{right=of a}
+  \po{a}{b}
+\end{tikzpicture}\qquad\qquad\begin{tikzpicture}[node distance=1em]
+  \event{b}{\bForm_2 \mid \bAct}{}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \wk{b}{c}
+\end{tikzpicture}\]
+then $\aPSS_1 \parallel \aPSS_2$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm_1 \lor \bForm_2 \mid \bAct}{right=of a}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \po{a}{b}
+  \wk{b}{c}
+\end{tikzpicture}\]
+
+Prefixing is used to define the semantics of reads and writes, and
+adds a new event $\cEv$ with action $\aAct$.  As in the definition
+of parallel composition, the definition allows the new event to overlap with
+events in $\aPSS$ as long as they agree on the action.
+
+The tricky parts of the
+definition are the requirements on read
+dependencies.  If $\aAct$ reads $\aVal$ from $\aLoc$, we have to
+decide whether $\aEv$ depends on $\cEv$ for some $\aEv$ with old
+precondition $\bForm$ and new precondition $\bForm'$. The first case
+\textsc{[dependent read]} is that the dependency exists, in which case
+$\bForm'$ just has to imply $\bForm[\aVal/\aLoc]$. The more interesting 
+case is \textsc{[independent read]}, in which case $\bForm'$ has to imply
+$\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
+$\aEv$ can be performed with or without $\cEv$.
+In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
+$\bForm'$ to be $\bForm$, and the independent read case will apply.
+For example,
+if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$,
+and
+$\aPSS$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{b}{\bForm \mid \bAct}{}
+  \event{c}{\cForm \mid \cAct}{right=of b}
+  \po{b}{c}
+\end{tikzpicture}\]
+then $\aAct\prefix\aPSS$ contains:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{a}{\aForm \mid \aAct}{}
+  \event{b}{\bForm \mid \bAct}{right=of a}
+  \event{c}{\cForm[\vec\aVal/\vec\aLoc] \mid \cAct}{right=of b}
+  \po[out=25,in=155]{a}{c}
+  \wk{a}{b}
+  \po{b}{c}
+\end{tikzpicture}\]
 
 %% A write generates a write event that may be visible
 %% to other threads.  A read may see a
