@@ -121,14 +121,16 @@ speculations such as the crossed out $(\DW\aLoc2)$.
 In summary, the features we need of the underlying data model are:
 \begin{itemize}
 \item \emph{actions}, which may read or write memory locations, and
-\item \emph{preconditions}, which form a logic closed under substitution.
+\item \emph{preconditions}, which are closed under substitution.
 \end{itemize}
-We make data models precise in~\S\ref{sec:preliminaries},
-and define pomsets in \S\ref{sec:pomsets}.
-In \refapp{sets-of-pomsets}, we define
-operations on sets of pomsets, which are used in~\S\ref{sec:semantics}
-to give a compositional semantics for
-a simple imperative language.
+In rest of this section we make data models precise %in~\S\ref{sec:preliminaries},
+and define pomsets.  In the next section we give the semantics of a simple
+imperative language as sets of pomsets.
+% in \S\ref{sec:pomsets}.
+% In \refapp{sets-of-pomsets}, we define
+% operations on sets of pomsets, which are used in~\S\ref{sec:semantics}
+% to give a compositional semantics for
+% a simple imperative language.
 
 \subsection{Data models}
 \label{sec:preliminaries}
@@ -350,6 +352,8 @@ further concurrency cannot turn a non-blocker into a blocker.
 One of the requirements of closed programs is that
 every read event reads from a write event.
 
+In the remainder of the paper, we drop the prefix ``3-valued'', referring to
+3-valued pomsets simply as \emph{pomsets}.
 
 \section{Semantics of programs}
 \label{sec:semantics}
@@ -367,12 +371,13 @@ every read event reads from a write event.
 \label{fig:programs}
 \end{figure*}
 
-We give the semantics of programs as sets of 3-valued pomsets.  A pomset in
-the semantics of a program should be seen as one possible execution of that
-program.  The semantics does not include prefixes, and thus a pomset models
-a completed execution.
-
-The definitions result in sets of pomsets that are closed with respect to
+In Figure~\ref{fig:programs}, we give the semantics of a simple shared-memory
+concurrent language as sets of pomsets.  
+Each pomset
+$\aPS\in\sem{\aCmd}$ represents a single execution of $\aCmd$.  We do not
+expect $\sem{\aCmd}$ to be prefixed closed; thus, one may view each
+$\aPS\in\sem{\aCmd}$ as a \emph{completed} execution.  However, the sets of
+pomsets given by our semantics \emph{are} closed with respect to
 augmentation, which may create additional order and strengthening
 preconditions:
 \begin{definition}
@@ -384,33 +389,41 @@ preconditions:
   $\bForm$.
 \end{definition}
 
-In \refapp{sets-of-pomsets} we define the operations
-needed to define the semantics, which are:
+We give the semantics using combinators over sets of pomsets, defined in
+\refapp{sets-of-pomsets}.  Using $\aPSS$ to range over sets of pomsets, these
+are:
 \begin{itemize}
-\item \emph{prefixing} $\aAct\prefix\aPSS$, which adds an event
-  with action $\aAct$ to pomsets in $\aPSS$,
+\item \emph{restriction} $\nu\aLoc\st\aPSS$, which filters $\aPSS$ to include
+  only pomsets where every event $\aEv$ that reads from $\aLoc$ \emph{can read} from some
+  $\bEv$, following Definition~\ref{def:rf}.
+
 \item \emph{guarding} $\aForm\guard\aPSS$, which filters $\aPSS$,
-  keeping pomsets whose events have preconditions which imply $\aForm$,
-\item \emph{substitution} $\aPSS[\aExp/\aLoc]$, which performs a substitution
-  on every precondition in $\aPSS$,
-\item \emph{concurrency} $\aPSS_1\parallel\aPSS_2$, which unions pomsets from
+  keeping pomsets whose events have preconditions that imply $\aForm$,
+\item \emph{substitution} $\aPSS[\aExp/\aLoc]$, which replaces $\aLoc$ with
+  $\aExp$ in every precondition of $\aPSS$,
+\item \emph{composition} $\aPSS_1\parallel\aPSS_2$, which unions pomsets from
   $\aPSS_1$ and $\aPSS_2$, allowing events to be merged, and
-\item \emph{restriction} $\nu\aLoc\st\aPSS$, which requires $\aLoc$ to
-  satisfy the requirements of a memory location, in particular that
-  any event which reads from $\aLoc$ must have a write event which
-  it reads from.
+\item \emph{prefixing} $\aAct\prefix\aPSS$, which adds an event with action
+  $\aAct$ to pomsets in $\aPSS$, ordering $\aAct$ before any $\aEv$ whose predicate
+  depends on the value read by $\aAct$.
 \end{itemize}
 These operations are similar to those from models of concurrency such
 as~\cite{Brookes:1984:TCS:828.833}, but adapted here to the setting of
 speculative evaluation.
-We can use them to give the
-semantics of a simple shared-memory concurrent language
-in Figure~\ref{fig:programs}.
 
-We use $\aPSS_1 \parallel \aPSS_2$ in defining the semantics of conditionals
-and concurrency.
-It contains the union of pomsets from $\aPSS_1$ and $\aPSS_2$,
-allowing overlap as long as they agree on actions. For example, if
+Restriction and guarding filter the set of pomsets; thus, we expect
+$\nu\aLoc\st\aPSS\subseteq\aPSS$ and $\aForm\guard\aPSS\subseteq\aPSS$.
+Substitution updates the preconditions in a pomset, thus we expect the number
+of pomsets to be unchanged; in addition, the number of events in each of the
+pomsets is unchanged.
+% : $|\aPSS[\aExp/\aLoc]|=|\aPSS|$
+The most interesting operators are composition and prefixing, which create
+larger pomsets from smaller ones.
+
+
+Composition is used in giving the semantics for conditionals and concurrency.
+$\aPSS_1 \parallel \aPSS_2$ contains the union of pomsets from $\aPSS_1$ and
+$\aPSS_2$, allowing overlap as long as they agree on actions. For example, if
 $\aPSS_1$ and $\aPSS_2$ contain:
 \[\begin{tikzpicture}[node distance=1em]
   \event{a}{\aForm \mid \aAct}{}
@@ -430,27 +443,22 @@ then $\aPSS_1 \parallel \aPSS_2$ contains:
   \wk{b}{c}
 \end{tikzpicture}\]
 
-Prefixing is used to define the semantics of reads and writes, and
-adds a new event $\cEv$ with action $\aAct$.  As in the definition
-of parallel composition, the definition allows the new event to overlap with
-events in $\aPSS$ as long as they agree on the action.
+Prefixing is used in giving the semantics of reads and writes.
+$\aAct\prefix\aPSS$ adds a new event $\cEv$ with action $\aAct$ to each
+pomset in $\aPSS$.  As in the definition of parallel composition, the
+definition allows the new event to overlap with events in $\aPSS$ as long as
+they agree on the action.
 
-The tricky parts of the
-definition are the requirements on read
-dependencies.  If $\aAct$ reads $\aVal$ from $\aLoc$, we have to
-decide whether $\aEv$ depends on $\cEv$ for some $\aEv$ with old
-precondition $\bForm$ and new precondition $\bForm'$. The first case
-\textsc{[dependent read]} is that the dependency exists, in which case
-$\bForm'$ just has to imply $\bForm[\aVal/\aLoc]$. The more interesting 
-case is \textsc{[independent read]}, in which case $\bForm'$ has to imply
-$\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
-$\aEv$ can be performed with or without $\cEv$.
-In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
-$\bForm'$ to be $\bForm$, and the independent read case will apply.
-For example,
-if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$,
-and
-$\aPSS$ contains:
+If $\cEv$ writes to a location that is also written by $\aEv$ in $\aPSS$,
+then prefixing introduces weak order between them: $\cEv \ltN \aEv$.  This
+ensures that these writes cannot be given the reverse order in an augmentation.
+
+If $\cEv$ reads from a location that occurs in the predicate of $\aEv$, then
+prefixing introduces order from $\cEv$ to $\aEv$.
+whose predicate depends on $\aLoc$. 
+For example, if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads
+$\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$, and $\aPSS$
+contains:
 \[\begin{tikzpicture}[node distance=1em]
   \event{b}{\bForm \mid \bAct}{}
   \event{c}{\cForm \mid \cAct}{right=of b}
@@ -474,18 +482,26 @@ then $\aAct\prefix\aPSS$ contains:
 %% properly.  The subsequent substitution of $\aVal$ for $\aLoc$ occurs in
 %% Definition~\ref{def:prefix} of prefixing.
 
+
+
 % We have completed the formal definition of our model of speculative
 % evaluation, and now turn to examples.
+
+In the remainder of this section, we give examples to explain the semantics,
+concentrating on reads and conditionals.  Security-relevant examples begin in
+\S\ref{sec:examples}.
 
 \subsection{Sequential memory accesses}
 \label{sec:sequential-memory}
 
-In the semantics of memory, there are two very different ways memory
-can be accessed: sequentially or concurrently. These are modeled
-differently, since hardware and compilers give very different
-guarantees about their behavior.
-In this section, we discuss the sequential semantics, and leave
-the concurrent semantics to \S\ref{sec:concurrent-memory}.
+In the semantics of memory, there are two very different ways memory can be
+accessed: sequentially or concurrently.  These are modeled differently, since
+hardware and compilers give very different guarantees about their behavior.
+In the semantics of $\sem{\aReg\GETS\aLoc\SEMI \aCmd}$, given in
+Figure~\ref{fig:programs}, these are found on left and right sides of the
+union operation.  In this section, we discuss the sequential semantics,
+$\sem{\aCmd}[\aLoc/\aReg]$, leaving the concurrent semantics to
+\S\ref{sec:concurrent-memory}.
 
 Consider the program $(\aLoc\GETS0\SEMI \bLoc\GETS\aLoc+1)$.  One execution of
 this program is where the write to $y$ uses the sequential value of
@@ -496,7 +512,7 @@ $x$, which is $0$:
 \end{tikzpicture}\]
 To see how this execution is modeled, we first
 expand out the syntax sugar to get the program
-$(\aLoc\GETS0\SEMI \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$
+$(\aLoc\GETS0\SEMI \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP).$
 Now $\sem{\SKIP}$ is just $\{\emptyset\}$, and
 $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
@@ -567,7 +583,7 @@ perform a concurrent read of $x$:
 \end{tikzpicture}\]
 To see how this execution is modeled, we first
 expand out the syntax sugar to get the program
-$(\aLoc\GETS1\SEMI\SKIP \PAR \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP)$.
+$(\aLoc\GETS1\SEMI\SKIP \PAR \aReg\GETS\aLoc\SEMI \bLoc\GETS\aReg+1\SEMI\SKIP).$
 As before, $\sem{y \GETS r+1\SEMI \SKIP}$ includes:
 \[
    (r+1=2) \guard (\DW y2) \prefix \sem{\SKIP}[2/y]

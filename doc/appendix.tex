@@ -62,24 +62,24 @@ $\bForm[\aVal/\aLoc]$ and $\bForm$. This corresponds to a case where
 $\aEv$ can be performed with or without $\cEv$.
 In particular, if $\bForm$ is independent of $\aLoc$ then we can pick
 $\bForm'$ to be $\bForm$, and the independent read case will apply.
-For example,
-if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$,
-and
-$\aPSS$ contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{b}{\bForm \mid \bAct}{}
-  \event{c}{\cForm \mid \cAct}{right=of b}
-  \po{b}{c}
-\end{tikzpicture}\]
-then $\aAct\prefix\aPSS$ contains:
-\[\begin{tikzpicture}[node distance=1em]
-  \event{a}{\aForm \mid \aAct}{}
-  \event{b}{\bForm \mid \bAct}{right=of a}
-  \event{c}{\cForm[\vec\aVal/\vec\aLoc] \mid \cAct}{right=of b}
-  \po[out=25,in=155]{a}{c}
-  \wk{a}{b}
-  \po{b}{c}
-\end{tikzpicture}\]
+% For example,
+% if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$,
+% and
+% $\aPSS$ contains:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{b}{\bForm \mid \bAct}{}
+%   \event{c}{\cForm \mid \cAct}{right=of b}
+%   \po{b}{c}
+% \end{tikzpicture}\]
+% then $\aAct\prefix\aPSS$ contains:
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{a}{\aForm \mid \aAct}{}
+%   \event{b}{\bForm \mid \bAct}{right=of a}
+%   \event{c}{\cForm[\vec\aVal/\vec\aLoc] \mid \cAct}{right=of b}
+%   \po[out=25,in=155]{a}{c}
+%   \wk{a}{b}
+%   \po{b}{c}
+% \end{tikzpicture}\]
 
 
 \begin{definition}

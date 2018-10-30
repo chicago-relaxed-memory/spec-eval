@@ -136,12 +136,13 @@ encounters a memory conflict---this is similar to
 the treatment of $\TOUCHED$ in \S\ref{sec:spectre}.
 
 \begin{definition}
+  \label{def:abort}
   A commit event $\comEv$ matching $\begEv$ \emph{aborts due to memory conflict}
   if there is some $\aEv$ ended by $\comEv$, and some tautologous $\begEv\gtN\bEv\gtN\comEv$ that does not
   belong to $\begEv$ such that $\aEv$ and $\bEv$ touch the same location.
 \end{definition}
 
-\textsc{Prime+Abort} requires an honest agent whose %cache-set
+The attack requires an honest agent whose %cache-set
 access pattern depends upon a secret.
 % If $a[0]$ and $a[1]$ belong to separate cache sets, then
 Such an honest agent is:
@@ -154,7 +155,7 @@ Such an honest agent is:
 % \end{verbatim}
 % }
 %The attack relies on discovery of some $y$ which belongs to the cache-set of $a[1]$.
-Then the program
+Then the attacker program
 \[
 \BEGIN\SEMI a[1]\GETS0\SEMI r\GETS\COMMIT\SEMI \RECOVERY x\GETS1\ENDREC
 \]
@@ -181,8 +182,42 @@ If the attacker knows that commits only abort due to memory conflicts,
 then this attack is an information flow, since the memory conflict only happens
 when the \texttt{SECRET} is $1$.
 
-{\color{red} As with spectre, we can generalize this to cache sets.  }
-% The definition handles simple examples:
+The attacker code here must have write access to the high security variable
+$a$.  Such a ``write up'' is allowed by secrecy analyses such as the 
+Smith-Volpano type system \cite{Smith:1998:SIF:268946.268975}, which
+is meant to guarantee noninterference.
+
+If we require that the attacker and honest agent access disjoint locations in
+memory, then we must include a bit of microarchitecture to model the attack.
+Suppose that the set of locations $\Loc$ is partitioned into \emph{cache
+  sets} and update Definition~\ref{def:abort} so that the commit event
+{aborts due to memory conflict} if $\aEv$ and $\bEv$ touch locations \emph{in
+  the same cache set}.
+
+\textsc{Prime+Abort} exploits an honest agent whose cache-set
+access pattern depends upon a secret.
+If $a[0]$ and $a[1]$ belong to separate cache sets, then
+Such an honest agent is, as before:
+\[
+  a[\SEC]\,\GETS\,1
+\]
+The attack relies on discovery of some $y$ which belongs to the cache-set of
+$a[1]$.
+Then the attack can be written as:
+\[
+  \BEGIN\SEMI y\GETS0\SEMI r\GETS\COMMIT\SEMI \RECOVERY x\GETS1\ENDREC
+\]
+As before, if the attacker knows that commits only abort due to memory
+conflicts, then there is an information flow, since the memory conflict
+only happens when the \texttt{SECRET} is $1$.
+
+% \ignore{
+% \begin{verbatim}
+%   begin; y:=0; commit; onabort; x:=1;
+% \end{verbatim}
+% }
+
+%   The definition handles simple examples:
 % \begin{itemize}
 % \item Single threaded example: $\DB_1 \DC_1 \DB_2 \DC_2$.  Because
 %   $\DC_2$ is a release, we know that $\DC_1<\DC_2$.  Because

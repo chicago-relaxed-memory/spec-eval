@@ -413,31 +413,36 @@ function, and {\SEC} is $1$.
 
 \begin{figure}
   \small
-  \begin{tabular}{ r | c | c | c | c | c | c }
-    Stall amount & 10 & 20 & 50 & 100 & 200 & 500 \\ \hline
+  \begin{tabular}{ r | c | c | c }%| c | c | c }
+    Stall amount & 10 &
+%                   20 &
+%                   50 &
+                   100 &
+%                   200 &
+                   500 \\ \hline
     Redundancy 1 & \makecell{2.54 million\\98.15\%} &
-                   \makecell{2.36 million\\99.80\%} &
-                   \makecell{1.95 million\\99.987\%} &
+%                   \makecell{2.36 million\\99.80\%} &
+%                   \makecell{1.95 million\\99.987\%} &
                    \makecell{1.54 million\\99.996\%} &
-                   \makecell{1.12 million\\99.993\%} &
+%                   \makecell{1.12 million\\99.993\%} &
                    \makecell{584 thousand\\99.998\%} \\ \hline
     Redundancy 2 & \makecell{1.24 million\\99.73\%} &
-                   \makecell{1.17 million\\99.993\%} &
-                   \makecell{989 thousand\\100.0\%} &
+%                   \makecell{1.17 million\\99.993\%} &
+%                   \makecell{989 thousand\\100.0\%} &
                    \makecell{774 thousand\\100.0\%} &
-                   \makecell{553 thousand\\100.0\%} &
+%                   \makecell{553 thousand\\100.0\%} &
                    \makecell{295 thousand\\100.0\%} \\ \hline
     Redundancy 3 & \makecell{841 thousand\\99.94\%} &
-                   \makecell{784 thousand\\100.0\%} &
-                   \makecell{666 thousand\\100.0\%} &
+%                   \makecell{784 thousand\\100.0\%} &
+%                   \makecell{666 thousand\\100.0\%} &
                    \makecell{521 thousand\\100.0\%} &
-                   \makecell{370 thousand\\100.0\%} &
+%                   \makecell{370 thousand\\100.0\%} &
                    \makecell{201 thousand\\100.0\%} \\ \hline
     Redundancy 4 & \makecell{620 thousand\\99.992\%} &
-                   \makecell{585 thousand\\100.0\%} &
-                   \makecell{499 thousand\\100.0\%} &
+%                   \makecell{585 thousand\\100.0\%} &
+%                   \makecell{499 thousand\\100.0\%} &
                    \makecell{387 thousand\\100.0\%} &
-                   \makecell{285 thousand\\100.0\%} &
+%                   \makecell{285 thousand\\100.0\%} &
                    \makecell{145 thousand\\100.0\%} \\
   \end{tabular}
   \caption{
@@ -451,6 +456,46 @@ function, and {\SEC} is $1$.
   }
   \label{fig:gcc-dse-perf}
 \end{figure}
+% \begin{figure*}
+%   \small
+%   \begin{tabular}{ r | c | c | c | c | c | c }
+%     Stall amount & 10 & 20 & 50 & 100 & 200 & 500 \\ \hline
+%     Redundancy 1 & \makecell{2.54 million\\98.15\%} &
+%                    \makecell{2.36 million\\99.80\%} &
+%                    \makecell{1.95 million\\99.987\%} &
+%                    \makecell{1.54 million\\99.996\%} &
+%                    \makecell{1.12 million\\99.993\%} &
+%                    \makecell{584 thousand\\99.998\%} \\ \hline
+%     Redundancy 2 & \makecell{1.24 million\\99.73\%} &
+%                    \makecell{1.17 million\\99.993\%} &
+%                    \makecell{989 thousand\\100.0\%} &
+%                    \makecell{774 thousand\\100.0\%} &
+%                    \makecell{553 thousand\\100.0\%} &
+%                    \makecell{295 thousand\\100.0\%} \\ \hline
+%     Redundancy 3 & \makecell{841 thousand\\99.94\%} &
+%                    \makecell{784 thousand\\100.0\%} &
+%                    \makecell{666 thousand\\100.0\%} &
+%                    \makecell{521 thousand\\100.0\%} &
+%                    \makecell{370 thousand\\100.0\%} &
+%                    \makecell{201 thousand\\100.0\%} \\ \hline
+%     Redundancy 4 & \makecell{620 thousand\\99.992\%} &
+%                    \makecell{585 thousand\\100.0\%} &
+%                    \makecell{499 thousand\\100.0\%} &
+%                    \makecell{387 thousand\\100.0\%} &
+%                    \makecell{285 thousand\\100.0\%} &
+%                    \makecell{145 thousand\\100.0\%} \\
+%   \end{tabular}
+%   \caption{
+%     Performance results for the dead store elimination attack on {\GCC} when
+%     leaking a 2048-bit secret.
+%     Rows give different values of `redundancy' (as defined in previous figures),
+%     while columns give amounts of stall time immediately following the
+%     $x\GETS 1$ write (as measured in loop iterations).
+%     Each table cell gives the leak bandwidth in bits/sec, followed by the
+%     bitwise accuracy.
+%   }
+%   \label{fig:gcc-dse-perf}
+% \end{figure*}
 
 Performance results for the dead store elimination attack against {\CLANG}
 are given in Figure~\ref{fig:clang-dse-perf}, and against {\GCC} are given in
