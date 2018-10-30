@@ -211,6 +211,9 @@ As before, if the attacker knows that commits only abort due to memory
 conflicts, then there is an information flow, since the memory conflict
 only happens when the \texttt{SECRET} is $1$.
 
+This style of attack can be thwarted by requiring that the honest agent and
+attack code access disjoint cache sets.  This approach is pursued in \cite{dawg}.
+
 % \ignore{
 % \begin{verbatim}
 %   begin; y:=0; commit; onabort; x:=1;

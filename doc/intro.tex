@@ -77,7 +77,7 @@ in failed speculations.
   cache timing to detect the operations performed in a mispredicted branch
   before being flushed from the pipeline.  We capture Spectre by enriching
   our language with a single operation that allows one to test whether a
-  location has been touched, even in a failed speculation.
+  location has been touched. %, even in a failed speculation.
   %% This means,
   %% for example, that a single execution of
   %% $(\IF(\aExp)\THEN \aCmd \ELSE \bCmd \FI)$ may depend on both $\aCmd$ and

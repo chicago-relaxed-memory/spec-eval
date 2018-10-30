@@ -32,6 +32,10 @@ is executed. Unfortunately, the escalated code is speculatively
 evaluated, which allows information to leak by testing for which
 memory locations have been touched.
 
+Attacks may realize the abstract notions in various ways.  For example, in
+variant 1 of Spectre, the dynamic security check is implemented as an array
+bounds check.
+
 We model the $\TOUCHED$ test by introducing a new action
 $(\DT{\aLoc})$, and defining:
 \[\begin{array}{l}
@@ -72,21 +76,6 @@ must have been 1.
 This shows how our model of speculation can express
 the way in which Spectre-like attacks bypass dynamic security checks,
 without giving a treatment of microarchitecture.
-
-
-{\color{red}
-Static analyses such as the Smith-Volpano type
-system~ will reject the conditional
-program, due to $a[s]\GETS 1$, in which a low-security assignment depends on
-a high-security variable.  
-
-For example, the
-well-known Smith-Volpano type system \cite{Smith:1998:SIF:268946.268975} (which guarantees noninterference) will
-allow the \textsc{Prime+Abort} attacks~\cite{DBLP:conf/uss/DisselkoenKPT17}.
-
-To model the latter, we assume that the set of locations $\Loc$ is
-partitioned into \emph{cache sets}.
-}
 
 \subsection{Information flow attacks on relaxed memory}
 \label{sec:info-flow-attack}
