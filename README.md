@@ -7,27 +7,26 @@ Abstract:
 > in hardware and software.  The Spectre attack shows that there are
 > practical information flow attacks which use an interaction of
 > dynamic security checks, speculative evaluation and cache timing.
-> Previous formal models of program execution have not been designed
-> to model speculative evaluation, and so do not capture attacks such
-> as Spectre. In this paper, we propose a model based on pomsets which
-> is designed to model speculative evaluation. The model provides a
-> compositional semantics for a simple shared-memory concurrent
-> language, which captures features such as data and control
-> dependencies, relaxed memory and transactions. We provide models for
-> existing information flow attacks based on speculative evaluation
-> and transactions.  We also model new information flow attacks based on
-> compiler optimizations. The new attacks are experimentally validated against
-> `gcc` and `clang`.  We develop a simple temporal logic that supports
-> invariant reasoning.
+> Previous formal models of program execution are designed to capture
+> computer architecture, rather than micro-architecture,
+> and so do not capture attacks such
+> as Spectre.  In this paper, we propose a model based on pomsets which
+> is designed to model speculative evaluation.
+> The model is abstract with respect to specific micro-architectural
+> features, such as caches and pipelines, yet is powerful enough to express
+> known attacks such as Spectre and \textsc{Prime+Abort}.  The model also allows for
+> the prediction of new information flow attacks.  We derive two such
+> attacks, which exploit compiler optimizations, and validate these
+> experimentally against gcc and clang.
 
 ## Code
 
 The [src directory of this repo](src) contains the code used in the
 Experiments section of the paper.
 Specifically, the [lsr](src/lsr) directory contains the code for the
-load-store reordering attack described in Section 4.2 of the paper, and the
+load-store reordering attack described in Section V-B of the paper, and the
 [dse](src/dse) directory contains the code for the dead store elimination
-attack described in Section 4.3 of the paper.
+attack described in Section V-C of the paper.
 
 To run with default values of parameters, `cd` to the appropriate directory and
 `make run`.
