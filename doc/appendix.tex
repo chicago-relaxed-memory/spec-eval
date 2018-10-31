@@ -28,7 +28,7 @@ there is $\aPS\in\aPSS$ such that:
   \begin{itemize}
   \item $\cEv <' \aEv$ whenever $\aAct$ is an acquire or $\bAct$ is a release, 
   \item if $\aAct$ is an acquire then $\bForm$ is independent of every $\bLoc$,
-  \item if $\aAct$ and $\bAct$ both write to some $\bLoc$,
+  \item if $\aAct$ and $\bAct$ both touch the same location and one is a write,
     then $\cEv \gtN' \aEv$, and
   \item $\bForm'$ implies \(\left\{\begin{array}{l@{~}ll}
     % \bForm[\aVal/\aLoc]                     & \mbox{if $\aAct$ reads $\aVal$ from $\aLoc$ and $\cEv<'\aEv$} & \textsc{[dependent read]} \\
@@ -201,7 +201,7 @@ $\ltN$ to be a per-location total order.
 
 \begin{definition}
   A 3-valued pomset is \emph{partially} (resp.~\emph{totally}) $\aLoc$-\emph{coherent}
-  if, when restricted to events which write to $\aLoc$,
+  if, when restricted to events which touch $\aLoc$,
   $\ltN$ forms a partial (resp.~total) order.
 \end{definition}
 
@@ -362,7 +362,7 @@ since $(\DW{\aLoc}{2}) < (\DR{\aLoc}{1})$ but also $(\DW{\aLoc}{2}) \ltN (\DR{\a
 which is a contradiction.
 
 
-\input{logic}
+%\input{logic}
 
 
 \subsection{Release/acquire synchronization}
