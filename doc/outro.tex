@@ -12,7 +12,7 @@ though only against secrets known at compile time.
 
 The paper's primary focus is not weak memory, and the model of relaxed memory used in this paper is deliberately
 simplified, compared for example to
-C11~\cite{Boehm:2008:FCC:1375581.1375591,Batty:2011:MCC:1926385.1926394}. Nonetheless, we believe that the model developed in the paper has promise as a semantics for relaxed memory. Our model appears to be the first in the literature that both validates all of the JMM causality test cases and also forbids thin air behavior; the most prominent existing models are either too permissive~\cite{Manson:2005:JMM:1047659.1040336, Jagadeesan:2010:GOS:2175486.2175503,DBLP:conf/popl/KangHLVD17} or too conservative~\cite{DBLP:conf/lics/JeffreyR16}.  In separate work, we are exploring the usual properties of weak memory, such as SC-DRF, optimization soundness, or compilation soundness.   While our model of transactions shows the flexibility of our model, in this future work, we will include known features of hardware, including locks, fences, and read-modify-write instructions.  This development is not core to the basic findings of this submission.  
+C11~\cite{Boehm:2008:FCC:1375581.1375591,Batty:2011:MCC:1926385.1926394}. Nonetheless, we believe that the model developed in the paper has promise as a semantics for relaxed memory. Our model appears to be the first in the literature that both validates all of the JMM causality test cases and also forbids thin air behavior; the most prominent existing models are either too permissive~\cite{Manson:2005:JMM:1047659.1040336, Jagadeesan:2010:GOS:2175486.2175503,DBLP:conf/popl/KangHLVD17} or too conservative~\cite{DBLP:conf/lics/JeffreyR16}.  In separate work, we are exploring the usual properties of weak memory, such as SC-DRF, optimization soundness, or compilation soundness.   While our model of transactions shows the flexibility of our model, in this future work, we will include known features of hardware, including locks, fences, and read-modify-write instructions.  This development is not core to the basic findings of this submission.
 
 
 
@@ -28,7 +28,7 @@ C11~\cite{Boehm:2008:FCC:1375581.1375591,Batty:2011:MCC:1926385.1926394}. Noneth
 
 The design space for transactions is very rich~\cite{DBLP:journals/pacmpl/DongolJR18}.
 We have only presented one design choice, and it remains to be seen how other
-design choices could be adopted. For example we have chosen not to distinguish
+design choices could be adopted. For example, we have chosen not to distinguish
 commits that are aborted due to transaction failure from commits which are aborted
 for other reasons, such as failed speculation.
 

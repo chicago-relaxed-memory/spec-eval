@@ -35,7 +35,7 @@ enriching language semantics with observables such as execution time and  power 
 In this paper, we adopt the opposite approach, attempting to understand
 Spectre-like attacks as \emph{abstractly} as possible and thus to reveal the
 ``essence'' of Spectre.  We develop a novel model of \emph{speculative
-  evaluation} and show that it sufficient to both capture known attacks and
+  evaluation} and show that it is sufficient to both capture known attacks and
 predict new attacks.  Our model is defined at the \emph{language} level,
 rather than the hardware level; thus, we do not model micro-architectural
 details such as caches or timing, as in
@@ -46,13 +46,13 @@ details such as caches or timing, as in
 
 
 There are several sources of speculative evaluation in modern computer
-systems, intended to improve performance without effecting the observable
+systems, intended to improve performance without affecting the observable
 behavior of the program: Failed speculations are meant to be
 undetectable. Yet, Spectre-like attacks show that failed speculations are not
 always undetectable.  Our model provides a unifying mechanism to understand
 these sources of speculation.  Because failed speculations are part of the
 model, it is easily enriched with operators to detect operations that occur
-in failed speculations.  
+in failed speculations.
 % In the spirit of \citet{Chien:2018}, our model ``extends the functional
 % specification of the programming language to include its detailed performance''.
 % so that failed speculation does not affect the input-output behavior
@@ -71,7 +71,7 @@ in failed speculations.
   %% For example,
   %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS1 \FI)$ can be optimized to
   %% $(\aLoc\GETS1)$, whereas  %% $(\IF(\aReg)\THEN \aLoc\GETS1 \ELSE \aLoc\GETS2 \FI)$ cannot be so
-  %% optimized.  
+  %% optimized.
 \item Pipelined micro-architectures use \emph{branch prediction}
   to speculatively execute the result of
   a conditional jump or indirect jump instruction.
@@ -89,15 +89,15 @@ in failed speculations.
   memory~\cite{ChongSW18}, where aborted transactions are meant to be
   unobservable.  \textsc{Prime+Abort}
   \cite{DBLP:conf/uss/DisselkoenKPT17} uses cache timing to detect the
-  operations performed in aborted transaction.  We capture \textsc{Prime+Abort} by enriching
+  operations performed in an aborted transaction.  We capture \textsc{Prime+Abort} by enriching
   our language with transactions that abort when a location used by the
-  transaction is touched outside the transaction, even in a failed speculation.
+  transaction is touched outside the transaction.
 \end{itemize}
 
-%% This line of research was initiated by~\citet{Zhang:2012:LCM:2345156.2254078}.  
+%% This line of research was initiated by~\citet{Zhang:2012:LCM:2345156.2254078}.
 %% Whereas they explore static annotations to address side channels in the context of hardware description languages, we explore a model of programs
 %% that captures enough detail to reveal and analyze the presence of side
-%% channels revealed by speculative execution.  
+%% channels revealed by speculative execution.
 %
 
 Our model is based on \emph{partially ordered multisets}~\cite{GISCHER1988199,Plotkin:1997:TSP:266557.266600}
@@ -138,7 +138,7 @@ a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precond
 modeling an unsuccessful speculation.
 Since the $(\DW{\cLoc}{1})$ action is performed on both branches of the conditional,
 there is no control dependency from $(\DR{\aLoc}{1})$.  Indeed, from an information-flow perspective,
-this refined treatment of dependencies in conditionals identifies a novel distinguishing feature of our model, namely that the traditional conditional is a self-composition operator in the sense of~\cite{Barthe:2004:SIF:1009380.1009669}.  
+this refined treatment of dependencies in conditionals identifies a novel distinguishing feature of our model, namely that the traditional conditional is a self-composition operator in the sense of~\cite{Barthe:2004:SIF:1009380.1009669}.
 
 There do exist models of programs which include speculation, notably
 the Java Memory Model~\cite{Manson:2005:JMM:1047659.1040336}, and the

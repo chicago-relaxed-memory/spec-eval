@@ -8,7 +8,7 @@ isolated, and only abort due to cache conflicts.
 
 The action $(\DB{\aVal})$ %\in\Acq$
 represents the begin of a transaction with
-id $\aVal$ and $(\DC{\aVal})$ %\in \Rel$
+id $\aVal$, and $(\DC{\aVal})$ %\in \Rel$
 represents the corresponding commit.
 We model a language in which transactions have explicit identifiers (which we
 elide in examples) and abort handlers (which we elide when they are empty):
@@ -82,10 +82,10 @@ At top level, we require that pomsets be \emph{serializable}, as defined below.
     location, then both read the same value, and
     % note that read events are optional, so we can assume they come from
     % outside the transaction.
-  % 
-  % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,    
+  %
+  % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$ both implies and ends $\aEv$,
   % \item\label{tx:6} if $\begEv$ begins $\aEv$ then some matching $\comEv$
-  %   ends $\aEv$ such that both $\aEv$ implies $\comEv$ and $\comEv$ implies $\aEv$,    
+  %   ends $\aEv$ such that both $\aEv$ implies $\comEv$ and $\comEv$ implies $\aEv$,
   \item\label{tx:7} if $\aEv$ belongs to $\begEv$, then $\aEv$ implies some
     matching $\comEv$ that ends $\aEv$.
   \end{enumerate}
@@ -183,7 +183,7 @@ then this attack is an information flow, since the memory conflict only happens
 when the \texttt{SECRET} is $1$.
 
 The attacker code here must have write access to the high security variable
-$a$.  Such a ``write up'' is allowed by secrecy analyses such as the 
+$a$.  Such a ``write up'' is allowed by secrecy analyses such as the
 Smith-Volpano type system \cite{Smith:1998:SIF:268946.268975}, which
 is meant to guarantee noninterference.
 
@@ -197,7 +197,7 @@ Suppose that the set of locations $\Loc$ is partitioned into \emph{cache
 \textsc{Prime+Abort} exploits an honest agent whose cache-set
 access pattern depends upon a secret.
 If $a[0]$ and $a[1]$ belong to separate cache sets, then
-Such an honest agent is, as before:
+such an honest agent is, as before:
 \[
   a[\SEC]\,\GETS\,1
 \]
@@ -271,10 +271,10 @@ attack code access disjoint cache sets.  This approach is pursued in \cite{dawg}
 %   \rf{wx1}{rx1}
 %   \po{c1}{rx1}
 % \end{tikzpicture}\]
-  
+
 % % \item Clause \eqref{xrf} stops transaction from reading two different values
 % %   for the same variable from transactions (it is possible with no
-% %   transactional writes).  
+% %   transactional writes).
 % % \item Clause \eqref{xrf} also stops transactional IRIW.
 % \end{itemize}
 % % \begin{definition}
@@ -323,13 +323,13 @@ attack code access disjoint cache sets.  This approach is pursued in \cite{dawg}
 
 % Publication example:
 % \begin{alltt}
-%   var x; var f; x:=0; f:=0; 
+%   var x; var f; x:=0; f:=0;
 %      x:=1; (begin; f:=1; end;) || (begin; r:=f; end; s:=x;)
 % \end{alltt}
 
 % Note: we could also include a transaction factory, and close the factory.
 % \begin{alltt}
-%   TransactionFactory T; var x; var f; x:=0; f:=0; fence; 
+%   TransactionFactory T; var x; var f; x:=0; f:=0; fence;
 %      x:=1; (begin T; f:=1; f:=2; end T;) || (begin T; r:=f; end T; s:=x;)
 % \end{alltt}
 
@@ -349,14 +349,14 @@ attack code access disjoint cache sets.  This approach is pursued in \cite{dawg}
 %   A pomset is \emph{atomic} when for any $\aEv$ that belongs to $(\begEv,\vec\comEv)$:
 %   \begin{enumerate}
 %   \item\label{xcommitform} $\aForm_{\aEv}$ implies $\textstyle\bigvee_i\aForm_{\comEv_i}$,
-%   \item\label{xliftb} if $\bEv<\aEv$ then $\bEv<\begEv$, 
+%   \item\label{xliftb} if $\bEv<\aEv$ then $\bEv<\begEv$,
 %   \item\label{xliftc} if $\aEv<\bEv$ and $\bEv$ is compatible with
-%     $\comEv_i$ then $\comEv_i<\bEv$, 
+%     $\comEv_i$ then $\comEv_i<\bEv$,
 %   \item\label{xtotal} if $\aEv'\neq\aEv$ belongs to $(\begEv',\vec\comEv')$ but not
 %     $(\begEv,\dontcare)$ and
 %     \begin{itemize}
-%     \item $\comEv'_j$ is compatible with $\aEv$, and 
-%     \item $\comEv_i$ is compatible with $\aEv'$ 
+%     \item $\comEv'_j$ is compatible with $\aEv$, and
+%     \item $\comEv_i$ is compatible with $\aEv'$
 %     \end{itemize}
 %     then either
 %     $\comEv'_j<\begEv$ or
@@ -366,8 +366,8 @@ attack code access disjoint cache sets.  This approach is pursued in \cite{dawg}
 %   %   \begin{itemize}
 %   %   \item $\aEv$ reads from $\bEv'$ that belongs to $(\begEv',\vec\comEv')$,
 %   %   \item $\aEv'$ reads from $\bEv''\neq\beV'$ that belongs to $(\begEv'',\vec\comEv'')$,
-%   %   \item $\comEv''_j$ is compatible with $\bEv'$, and 
-%   %   \item $\comEv'_i$ is compatible with $\bEv''$ 
+%   %   \item $\comEv''_j$ is compatible with $\bEv'$, and
+%   %   \item $\comEv'_i$ is compatible with $\bEv''$
 %   %   \end{itemize}
 %   %   then either
 %   %   $\comEv''_j<\begEv'$ or
