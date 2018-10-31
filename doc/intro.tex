@@ -52,7 +52,8 @@ undetectable. Yet, Spectre-like attacks show that failed speculations are not
 always undetectable.  Our model provides a unifying mechanism to understand
 these sources of speculation.  Because failed speculations are part of the
 model, it is easily enriched with operators to detect operations that occur
-in failed speculations.
+in failed speculations.  In the spirit of \citet{Chien:2018}, our model ``extends the functional
+specification of the programming language to include its detailed performance''.
 % so that failed speculation does not affect the input-output behavior
 % of the program, but may affect other observable behavior, opening an opportunity
 % for side-channels:
@@ -60,8 +61,8 @@ in failed speculations.
 \item Relaxed memory models
   \cite{SparcV9,Manson:2005:JMM:1047659.1040336,Boehm:2008:FCC:1375581.1375591,DBLP:conf/popl/ZhaoNMZ12}
   allow speculative execution to varying degrees. Relaxed execution
-  is known affect the validity of information flow analyses
-  \cite{6957104,Vaughan:2012:SIF}.  More troubling, relaxed memory model
+  is known to affect the validity of information flow analyses
+  \cite{6957104,Vaughan:2012:SIF}.  More troubling, relaxed memory models
   allow for the observation of control and data dependencies. This creates an
   opportunity for information flows caused by optimizing compilers, whose
   behavior is driven by dependency analysis.  Our basic model captures this
