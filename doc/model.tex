@@ -342,7 +342,7 @@ further concurrency cannot turn a non-blocker into a blocker.
   In a 3-valued pomset, $\aEv$ \emph{can read $\aLoc$ from} $\bEv$ whenever: 
   \begin{itemize}
   \item $\bEv < \aEv$,
-  \item if $\aEv$ is satisfiable, then $\bEv$ is a tautology,
+  \item $\aEv$ implies $\bEv$,
   \item $\bEv$ writes $\aVal$ to $\aLoc$,
     and $\aEv$ reads $\aVal$ from $\aLoc$, and
   \item if $\cEv$ writes to $\aLoc$
@@ -395,7 +395,8 @@ are:
 \begin{itemize}
 \item \emph{restriction} $\nu\aLoc\st\aPSS$, which filters $\aPSS$ to include
   only pomsets where every event $\aEv$ that reads from $\aLoc$ \emph{can read} from some
-  $\bEv$, following Definition~\ref{def:rf}.
+  $\bEv$, following Definition~\ref{def:rf},
+  and where no precondition can depend on $\aLoc$,
 
 \item \emph{guarding} $\aForm\guard\aPSS$, which filters $\aPSS$,
   keeping pomsets whose events have preconditions that imply $\aForm$,
@@ -411,8 +412,8 @@ These operations are similar to those from models of concurrency such
 as~\cite{Brookes:1984:TCS:828.833}, but adapted here to the setting of
 speculative evaluation.
 
-Restriction and guarding filter the set of pomsets; thus, we expect
-$\nu\aLoc\st\aPSS\subseteq\aPSS$ and $\aForm\guard\aPSS\subseteq\aPSS$.
+Restriction and guarding filter the set of pomsets; we have
+$(\nu\aLoc\st\aPSS)\subseteq\aPSS$ and $(\aForm\guard\aPSS)\subseteq\aPSS$.
 Substitution updates the preconditions in a pomset, thus we expect the number
 of pomsets to be unchanged; in addition, the number of events in each of the
 pomsets is unchanged.
@@ -935,8 +936,7 @@ sensible non-coherent semantics.  Our model agrees with the JMM on the
 ``surprising and controversial behaviors'' of \citet[\textsection
 8]{Manson:2005:JMM:1047659.1040336}, and thus fails to validate thread
 inlining.
-
 In \refapp{tc}, we discuss three of the causality test cases and the thread
-inlining from \cite{Manson:2005:JMM:1047659.1040336}.  In presenting the
-examples, we unroll loops, correct typos and simplify the code.  
+inlining example from \cite{Manson:2005:JMM:1047659.1040336}.%  In presenting the
+% examples, we unroll loops, correct typos and simplify the code.  
 
