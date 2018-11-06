@@ -45,6 +45,15 @@ The first constraint ensures that events are ordered before a release and
 after an acquire.  The second constraint ensures that thread-local reads do
 not cross acquire fences.
 
+\begin{comment}
+The second constraint prevents bad executions like the following:
+   x=1; rel; acq; if (x) {y=1};  ||  acq; x=0; rel; 
+where the second thread is interleaved between the rel and acq of the first.
+
+Note that you cannot require that $\bForm'$ is independent of every $\bLoc$
+because then it's not augment closed.
+\end{comment}
+
 % Prefixing is used to define the semantics of reads and writes, and
 % adds a new event $\cEv$ with action $\aAct$.  As in the definition
 % of parallel composition, the definition allows the new event to overlap with
