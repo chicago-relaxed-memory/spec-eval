@@ -4,6 +4,9 @@
 Here we give the formal definitions for the operations described at the
 beginning of \S\ref{sec:semantics}.
 
+In order to model speculation barriers in \S\ref{sec:spec-barriers},
+we partition the actions into \emph{mergeable} and \emph{unmergeable}.
+
 In transactional memory, begin and commit actions are memory fences: that is,
 they are a barrier to reordering memory accesses.  To capture this (and other
 memory barriers), we identify sets $\Rel$ and $\Acq \subseteq\Act$.  For
@@ -22,6 +25,7 @@ there is $\aPS\in\aPSS$ such that:
 \item $\Event' = \Event \cup \{\cEv\}$,
 \item if $\bEv \le \aEv$ then $\bEv \le' \aEv$,
 \item if $\bEv \ltN \aEv$ then $\bEv \ltN' \aEv$,
+\item if $\cEv\in\Event$ then $\cEv$ is mergeable,
 \item $\labelling'(\cEv) = (\aForm, \aAct)$, and
 \item if $\labelling(\aEv) = (\bForm \mid \bAct)$ then $\labelling'(\aEv) =
   (\bForm' \mid \bAct)$, where:
@@ -44,15 +48,6 @@ there is $\aPS\in\aPSS$ such that:
 The first constraint ensures that events are ordered before a release and
 after an acquire.  The second constraint ensures that thread-local reads do
 not cross acquire fences.
-
-\begin{comment}
-The second constraint prevents bad executions like the following:
-   x=1; rel; acq; if (x) {y=1};  ||  acq; x=0; rel; 
-where the second thread is interleaved between the rel and acq of the first.
-
-Note that you cannot require that $\bForm'$ is independent of every $\bLoc$
-because then it's not augment closed.
-\end{comment}
 
 % Prefixing is used to define the semantics of reads and writes, and
 % adds a new event $\cEv$ with action $\aAct$.  As in the definition
@@ -98,6 +93,7 @@ whenever there are $\aPS_1 \in \aPSS_1$ and $\aPS_2 \in \aPSS_2$ such that:
 \item $\Event_0 = \Event_1 \cup \Event_2$,
 \item if $\aEv \le_1 \bEv$ or $\aEv \le_2 \bEv$ then $\aEv \le_0 \bEv$,
 \item if $\aEv \ltN_1 \bEv$ or $\aEv \ltN_2 \bEv$ then $\aEv \ltN_0 \bEv$,
+\item if $\aEv\in\Event_1\cap\Event_2$ then $\aEv$ is mergeable,
 \item if $\labelling_0(\aEv) = (\aForm_0 \mid \aAct)$ then either:
   \begin{itemize}
   \item $\labelling_1(\aEv) = (\aForm_1 \mid \aAct)$ and $\labelling_2(\aEv) = (\aForm_2 \mid \aAct)$
@@ -308,7 +304,7 @@ so $(\DR{\aLoc}{1})$ cannot
 read from $(\DW{\aLoc}{1})$.
 
 In the final definition of reads-from in \S\ref{sec:pomsets} we
-ruled out $\aLoc$-blockers by requring that any
+ruled out $\aLoc$-blockers by requiring that any
 event $\cEv$ that writes to $\aLoc$ has
 either $\bEv \ltN \cEv$ or $\cEv \ltN \aEv$.
 With this definition, in order for $(\DR{\aLoc}{1})$ to read from

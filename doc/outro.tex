@@ -10,9 +10,40 @@ discovered as a direct result of developing the model. We have experimentally
 validated that the attacks can be carried out against \verb|gcc| and \verb|clang|,
 though only against secrets known at compile time.
 
-The paper's primary focus is not weak memory, and the model of relaxed memory used in this paper is deliberately
-simplified, compared for example to
-C11~\cite{Boehm:2008:FCC:1375581.1375591,Batty:2011:MCC:1926385.1926394}. Nonetheless, we believe that the model developed in the paper has promise as a semantics for relaxed memory. Our model appears to be the first in the literature that both validates all of the JMM causality test cases and also forbids thin air behavior; the most prominent existing models are either too permissive~\cite{Manson:2005:JMM:1047659.1040336, Jagadeesan:2010:GOS:2175486.2175503,DBLP:conf/popl/KangHLVD17} or too conservative~\cite{DBLP:conf/lics/JeffreyR16}.  In separate work, we are exploring the usual properties of weak memory, such as SC-DRF, optimization soundness, or compilation soundness.   While our model of transactions shows the flexibility of our model, in this future work, we will include known features of hardware, including locks, fences, and read-modify-write instructions.  This development is not core to the basic findings of this submission.
+We have tried where possible to abstract away from the
+micro-architectural details that enable attackers to exploit
+speculation, while still trying to capture the ``essence'' of
+Spectre. There are trade-offs with any such abstraction, as
+higher-level abstractions make program behavior easier to understand
+and reason about, but at the cost of ignoring potential attacks. One
+software developer's useful abstraction is another's ignoring the
+difficult issues.
+
+As a concrete instance, one feature of Spectre we have glossed over is
+the ability of the attacker to influence speculation, for example by
+training the branch predictor or influencing the contents of caches.
+We expect that such attacker influence could be modelled using a
+mechanism similar to the speculation barriers of \S\ref{sec:spec-barriers},
+but under the control of the attacker rather than the honest agents.
+
+The paper's primary focus is not weak memory, and the model of relaxed
+memory used in this paper is deliberately simplified, compared for
+example to
+C11~\cite{Boehm:2008:FCC:1375581.1375591,Batty:2011:MCC:1926385.1926394}. Nonetheless,
+we believe that the model developed in the paper has promise as a
+semantics for relaxed memory. Our model appears to be the first in the
+literature that both validates all of the JMM causality test cases and
+also forbids thin air behavior; the most prominent existing models are
+either too permissive~\cite{Manson:2005:JMM:1047659.1040336,
+  Jagadeesan:2010:GOS:2175486.2175503,DBLP:conf/popl/KangHLVD17} or
+too conservative~\cite{DBLP:conf/lics/JeffreyR16}.  In separate work,
+we are exploring the usual properties of weak memory, such as
+comparisons with sequentially consistent models,
+optimization soundness, or compilation soundness.  While our model of
+transactions shows the flexibility of our model, in this future work,
+we will include known features of hardware, including locks, fences,
+and read-modify-write instructions.  This development is not core to
+the basic findings of this paper.
 
 
 

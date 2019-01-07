@@ -11,7 +11,7 @@ by the one-event pomset:
   \event{wxv}{\aExp=\aVal \mid \DW{\aLoc}{\aVal}}{}
 \end{tikzpicture}\]
 We make few requirements of the logic of preconditions, save that it
-has includes equalities between expressions, is closed under substitution,
+includes equalities between expressions, is closed under substitution,
 and supports a notion of implication.
 
 % For example, the set of pomsets $\sem{\aReg\GETS\bLoc\SEMI \aLoc\GETS\aReg+1}$ contains:
@@ -324,7 +324,11 @@ We refer to edges introduced by $(\bEv < \aEv)$ as
 as \emph{weak edges}.
 For readability, we often highlight the reads-from edges as well.
 % for example:
-For example:
+For example one execution of
+\(
+  (\aLoc\GETS0\SEMI\aLoc\GETS1) \PAR (\aLoc\GETS\aLoc+1)
+\)
+is:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
   \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
@@ -455,7 +459,7 @@ then prefixing introduces weak order between them: $\cEv \ltN \aEv$.  This
 ensures that these writes cannot be given the reverse order in an augmentation.
 
 If $\cEv$ reads from a location that occurs in the predicate of $\aEv$, then
-prefixing introduces order from $\cEv$ to $\aEv$.
+prefixing introduces order from $\cEv$ to any $\aEv$
 whose predicate depends on $\aLoc$. 
 For example, if $\aAct$ and $\bAct$ write to the same location, $\aAct$ reads
 $\aVal$ from $\aLoc$, $\bForm$ is independent of $\aLoc$, and $\aPSS$
@@ -706,7 +710,7 @@ modeling the control dependency introduced by the conditional.
 \subsection{Control independencies}
 
 In most models of control dependencies, the dependency relation
-is syntactic, based on whether the action occurs inside syntactically
+is syntactic, based on whether the action occurs syntactically
 inside a conditional. In contrast, the notion in this model is
 semantic: if an action can occur on both sides of a conditional,
 there is no control dependency. Consider a variant of the example
