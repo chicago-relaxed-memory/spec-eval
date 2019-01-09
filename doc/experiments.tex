@@ -34,8 +34,21 @@ we test against {\GCC}~6.3.0 and {\CLANG}~3.8.
 \subsection{Attacker model}
 \label{subsec:attacker-model}
 
-In our attacker model, we assume that there is a {\SEC} hardcoded into an
-application; for instance, {\SEC} may be an API key.
+As explained in Section~\ref{sec:examples}, our model expresses a variety
+of attacks with differing attacker models.
+The Spectre~(\S\ref{sec:spectre}) and
+\textsc{Prime+Abort}~(\S\ref{sec:transactions}) attacks exploit optimizations
+in hardware, and so can be mounted against a dynamic \SEC.
+Our model captures this appropriately.
+In contrast, the attacks from~\S\ref{sec:info-flow-attack}
+and~\S\ref{sec:dse} leverage compiler optimizations and require the \SEC to
+be known to the compiler, for example a static \SEC or a JIT compiler.
+As our experimental section is devoted to these latter (novel) attacks, we
+discuss the attacker model for these attacks in more detail.
+
+In the attacker model for the compiler-optimization attacks, we assume that
+there is a {\SEC} hardcoded into an application; for instance, {\SEC} may be
+an API key.
 This {\SEC} is known at compile time, but may not be
 accessed except behind a security check.
 Since the attacker is running with low security privileges,
