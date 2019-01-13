@@ -1,7 +1,169 @@
 \section{Introduction}
 
-This paper studies information flow caused by speculation mechanisms
-in hardware and software.
+This paper is about some of the lies we tell when we talk about programs.
+
+An example lie (or to be more formal, a ``leaky abstraction'') is the order
+of reads and writes in a program. We like to pretend that these happen in the
+order specified by the program text, for example
+we think of the program
+\(( \aLoc\GETS0 \SEMI \aLoc\GETS1 \SEMI \bLoc\GETS2 )\)
+as having seqential executions such as:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{\aLoc}{0}}{}
+  \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
+  \event{wy2}{\DW{\bLoc}{2}}{right=of wx1}
+  \po{wx0}{wx1}
+  \po{wx1}{wy2}
+\end{tikzpicture}\]
+However, due to optimizations in hardware or compilers, instructions
+may be reordered, resulting in executions where the accesses of
+$\aLoc$ and $\bLoc$ are independent:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{\aLoc}{0}}{}
+  \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
+  \event{wy2}{\DW{\bLoc}{2}}{right=of wx1}
+  \po{wx0}{wx1}
+\end{tikzpicture}\]
+Instruction reordering optimizations are not problematic as long
+as they are not visible to user code, that is if programs
+are sequentially consistent. Unfortunately, multi-threaded
+programs can often observe instruction reorderings, for example
+spawning a thread \((\IF(\bLoc)\THEN \aLoc\GETS\aLoc+1 \FI)\)
+can result in:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{\aLoc}{0}}{}
+  \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
+  \event{wy2}{\DW{\bLoc}{2}}{right=of wx1}
+  \po{wx0}{wx1}
+  \event{ry2}{\DR{\bLoc}{2}}{below=of wx0}
+  \event{rx0}{\DR{\aLoc}{0}}{below=of wx1}
+  \event{wx1}{\DW{\aLoc}{1}}{below=of wy2}
+  \po{ry2}{rx0}
+  \po{rx0}{wx1}
+  \rf{wx0}{rx0}
+  \rf[out=210,in=35]{wy2}{ry2}
+\end{tikzpicture}\]
+This leaky abstraction has resulted in a literature
+of \emph{relaxed memory models}~\cite{relaxed-memory},
+which try to state precisely the memory guarantees
+a compiler is expected to provide, without requiring the use of
+expensive memory barriers to ensure sequential consistency.
+
+Relaxed memory is an example of how simple models can become
+complex. Instruction reordering was originally intended only to be
+visible to the microarchitecture, or inside a compiler, and was
+not meant to be visible to the architecture or to the behaviour of
+user code. Reordering optimizations are so important to the performance
+of modern systems that hardware and programming language designers
+have now accepted the complexity of relaxed memory models as the price
+that has to be paid for acceptable performance.
+
+This paper looks at another leaky abstraction:
+\emph{speculative evaluation}. This is similar to reordering,
+in that it is an optimization that was intended to be visible only to the microarchitecture,
+but the arrival of Spectre~\cite{spectre}
+and similar attacks~\cite{spectre-like}
+shows that not only is speculation visible, it has serious
+security implications.
+
+The simplest example of speculative evaluation
+is branch prediction. The expected observable behavior of
+a conditional such as
+\(( \IF(\aLoc) \THEN \bLoc\GETS1 \ELSE \cLoc\GETS1 \FI )\)
+is that just one branch will execute, for example:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx0}{\DR{\aLoc}{0}}{}
+  \event{wz1}{\DW{\cLoc}{1}}{right=of rx0}
+  \po{rx0}{wz1}
+\end{tikzpicture}\]
+To improve instruction throughput, hardware will often evaluate
+branches speculatively, and roll back any failed speculations. For example, an
+execution where the hardware incorrectly speculates that $\aLoc$ is
+nonzero, and then rolls back the resulting write to $\bLoc$ is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx0}{\DR{\aLoc}{0}}{}
+  \nonevent{nwy1}{\DW{\bLoc}{1}}{right=of rx0}
+  \event{wz1}{\DW{\cLoc}{1}}{right=of nwy1}
+  \po{rx0}{nwy1}
+  \po[out=30,in=150]{rx0}{wz1}
+\end{tikzpicture}\]
+Speculation is intended only to be visible at the microarchtectural
+level, but as Spectre shows, this abstraction is leaky, and in a way
+that allows side-channel attacks to be mounted.
+
+We have two similar leaky abstractions: instruction reordering
+and speculative evaluation. Both were intended originally not to
+be visible to user code, but both abstractions have leaked.
+This opens some possible areas of investigation:
+\begin{itemize}
+
+\item \emph{Using ideas from relaxed memory for speculation}.
+  There is a significant literature showing how to build models of
+  relaxed memory, for use in validating compilers, or proving
+  correctness of programs.  Less formally, they provide programmers
+  with a way to visualize and communicate the behavior of their
+  systems.  Inspired by these models, we give a compositional model of
+  program execution that includes speculation (\S\ref{sec:model} and
+  \S\ref{sec:semantics}) and show how it can be used to model some
+  existing attacks on branch prediction (\S\ref{sec:spectre}) and
+  transactional memory (\S\ref{sec:transactions}).
+
+\item \emph{Using attacks against speculation on relaxed memory}.
+  Spectre shows how a leaky abstraction allows for the construction of
+  side-channels which bypass dynamic security checks. Since defences
+  against buffer overflows are often dynamic checks, these attacks
+  allow all memory in a process to be read.  Inspired by these
+  attacks, we show how to mount information flow attacks against
+  compiler optimizations, both in theory (\S\ref{sec:info-flow-attack}
+  and~\S\ref{sec:dse}) and in practice (\S\ref{sec:experiments}).
+
+\end{itemize}
+\citet{Chien:2018} argues that Spectre-like attacks ``extend the functional
+specification of the architecture to include its detailed performance'' and
+thus ``making strong assurances of application security on a computing system
+requires detailed performance information.''
+This approach has been pursued in the information flow literature, by
+enriching language semantics with observables such as execution time and  power consumption
+\cite{Zhang:2012:LCM:2345156.2254078,hyperflow}.
+
+In this paper, we adopt the opposite approach, attempting to understand
+Spectre-like attacks as \emph{abstractly} as possible and thus to reveal the
+``essence'' of Spectre.  We develop a novel model of speculative
+evaluation and show that it is sufficient to both capture known attacks and
+predict new attacks.  Our model is defined at the \emph{language} level,
+rather than the hardware level; thus, we do not model micro-architectural
+details such as caches or timing, as in
+\cite{Zhang:2012:LCM:2345156.2254078,hyperflow}.
+
+The new attacks on optimizing
+compilers~(\S\ref{sec:info-flow-attack} and~\S\ref{sec:dse})
+were discovered as a consequence of building the model. A natural
+question is whether these attacks are an artifact of the model, or if
+they can be mounted in practice? We mounted the attacks on gcc and
+clang, where they succeeded in leaking a $\SEC$ as long as the secret
+was a constant known at compile time. By itself this is not too
+worrying, since secrets are not normally static constants. If the same
+attacks could be mounted against Just-In-Time~(JIT) compilers, this
+is potentially significant, as secrets are often known at JIT-compile
+time.
+
+Fortunately, our attempts to mount the attacks against SpiderMonkey,
+V8 and HotSpot did not succeed. We speculate that this is because
+JIT compilers do not optimize as agressively,
+and not because of any mitigations against
+information flows. With the addition of shared-memory concurrency
+to JavaScript~\cite[\S24.2]{ecma-262}, the attacks described in this paper might
+become feasible. We hope that compiler designers become as
+aware of information flow attacks against optimizations as their
+hardware designing colleagues.
+
+Readers who wish to focus on the impact of the model can skip to \S\ref{sec:examples}
+on first reading, referring to prior sections as needed.
+
+
+\endinput
+
+%%% Old intro follows.
 
 Information flow provides a formal
 foundation for end-to-end security.  Informally, a program is secure
