@@ -5,9 +5,9 @@ This paper is about some of the lies we tell when we talk about programs.
 An example lie (or to be more formal, a ``leaky abstraction'') is the order
 of reads and writes in a program. We like to pretend that these happen in the
 order specified by the program text, for example
-we think of the program
+we can think of the program
 \(( \aLoc\GETS0 \SEMI \aLoc\GETS1 \SEMI \bLoc\GETS2 )\)
-as having seqential executions such as:
+as having three sequentially ordered write events:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
   \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
@@ -17,7 +17,8 @@ as having seqential executions such as:
 \end{tikzpicture}\]
 However, due to optimizations in hardware or compilers, instructions
 may be reordered, resulting in executions where the accesses of
-$\aLoc$ and $\bLoc$ are independent:
+$\aLoc$ and $\bLoc$ are independent, indicating that hardware
+or the compiler may reorder them:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
   \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
@@ -27,19 +28,23 @@ $\aLoc$ and $\bLoc$ are independent:
 Instruction reordering optimizations are not problematic as long
 as they are not visible to user code, that is if programs
 are sequentially consistent. Unfortunately, multi-threaded
-programs can often observe instruction reorderings, for example
-spawning a thread \((\IF(\bLoc)\THEN \aLoc\GETS\aLoc+1 \FI)\)
-can result in:
+programs can often observe instruction reorderings. For example
+running the above writing thread concurrently with
+an observing thread \((\IF(\bLoc)\THEN \cLoc\GETS\aLoc \FI)\)
+can produce a sequentially inconsistent execution
+(where we highlight the justifying write event for each read event):
 \[\begin{tikzpicture}[node distance=1em]
-  \event{wx0}{\DW{\aLoc}{0}}{}
+  \node(th1){Writing thread:};
+  \event{wx0}{\DW{\aLoc}{0}}{right=of th1}
   \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
   \event{wy2}{\DW{\bLoc}{2}}{right=of wx1}
   \po{wx0}{wx1}
+  \node(th2)[below=2.5ex of th1]{Reading thread:};
   \event{ry2}{\DR{\bLoc}{2}}{below=of wx0}
   \event{rx0}{\DR{\aLoc}{0}}{below=of wx1}
-  \event{wx1}{\DW{\aLoc}{1}}{below=of wy2}
+  \event{wz0}{\DW{\cLoc}{0}}{below=of wy2}
   \po{ry2}{rx0}
-  \po{rx0}{wx1}
+  \po{rx0}{wz0}
   \rf{wx0}{rx0}
   \rf[out=210,in=35]{wy2}{ry2}
 \end{tikzpicture}\]
@@ -77,9 +82,10 @@ is that just one branch will execute, for example:
   \po{rx0}{wz1}
 \end{tikzpicture}\]
 To improve instruction throughput, hardware will often evaluate
-branches speculatively, and roll back any failed speculations. For example, an
-execution where the hardware incorrectly speculates that $\aLoc$ is
-nonzero, and then rolls back the resulting write to $\bLoc$ is:
+branches speculatively, and roll back any failed speculations. For example,
+harware might incorrectly speculate that $\aLoc$ is
+nonzero, speculatively execute a write to $\bLoc$,
+but then roll it back and execute a write to $\cLoc$:
 \[\begin{tikzpicture}[node distance=1em]
   \event{rx0}{\DR{\aLoc}{0}}{}
   \nonevent{nwy1}{\DW{\bLoc}{1}}{right=of rx0}
@@ -91,8 +97,8 @@ Speculation is intended only to be visible at the microarchtectural
 level, but as Spectre shows, this abstraction is leaky, and in a way
 that allows side-channel attacks to be mounted.
 
-We have two similar leaky abstractions: instruction reordering
-and speculative evaluation. Both were intended originally not to
+Instruction reordering and speculative evaluation are similar leaky abstractions.
+Both were intended originally not to
 be visible to user code, but both abstractions have leaked.
 This opens some possible areas of investigation:
 \begin{itemize}
@@ -108,7 +114,7 @@ This opens some possible areas of investigation:
   existing attacks on branch prediction (\S\ref{sec:spectre}) and
   transactional memory (\S\ref{sec:transactions}).
 
-\item \emph{Using attacks against speculation on relaxed memory}.
+\item \emph{Mounting attacks against speculation on relaxed memory}.
   Spectre shows how a leaky abstraction allows for the construction of
   side-channels which bypass dynamic security checks. Since defences
   against buffer overflows are often dynamic checks, these attacks
