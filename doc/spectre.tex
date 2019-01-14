@@ -1,0 +1,162 @@
+\section{Attacks on speculative execution}
+\label{sec:examples}
+
+In this section, we show how known attacks on speculative execution can be
+modeled.  In \S\ref{sec:spectre}, we discuss Spectre In
+\S\ref{sec:spec-barriers}, we describe \emph{speculation barriers} for
+defense against Spectre.  In \S\ref{sec:transactions}, we discuss attacks on
+transactions.
+
+In each attack, there is a high-security variable $\SEC$,
+and the goal of the attacker is to learn one bit of information
+from $\SEC$. The Spectre and \textsc{Prime+Abort}
+attacks exploit optimizations in hardware, and so can be mounted
+against a dynamic $\SEC$. 
+
+\subsection{Spectre}
+\label{sec:spectre}
+
+We give a simplified model of Spectre attacks, ignoring the details of
+cache timing.  In this model, we extend programs with the ability to tell
+whether a memory location has been touched (in practice this is
+implemented using timing attacks on the cache). For example,
+we can model Spectre by:
+\[\begin{array}{l}
+  \VAR a\SEMI \IF(\CANREAD(\SEC))\THEN a[\SEC]\GETS1
+  \brELIF(\TOUCHED a[0])\THEN x\GETS0
+  \brELIF(\TOUCHED a[1])\THEN x\GETS1 \FI
+\end{array}\]
+This is a low-security program, which is attempting to discover the
+value of a high-security variable $\SEC$. The low-security program
+is allowed to attempt to escalate its privileges by checking that it is
+allowed to read a high-security variable:
+\[\begin{array}{l}
+  \IF(\CANREAD(\SEC))\THEN \mbox{code allowed to read $\SEC$}
+  \brELSE \mbox{code not allowed to read $\SEC$} \FI
+\end{array}\]
+In this case, $\CANREAD(\SEC)$ is false, so the fallback code
+is executed. Unfortunately, the escalated code is speculatively
+evaluated, which allows information to leak by testing for which
+memory locations have been touched.
+
+Attacks may realize the abstract notions in various ways.  For example, in
+variant 1 of Spectre, the dynamic security check is implemented as an array
+bounds check.
+
+We model the $\TOUCHED$ test by introducing a new action
+$(\DT{\aLoc})$, and defining:
+\[\begin{array}{l}
+  \sem{\IF (\TOUCHED\aLoc) \THEN \aCmd \ELSE \bCmd \FI} \\[\jot]\quad =  ((\DT\aLoc) \prefix \sem{\aCmd}) \cup \sem{\bCmd}
+\end{array}\]
+Implementations of $\TOUCHED$ use cache timing, but their success can be modeled
+without needing to be precise about such microarchitectural details:
+\begin{itemize}
+\item if $\labelling(\aEv)=(\aForm \mid \DT{\aLoc})$
+  then there is $\bEv\gtN\aEv$
+  where $\bEv$ reads or writes $\aLoc$.
+\end{itemize}
+Note that there is no requirement that $\bEv$ be satisfiable,
+and indeed Spectre has the execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \nonevent{rs}{\DR{\SEC}{1}}{}
+  \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
+  \event{ta}{\DT{a[1]}}{right=of wa}
+  \event{wx}{\DW{x}{1}}{right=of ta}
+  \po{rs}{wa}
+  \wk{wa}{ta}
+  \po{ta}{wx}
+\end{tikzpicture}\]
+but (assuming a successful implementation of $\TOUCHED$) \emph{not}:
+\[\begin{tikzpicture}[node distance=1em]
+  \nonevent{rs}{\DR{\SEC}{0}}{}
+  \nonevent{wa}{\DW{a[0]}{1}}{right=of rs}
+  \event{ta}{\DT{a[1]}}{right=of wa}
+  \event{wx}{\DW{x}{1}}{right=of ta}
+  \po{rs}{wa}
+  \wk{wa}{ta}
+  \po{ta}{wx}
+\end{tikzpicture}\]
+Thus, the attacker has managed to leak the value of a high-security
+location to a low-security one: if $(\DW x1)$ is observed, the \verb|SECRET|
+must have been 1.
+
+This shows how our model of speculation can express
+the way in which Spectre-like attacks bypass dynamic security checks,
+without giving a treatment of microarchitecture.
+
+\subsection{Speculation barriers}
+\label{sec:spec-barriers}
+
+The ability to model Spectre is useful, but really we would
+like to model defences against such attacks, and provide some
+confidence in the correctness of the defence. One such defence,
+which fits naturally in our model is \emph{speculation barriers},
+which is code that cannot be speculatively executed. For example,
+we could introduce such a $\BARRIER$, and require that
+a barrier is introduced on each security check:
+\[\begin{array}{l}
+\IF(\CANREAD(\SEC))\THEN \BARRIER\SEMI\cdots
+  \ELSE \cdots \FI
+\end{array}\]
+To model barriers, we introduce a new action $\DSB$
+and define:
+\[\begin{array}{l}
+  \sem{\BARRIER\SEMI\aCmd} =  \{\emptyset\} \cup ((\DSB) \prefix \sem{\aCmd})
+\end{array}\]
+Implementations of $\BARRIER$ make use of hardware barriers which
+halt speculative execution until all instructions up to the barrier
+have been retired. Such barriers are successful when:
+\begin{itemize}
+\item if $\labelling(\aEv)=(\aForm \mid \DSB)$
+  then $\aForm$ is satisfiable.
+\end{itemize}
+For example, a successful implementation of barriers disallows
+the execution of Spectre:
+\[\begin{tikzpicture}[node distance=1em]
+  \nonevent{sb}{\DSB}{}
+  \nonevent{rs}{\DR{\SEC}{1}}{right=of sb}
+  \nonevent{wa}{\DW{a[1]}{1}}{right=of rs}
+  \event{ta}{\DT{a[1]}}{right=of wa}
+  \event{wx}{\DW{x}{1}}{right=of ta}
+  \po{rs}{wa}
+  \wk{wa}{ta}
+  \po{ta}{wx}
+\end{tikzpicture}\]
+One might expect that this is a successful (albeit expensive) defence
+against Spectre, but it is not, unless the compiler is aware that
+$\BARRIER$ cannot be lifted out of a conditional. An unaware compiler
+might perform common subexpression elimination on barriers, allowing
+the attacker to introduce a barrier to fool a compiler into optimizing
+the safe:
+\[\begin{array}{l}
+  \IF(\CANREAD(\SEC))\THEN \BARRIER\SEMI \cdots
+  \ELSE \BARRIER\SEMI \cdots \FI
+\end{array}\]
+into the unsafe:
+\[\begin{array}{l}
+  \BARRIER\SEMI \IF(\CANREAD(\SEC))\THEN \cdots
+  \ELSE \cdots \FI
+\end{array}\]
+To model the requirement that barriers are not moved past
+conditionals, we make them \emph{unmergeable}: $\DSB$ events
+on different arms of a conditional cannot be merged.
+With this requirement, we can show that barriers act as a
+defence against Spectre by first showing that $\sem\bCmd$ has
+the same successful executions as:
+\[
+  \sem{\IF(\CANREAD(\SEC)) \BARRIER\SEMI\aCmd \ELSE \bCmd \FI}
+\]
+and then showing that the semantics which only looks at successful
+executions is \emph{compositional}: if $\sem\bCmd$ has the same
+successful executions as $\sem{\bCmd'}$ then $\sem{\aCmd[\bCmd]}$ has
+the same successful executions as $\sem{\aCmd[\bCmd']}$ for any
+``program with a hole'' $\aCmd[{\bullet}]$. Compositional reasoning
+is what fails when $\DSB$ is mergeable, as shown by the
+attack against a compiler which blindly performs common subexpression
+elimination.
+
+To realize a speculation barrier in microarchitecture, it is likely
+sufficient for the barrier to stop any further speculation until the barrier
+is known to succeed.  There is experimental evidence that Intel’s
+\texttt{mfence} instruction has the effect of a speculation barrier in some contexts
+\cite[\S{VII-\textit{D}}]{DBLP:conf/micro/TrippelLM18}.

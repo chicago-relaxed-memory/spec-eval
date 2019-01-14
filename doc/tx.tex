@@ -13,12 +13,12 @@ represents the corresponding commit.
 We model a language in which transactions have explicit identifiers (which we
 elide in examples) and abort handlers (which we elide when they are empty):
 \[\begin{array}{l}
-  \sem{\BEGINVAL\SEMI \aCmd\SEMI \RECOVERYVAL \bCmd \ENDREC} \\\quad
-  = (\DB{\aVal}) \prefix \bigl(\sem{\aCmd} \cup \bigl((\FALSE \guard \sem{\aCmd}) \parallel \sem{\bCmd}\bigr)\bigr)
-  \\[\jot]
-  \sem{\COMMITVAL\SEMI \bCmd} \\\quad
-  = (\DC{\aVal}) \prefix \sem{\bCmd}
-\end{array}\]
+    \sem{\BEGINVAL\SEMI \eCmd\SEMI \RECOVERYVAL \bCmd \ENDREC} \\\quad
+    = (\DB{\aVal}) \prefix \bigl(\sem{\eCmd} \cup \bigl((\FALSE \guard \sem{\eCmd}) \parallel \sem{\bCmd}\bigr)\bigr)
+    \\[\jot]
+    \sem{\COMMITVAL\SEMI \bCmd} \\\quad
+    = (\DC{\aVal}) \prefix \sem{\bCmd}
+  \end{array}\]
 The semantics of a transaction has two cases: a committed case
 (executing only the transaction body) and an aborted case (executing both the body and the
 recovery code, where the body is marked unsatisfiable). For example, two executions of
@@ -28,8 +28,8 @@ recovery code, where the body is marked unsatisfiable). For example, two executi
 are:
 \[\begin{array}{c}\begin{tikzpicture}[node distance=1em]
   \event{b0}{\DB{}}{}
-  \event{wx0}{\DW{x}{0}}{right=of b0}
-  \event{wx1}{\DW{x}{1}}{right=of wx0}
+  \event{wx0}{\DW{x}{1}}{right=of b0}
+  \event{wx1}{\DW{x}{2}}{right=of wx0}
   \event{c0}{\DC{}}{right=of wx1}
   \po{b0}{wx0}
   \po[out=30,in=150]{b0}{wx1}
@@ -40,8 +40,8 @@ are:
 \\
 \begin{tikzpicture}[node distance=1em]
   \event{b0}{\DB{}}{}
-  \nonevent{wx0}{\DW{x}{0}}{right=of b0}
-  \nonevent{wx1}{\DW{x}{1}}{right=of wx0}
+  \nonevent{wx0}{\DW{x}{1}}{right=of b0}
+  \nonevent{wx1}{\DW{x}{2}}{right=of wx0}
   \nonevent{c0}{\DC{}}{right=of wx1}
   \event{wy1}{\DW{y}{1}}{right=of c0}
   \po{b0}{wx0}
@@ -213,6 +213,11 @@ only happens when the \texttt{SECRET} is $1$.
 
 This style of attack can be thwarted by requiring that the honest agent and
 attack code access disjoint cache sets.  This approach is pursued in \cite{dawg}.
+
+Another defense is require a speculation barrier at the beginning of each
+transaction.  This would have the effect, however, of undermining any
+optimistic execution strategy for transactions: the transaction would only be
+able to begin when it is known that its commit will succeed.
 
 % \ignore{
 % \begin{verbatim}
