@@ -1,0 +1,191 @@
+\section{Attacks against compiler optimizations}
+\label{sec:compiler}
+
+In this section, we model two attacks on compiler optimizations.  The first
+attack exploits reordering allowed by relaxed memory models
+(\S\ref{sec:info-flow-attack}).  The second exploit dead store elimination
+(\S\ref{sec:dse}).
+
+As in the previous section, the goal of the attacker is to learn one bit of
+information from the high-security $\SEC$.   The attacks on compiler
+optimizations require the $\SEC$ to be known to the compiler, for example a
+static $\SEC$ or a JIT compiler.
+
+To defend against these attacks it is sufficient to require a traditional
+memory fence after each security check: compilers do not reorder instructions
+over fences.
+
+\subsection{Relaxed memory orders}
+\label{sec:info-flow-attack}
+
+Consider an attacker program, again using dynamic security checks to
+try to learn a \verb|SECRET|. Whereas \verb|SPECTRE| uses
+hardware capabilities, which have to be modeled by adding
+extra capabilities to the language, this new attacker works
+by exploiting relaxed memory which can result in
+unexpected information flows. The attacker program is:
+\[\begin{array}[t]{@{}l}
+  \VAR x\GETS0\SEMI \VAR y\GETS0\SEMI\\\quad
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    \IF(y\EQ0)\THEN x\GETS1
+    \brELIF(\CANREAD(\SEC))\THEN x\GETS\SEC
+    \brELSE x\GETS1\SEMI z\GETS1 \FI
+\end{array}\end{array}\]
+In the case where $\SEC$ is $2$, this has many executions,
+one of which is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ix}{\DW{x}{0}}{}
+  \event{iy}{\DW{y}{0}}{right=of ix}
+  \event{rx0}{\DR{x}{0}}{below=of wx0}
+  \event{wy0}{\DW{y}{0}}{right=of rx0}
+  \event{ry0}{\DR{y}{0}}{below=of wy0}
+  \event{wx1}{\DW{x}{1}}{right=of ry0}
+  \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
+  \nonevent{wz1}{\DW{z}{1}}{right=of wx2}
+  \po{rx0}{wy0}
+  \po{ry0}{wx1}
+  \po[out=30,in=150]{ry0}{wz1}
+  \po[out=25,in=155]{ry0}{wx2}
+  \rf{ix}{rx0}
+  \rf{wy0}{ry0}
+  \wk{iy}{wy0}
+\end{tikzpicture}\]
+but there are no executions which exhibit
+$(\DW{z}{1})$, since any attempt to do so
+produces a cycle, since the value written
+to $x$ has a control dependency on the value
+read from $y$:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ix}{\DW{x}{0}}{}
+  \event{iy}{\DW{y}{0}}{right=of ix}
+  \event{rx1}{\DR{x}{1}}{below=of ix}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \event{ry1}{\DR{y}{1}}{below=of wy1}
+  \event{wx1}{\DW{x}{1}}{right=of ry0}
+  \nonevent{wx2}{\DW{x}{2}}{right=of wx1}
+  \event{wz1}{\DW{z}{1}}{right=of wx2}
+  \po{rx1}{wy1}
+  \po{ry1}{wx1}
+  \po[out=30,in=150]{ry1}{wz1}
+  \po[out=25,in=155]{ry1}{wx2}
+  \rf[in=-90,out=-150]{wx1}{rx1}
+  \rf{wy1}{ry1}
+  \wk[out=-20,in=90]{ix}{wx1}
+  \wk[out=-20,in=120]{ix}{wx2}
+  \wk{iy}{wy1}
+\end{tikzpicture}\]\vskip-\bigskipamount\noindent
+In the case where \verb|SECRET| is $1$, there is an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{ix}{\DW{x}{0}}{}
+  \event{iy}{\DW{y}{0}}{right=of ix}
+  \event{rx1}{\DR{x}{1}}{below=of ix}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \event{ry1}{\DR{y}{1}}{below=of wy1}
+  \event{wx1}{\DW{x}{1}}{right=of ry0}
+  \event{wz1}{\DW{z}{1}}{right=of wx1}
+  \po{rx1}{wy1}
+  \po[out=30,in=150]{ry1}{wz1}
+  \rf[in=-90,out=-150]{wx1}{rx1}
+  \rf{wy1}{ry1}
+  \wk[out=-20,in=90]{ix}{wx1}
+  \wk[out=-20,in=120]{ix}{wx2}
+  \wk{iy}{wy1}
+\end{tikzpicture}\]\vskip-\bigskipamount\noindent
+Note that in this case, there is no dependency from
+$(\DR{y}{1})$ to $(\DW{x}{1})$.  This lack of dependency makes the
+execution possible. Thus, if the attacker sees
+an execution with $(\DW{z}{1})$, they can conclude
+that \verb|SECRET| is $1$, which is an information flow
+attack.
+
+This attack is not just an artifact of the model,
+since the same behavior can be exhibited by
+compiler optimizations. Consider the program fragment:
+\[\begin{array}{l}
+    \IF(y = 0)\THEN x\GETS1
+    \brELIF(\CANREAD(\SEC))\THEN x\GETS\SEC
+    \brELSE x\GETS1\SEMI z\GETS1 \FI
+\end{array}\]
+In the case where \verb|SECRET| is a constant \verb|1|,
+the compiler can inline it
+and lift the assignment to $x$ out of the $\IF$ statement:
+\[\begin{array}{l}
+    x\GETS1\SEMI
+    \IF(y = 0)\THEN
+    \brELIF(\CANREAD(\SEC))\THEN
+    \brELSE z\GETS1 \FI
+\end{array}\]
+After these optimizations, a sequentially consistent execution
+exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
+further in \S\ref{sec:experiments}.
+
+\subsection{Dead store elimination}
+\label{sec:dse}
+
+A common compiler optimization is \emph{dead store elimination},
+in which writes are omitted if they will be overwritten by a subsequent
+write later in the same thread. We can model eliminated writes
+by ones with an unsatisfiable precondition. For example,
+one execution of $(x \GETS 1\SEMI x \GETS 2) \PAR (r \GETS x)$ is:
+\[\begin{tikzpicture}[node distance=1em]
+  \nonevent{wx1}{\DW{x}{1}}{}
+  \event{wx2}{\DW{x}{2}}{right=of wx1}
+  \event{rx2}{\DR{x}{2}}{right=2.5em of wx2}
+  \wk{wx1}{wx2}
+  \rf{wx2}{rx2}
+\end{tikzpicture}\]
+Recall that for any satisfiable $\aEv$, if $\aEv$ reads $\aLoc$ from $\bLoc$
+then $\bEv$ is satisfiable. This means that, although we can eliminate
+$(\DW{x}{1})$ we cannot eliminate $(\DW{x}{2})$.
+
+One heuristic that a compiler might adopt is to only eliminate
+writes that are guaranteed to be followed by another write
+to the same variable. This can be formalized by saying that
+a write event $\bEv$ is eliminable if
+there is a tautology $\aEv \ltN \bEv$
+which writes to the same location.
+A model of dead store elimination is one where,
+in every pomset, every eliminable event is unsatisfiable.
+This model includes the example above.
+
+Note that if dead store
+elimination is \emph{always} performed, then there is an information
+flow attack similar to the one in \S\ref{sec:info-flow-attack}. Consider
+the program:
+\[\begin{array}[t]{@{}l}
+    y\GETS x
+  \PAR\begin{array}[t]{@{}l}
+    x\GETS 1\SEMI\\
+    \IF(\CANREAD(\SEC))\THEN \IF(\SEC)\THEN x\GETS 2\FI
+    \brELSE x\GETS 2\FI
+\end{array}\end{array}\]
+In the case that \verb|SECRET| is $0$, there is an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{x}{1}}{}
+  \event{wy1}{\DW{y}{1}}{right=of rx1}
+  \event{wx1}{\DW{x}{1}}{right=2.5em of wy1}
+  \event{wx2}{\aForm \mid \DW{x}{2}}{right=of wx1}
+  \rf[out=160,in=20]{wx1}{rx1}
+  \po{rx1}{wy1}
+  \wk{wx1}{wx2}
+\end{tikzpicture}\]
+where $\aForm$ is ($\lnot$\verb|canRead(SECRET)|),
+which is not a tautology, and so the $(\DW{x}{1})$ event is not eliminated.
+In the case that \verb|SECRET| is not $0$, the matching execution
+is:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx2}{\DR{x}{2}}{}
+  \event{wy2}{\DW{y}{2}}{right=of rx2}
+  \nonevent{wx1}{\DW{x}{1}}{right=2.5em of wy2}
+  \event{wx2}{\DW{x}{2}}{right=of wx1}
+  \rf[out=160,in=20]{wx2}{rx2}
+  \po{rx2}{wy2}
+  \wk{wx1}{wx2}
+\end{tikzpicture}\]
+Now the $(\DW{x}{2})$ event is a guaranteed write, so the $(\DW{x}{1})$
+is eliminated, and so cannot be read.
+In the case that the attacker can rely on dead store
+elimination taking place, this is an information flow: if the attacker observes
+$x$ to be $1$, then they know \verb|SECRET| is $0$. We return to this attack
+in \S\ref{sec:experiments}.
