@@ -141,6 +141,104 @@ rather than the hardware level; thus, we do not model micro-architectural
 details such as caches or timing, as in
 \cite{Zhang:2012:LCM:2345156.2254078,hyperflow}.
 
+Our model is based on \emph{partially ordered multisets}~\cite{GISCHER1988199,Plotkin:1997:TSP:266557.266600}
+(``pomsets''), whose labels are given by read and write actions. These can be
+visualized as a graph where the edges indicate dependencies, for example
+$(\aReg\GETS\aLoc\SEMI \bLoc\GETS1\SEMI \cLoc\GETS\aReg+1)$
+has an execution modeled by the pomset:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \event{wz2}{\DW{\cLoc}{2}}{right=of wy1}
+  \po[out=25,in=155]{rx1}{wz2}
+\end{tikzpicture}\]
+The edge from $(\DR{\aLoc}{1})$ to $(\DW{\cLoc}{2})$ indicates a
+data dependency. Since there is no dependency between
+$(\DW{\bLoc}{1})$ and $(\DW{\cLoc}{2})$, the write actions may
+take place in either order.  Such reorderings may arise in
+hardware (for example, caching) or in the compiler (for example,
+instruction reordering).
+
+The novel aspect of the model is that events have
+\emph{preconditions} which may be false. These are used in giving the
+semantics of conditionals and transactions, modeling failed branch
+prediction and aborted transactions. For example the program
+$(\IF(\aLoc)\THEN \bLoc\GETS1\SEMI\cLoc\GETS1 \ELSE \bLoc\GETS2\SEMI\cLoc\GETS1\FI)$
+has an execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx1}{\DR{\aLoc}{1}}{}
+  \event{wy1}{\DW{\bLoc}{1}}{right=of rx1}
+  \nonevent{wy2}{\DW{\bLoc}{2}}{below=of wy1}
+  \event{wz1}{\DW{\cLoc}{1}}{right=of wy1}
+  \po{rx1}{wy1}
+  \po{rx1}{wy2}
+\end{tikzpicture}\]
+The edges from $(\DR{\aLoc}{1})$ to $(\DW{\bLoc}{1})$ and
+$(\DW{\bLoc}{2})$ indicate control dependencies. The presence of
+a crossed out $(\DW{\bLoc}{2})$ indicates an event with an unsatisfiable precondition,
+modeling an unsuccessful speculation.
+Since the $(\DW{\cLoc}{1})$ action is performed on both branches of the conditional,
+there is no control dependency from $(\DR{\aLoc}{1})$.  Indeed, from an information-flow perspective,
+this refined treatment of dependencies in conditionals identifies a novel distinguishing feature of our model, namely that the traditional conditional is a self-composition operator in the sense of~\cite{Barthe:2004:SIF:1009380.1009669}.
+
+There do exist models of programs which include speculation, notably
+the Java Memory Model~\cite{Manson:2005:JMM:1047659.1040336}, and the
+generative~\cite{Jagadeesan:2010:GOS:2175486.2175503} and
+promising~\cite{DBLP:conf/popl/KangHLVD17} operational semantics for
+relaxed memory.  In all of these models a valid execution is defined
+with reference to other possible executions of the program. These
+models are not, however, designed for modeling Spectre-style attacks
+on speculation. For example all of these models will consider the
+straight-line code:
+\[
+  r\GETS x\SEMI s\GETS\SEC \SEMI
+  a[r]\GETS 1
+\]
+to be the same as the conditional code:
+\[\begin{array}{ll}
+  r\GETS x\SEMI s\GETS\SEC \SEMI \\[\jot]
+  \IF(r\EQ s) \THEN a[s]\GETS 1 \ELSE a[r]\GETS 1 \FI
+\end{array}\]
+and indeed an optimizing compiler might choose to rewrite
+either of these programs to be the other.
+
+An attacker can mount a Spectre-style attack on the
+conditional code, for example by setting $x$ to be~$0$,
+flushing the cache,
+executing the program, then using timing effects to
+determine if $a[1]$ is in the cache. If it is, then $\SEC$
+must have been~$1$. This attack is not possible against
+the straight-line code, and so any model trying to
+capture Spectre must distinguish them.
+
+Most definitions of non-interference will say that in both
+programs, there is no observable dependency of the low-security
+outputs ($a$) on the high-security inputs ($\SEC$) and so both programs
+are safe.
+  The only existing models of
+non-interference which capture this information flow are ones such
+as~\cite{Zhang:2012:LCM:2345156.2254078} which model
+micro-architectural features such as caching and timing.
+
+In our model, the straight-line and conditional programs are not equated, since the conditional code has the execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{rx0}{\DR{\aLoc}{0}}{}
+  \event{rs1}{\DR{\SEC}{1}}{below=of rx0}
+  \event{wa01}{\DW{a[0]}{1}}{right=3em of rx0}
+  \nonevent{wa11}{\DW{a[1]}{1}}{below=of wa01}
+  \po{rx0}{wa01}
+  \po{rs1}{wa01}
+  \po{rx0}{wa11}
+  \po{rs1}{wa11}
+\end{tikzpicture}\]
+which is not matched in the straight-line code.
+
+Static analyses such as the Smith-Volpano type
+system~\cite{Smith:1998:SIF:268946.268975} will reject the conditional
+program, due to $a[s]\GETS 1$, in which a low-security assignment depends on
+a high-security variable.  We show how to circumvent such analyses in
+\S\ref{sec:spectre}.
+
 The new attacks on optimizing
 compilers~(\S\ref{sec:info-flow-attack} and~\S\ref{sec:dse})
 were discovered as a consequence of building the model. A natural
