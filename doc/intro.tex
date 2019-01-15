@@ -151,6 +151,28 @@ Readers who wish to focus on the impact of the model can skip to \S\ref{sec:exam
 on first reading, referring to prior sections as needed.
 
 \section{Related work}
+
+Information flow provides a formal
+foundation for end-to-end security.  Informally, a program is secure
+if there is no observable dependency of low-security outputs on high-security inputs.
+The precise formalization of this intuitive idea has been the topic of
+extensive research \cite{Sabelfeld:2006:LIS:2312191.2314769}, encompassing a variety of language
+features such as non-determinism~\cite{Wittbold1990InformationFI},
+concurrency~\cite{Smith:1998:SIF:268946.268975}, reactivity~\cite{O'Neill:2006:ISI:1155442.1155677}, and
+probability~\cite{Gray:1992:TMF:2699806.2699811}. The static and dynamic enforcement
+of these definitions in general purpose languages~\cite{myers-popl99} has % also
+% been studied extensively and has
+influenced language design and implementation.
+
+A key parameter in defining information flow is the \emph{observational power} of the attacker model. Whereas the classical
+input-output behavior is often an adequate foundation,
+it has long been known~\cite{Lampson:1973:NCP:362375.362389,Biswas:2017:STC:3058791.3023872} that side-channels that leak
+information arise from other observables such as execution time and
+power consumption.
+Recently, the Spectre family of attacks~\cite{DBLP:journals/corr/abs-1801-01203} has
+shown that branch prediction, in conjunction with cache-timing side-channels,
+allows adversaries to bypass dynamic security checks.
+
 \citet{Chien:2018} argues that Spectre-like attacks ``extend the functional
 specification of the architecture to include its detailed performance'' and
 thus ``making strong assurances of application security on a computing system
