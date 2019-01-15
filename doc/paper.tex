@@ -70,7 +70,9 @@
   % dependencies, relaxed memory and transactions.
   The model is abstract with respect to specific micro-architectural
   features, such as caches and pipelines, yet is powerful enough to express
-  known attacks such as Spectre and \textsc{Prime+Abort}.  The model also allows for
+  known attacks such as Spectre and \textsc{Prime+Abort},
+  and verify their countermeasures.
+  The model also allows for
   the prediction of new information flow attacks.  We derive two such
   attacks, which exploit compiler optimizations, and validate these
   experimentally against gcc and clang.
