@@ -20,7 +20,7 @@ hardware (for example, caching) or in the compiler (for example,
 instruction reordering).
 
 The novel aspect of the model is that events have
-\emph{preconditions} which may be false. These are used in giving the
+\emph{preconditions}, which give the thread-local view of memory. These are used in giving the
 semantics of conditionals and transactions, modeling failed branch
 prediction and aborted transactions. For example the program
 $(\IF(\aLoc)\THEN \bLoc\GETS1\SEMI\cLoc\GETS1 \ELSE \bLoc\GETS2\SEMI\cLoc\GETS1\FI)$
