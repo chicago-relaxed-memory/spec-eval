@@ -3,9 +3,9 @@
 This paper is about some of the lies we tell when we talk about programs.
 
 An example lie (or to be more formal, a ``leaky abstraction'') is the order
-of reads and writes in a program. We like to pretend that these happen in the
+of reads and writes in a program. We pretend that these happen in the
 order specified by the program text, for example
-we can think of the program
+we think of the program
 \(( \aLoc\GETS0 \SEMI \aLoc\GETS1 \SEMI \bLoc\GETS2 )\)
 as having three sequentially ordered write events:
 \[\begin{tikzpicture}[node distance=1em]
@@ -17,8 +17,8 @@ as having three sequentially ordered write events:
 \end{tikzpicture}\]
 However, due to optimizations in hardware or compilers, instructions
 may be reordered, resulting in executions where the accesses of
-$\aLoc$ and $\bLoc$ are independent, indicating that hardware
-or the compiler may reorder them:
+$\aLoc$ and $\bLoc$ are independent, and the hardware
+or compiler is free to reorder them:
 \[\begin{tikzpicture}[node distance=1em]
   \event{wx0}{\DW{\aLoc}{0}}{}
   \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
@@ -28,18 +28,18 @@ or the compiler may reorder them:
 Instruction reordering optimizations are not problematic as long
 as they are not visible to user code, that is if programs
 are sequentially consistent. Unfortunately, multi-threaded
-programs can often observe instruction reorderings. For example
+programs can often observe reorderings. For example
 running the above writing thread concurrently with
 an observing thread \((\IF(\bLoc)\THEN \cLoc\GETS\aLoc \FI)\)
-can produce a sequentially inconsistent execution
-(where we highlight the justifying write event for each read event):
+can result in a sequentially inconsistent execution
+(where we highlight the matching write for each read):
 \[\begin{tikzpicture}[node distance=1em]
   \node(th1){Writing thread:};
   \event{wx0}{\DW{\aLoc}{0}}{right=of th1}
   \event{wx1}{\DW{\aLoc}{1}}{right=of wx0}
   \event{wy2}{\DW{\bLoc}{2}}{right=of wx1}
   \po{wx0}{wx1}
-  \node(th2)[below=2.5ex of th1]{Reading thread:};
+  \node(th2)[below=2.5ex of th1]{Observing thread:};
   \event{ry2}{\DR{\bLoc}{2}}{below=of wx0}
   \event{rx0}{\DR{\aLoc}{0}}{below=of wx1}
   \event{wz0}{\DW{\cLoc}{0}}{below=of wy2}
@@ -48,17 +48,18 @@ can produce a sequentially inconsistent execution
   \rf{wx0}{rx0}
   \rf[out=210,in=35]{wy2}{ry2}
 \end{tikzpicture}\]
+
 This leaky abstraction has resulted in a literature
-of \emph{relaxed memory models}~\cite{relaxed-memory},
+of \emph{relaxed memory models}~\cite{Manson:2005:JMM:1047659.1040336,SevcikThesis,DBLP:conf/esop/JagadeesanPR10,DBLP:journals/toplas/Lochbihler13,DBLP:conf/esop/BattyMNPS15,DBLP:conf/lics/JeffreyR16,DBLP:conf/popl/KangHLVD17},
 which try to state precisely the memory guarantees
 a compiler is expected to provide, without requiring the use of
 expensive memory barriers to ensure sequential consistency.
 
 Relaxed memory is an example of how simple models can become
-complex. Instruction reordering was originally intended only to be
-visible to the microarchitecture, or inside a compiler, and was
-not meant to be visible to the architecture or to the behaviour of
-user code. Reordering optimizations are so important to the performance
+complex. Instruction reordering was originally intended to be
+visible only to the microarchitecture or compiler,
+not to the architecture or user code.
+Reordering optimizations are so important to the performance
 of modern systems that hardware and programming language designers
 have now accepted the complexity of relaxed memory models as the price
 that has to be paid for acceptable performance.
@@ -67,7 +68,6 @@ This paper looks at another leaky abstraction:
 \emph{speculative evaluation}. This is similar to reordering,
 in that it is an optimization that was intended to be visible only to the microarchitecture,
 but the arrival of Spectre~\cite{DBLP:journals/corr/abs-1801-01203}
-and similar attacks~\cite{spectre-like}
 shows that not only is speculation visible, it has serious
 security implications.
 
@@ -83,7 +83,7 @@ is that just one branch will execute, for example:
 \end{tikzpicture}\]
 To improve instruction throughput, hardware will often evaluate
 branches speculatively, and roll back any failed speculations. For example,
-harware might incorrectly speculate that $\aLoc$ is
+hardware might incorrectly speculate that $\aLoc$ is
 nonzero, speculatively execute a write to $\bLoc$,
 but then roll it back and execute a write to $\cLoc$:
 \[\begin{tikzpicture}[node distance=1em]
@@ -93,7 +93,7 @@ but then roll it back and execute a write to $\cLoc$:
   \po{rx0}{nwy1}
   \po[out=30,in=150]{rx0}{wz1}
 \end{tikzpicture}\]
-Speculation is intended only to be visible at the microarchtectural
+Speculation is intended only to be visible at the microarchitectural
 level, but as Spectre shows, this abstraction is leaky, and in a way
 that allows side-channel attacks to be mounted.
 
@@ -120,33 +120,19 @@ This opens some possible areas of investigation:
   against buffer overflows are often dynamic checks, these attacks
   allow all memory in a process to be read.  Inspired by these
   attacks, we show how to mount information flow attacks against
-  compiler optimizations, both in theory (\S\ref{sec:compiler})
-  and in practice (\S\ref{sec:experiments}).
+  compiler optimizations, both against the model (\S\ref{sec:compiler})
+  and against existing compilers (\S\ref{sec:experiments}).
+  Fortunately, we were only able to mount the attacks against
+  ahead-of-time compilers (where optimizations require secrets
+  to be known at compile-time) and not just-in-time compilers
+  (which can optimize based on run-time secrets).
+  With the addition of shared-memory concurrency
+  to JavaScript~\cite[\S24.2]{ecma-262}, the attacks described in this paper might
+  become feasible. We hope that compiler designers become as
+  aware of information flow attacks against optimizations as their
+  hardware designing colleagues.
 
 \end{itemize}
-
-The new attacks on optimizing
-compilers~(\S\ref{sec:experiments}
-were discovered as a consequence of building the model. A natural
-question is whether these attacks are an artifact of the model, or if
-they can be mounted in practice? We mounted the attacks on gcc and
-clang, where they succeeded in leaking a $\SEC$ as long as the secret
-was a constant known at compile time. By itself this is not too
-worrying, since secrets are not normally static constants. If the same
-attacks could be mounted against Just-In-Time~(JIT) compilers, this
-is potentially significant, as secrets are often known at JIT-compile
-time.
-
-Fortunately, our attempts to mount the attacks against SpiderMonkey,
-V8 and HotSpot did not succeed. We speculate that this is because
-JIT compilers do not optimize as agressively,
-and not because of any mitigations against
-information flows. With the addition of shared-memory concurrency
-to JavaScript~\cite[\S24.2]{ecma-262}, the attacks described in this paper might
-become feasible. We hope that compiler designers become as
-aware of information flow attacks against optimizations as their
-hardware designing colleagues.
-
 Readers who wish to focus on the impact of the model can skip to \S\ref{sec:examples}
 on first reading, referring to prior sections as needed.
 
@@ -183,7 +169,7 @@ enriching language semantics with observables such as execution time and  power 
 has also been pursued to develop model-checking techniques for Spectre-like
 attacks \cite{DBLP:conf/micro/TrippelLM18}.  Like our work,
 \cite{DBLP:conf/micro/TrippelLM18} recognizes the role played by adapting
-techniques from relaxed memory. 
+techniques from relaxed memory.
 
 In this paper, we adopt the opposite approach, attempting to understand
 Spectre-like attacks as \emph{abstractly} as possible and thus to reveal the
