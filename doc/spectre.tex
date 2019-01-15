@@ -2,7 +2,7 @@
 \label{sec:examples}
 
 In this section, we show how known attacks on speculative execution can be
-modeled.  In \S\ref{sec:spectre}, we discuss Spectre In
+modeled.  In \S\ref{sec:spectre}, we discuss Spectre. In
 \S\ref{sec:spec-barriers}, we describe \emph{speculation barriers} for
 defense against Spectre.  In \S\ref{sec:transactions}, we discuss attacks on
 transactions.
@@ -11,7 +11,7 @@ In each attack, there is a high-security variable $\SEC$,
 and the goal of the attacker is to learn one bit of information
 from $\SEC$. The Spectre and \textsc{Prime+Abort}
 attacks exploit optimizations in hardware, and so can be mounted
-against a dynamic $\SEC$. 
+against a dynamic $\SEC$.
 
 \subsection{Spectre}
 \label{sec:spectre}
@@ -89,9 +89,9 @@ without giving a treatment of microarchitecture.
 
 The ability to model Spectre is useful, but really we would
 like to model defences against such attacks, and provide some
-confidence in the correctness of the defence. One such defence,
+confidence in the correctness of the defence. One such defence
 which fits naturally in our model is \emph{speculation barriers},
-which is code that cannot be speculatively executed. For example,
+which prevent code from being speculatively executed. For example,
 we could introduce such a $\BARRIER$, and require that
 a barrier is introduced on each security check:
 \[\begin{array}{l}

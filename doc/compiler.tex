@@ -3,7 +3,7 @@
 
 In this section, we model two attacks on compiler optimizations.  The first
 attack exploits reordering allowed by relaxed memory models
-(\S\ref{sec:info-flow-attack}).  The second exploit dead store elimination
+(\S\ref{sec:info-flow-attack}).  The second exploits dead store elimination
 (\S\ref{sec:dse}).
 
 As in the previous section, the goal of the attacker is to learn one bit of
@@ -19,7 +19,7 @@ over fences.
 \label{sec:info-flow-attack}
 
 Consider an attacker program, again using dynamic security checks to
-try to learn a \verb|SECRET|. Whereas \verb|SPECTRE| uses
+try to learn a \verb|SECRET|. Whereas \verb|Spectre| uses
 hardware capabilities, which have to be modeled by adding
 extra capabilities to the language, this new attacker works
 by exploiting relaxed memory which can result in
