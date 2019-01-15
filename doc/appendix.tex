@@ -592,8 +592,122 @@ with a plain read, then the outcome $(\DR f1)$ and $(\DR x0)$ is possible.
 % $\aLoc$ that is not preceded by a release.
 
 
-\subsection{Causality test cases}
-\label{app:tc}
+\subsection{Relaxed memory}
+\label{sec:relaxed-memory}
+
+In \S\ref{sec:info-flow-attack} we presented an information flow attack
+on relaxed memory, similar to Spectre in that it relies on speculative
+evaluation. Unlike Spectre it does not depend on timing attacks,
+but instead is based on the sensitivity of relaxed memory to data
+dependencies. % For this reason, we present a simple model of relaxed
+% memory, which is strong enough to capture this attack.
+
+Our model includes concurrent memory accesses, which can introduce concurrent
+reads-from. 
+Since we are allowing events to be partially ordered, this gives a simple
+model of relaxed memory.  For example an independent read independent write
+(IRIW) example is:
+\[\begin{array}{l}
+  x\GETS0\SEMI x\GETS x+1
+  \PAR
+  y\GETS0\SEMI y\GETS y+1
+\\{}
+  \PAR
+  r_1\GETS x\SEMI r_2\GETS y
+  \PAR
+  s_1\GETS y\SEMI s_2\GETS x
+\end{array}\]
+which includes the execution:
+\[\begin{tikzpicture}[node distance=1em]
+  \event{wx0}{\DW{x}{0}}{}
+  \event{wx1}{\DW{x}{1}}{right=of wx0}
+  \event{wy0}{\DW{y}{0}}{right=2.5em of wx1}
+  \event{wy1}{\DW{y}{1}}{right=of wy0}
+  \event{ry1}{\DR{y}{1}}{below=4ex of wx0}
+  \event{rx0}{\DR{x}{0}}{right=of ry1}
+  \event{rx1}{\DR{x}{1}}{right=2.5 em of rx0}
+  \event{ry0}{\DR{y}{0}}{right=of rx1}
+  \rf{wx1}{rx1}
+  \rf{wy0}{ry0}
+  \rf[out=210,in=30]{wy1}{ry1}
+  \rf{wx0}{rx0}
+  \wk{rx0}{wx1}
+  \wk{ry0}{wy1}
+\end{tikzpicture}\]
+This model does not introduce thin-air reads (TAR).
+For example the TAR pit
+\((
+  x\GETS y \PAR y \GETS x
+)\)
+fails to produce a value for $x$ from thin air
+since this produces a cycle in $\le$, as shown on the left below:
+\begin{align*}
+\begin{tikzpicture}[node distance=1em]
+  \event{ry42}{\DR{y}{42}}{}
+  \event{wx42}{\DW{x}{42}}{below=of ry42}
+  \event{rx42}{\DR{x}{42}}{right=2.5em of ry42}
+  \event{wy42}{\DW{y}{42}}{below=of rx42}
+  \po{ry42}{wx42}
+  \po{rx42}{wy42}
+  \rf{wx42}{rx42}
+  \rf{wy42}{ry42}
+\end{tikzpicture}
+&&
+\begin{tikzpicture}[node distance=1em]
+  \event{ry1}{\DR{y}{1}}{}
+  \event{wx1}{\DW{x}{1}}{below=of ry1}
+  \event{rx1}{\DR{x}{1}}{right=2.5em of ry1}
+  \event{wy1}{\DW{y}{1}}{below=of rx1}
+  \po{ry1}{wx1}
+  \rf{wx1}{rx1}
+  \rf{wy1}{ry1}
+\end{tikzpicture}
+\end{align*}
+This cycle can be broken by removing a dependency. For example
+\((
+  x\GETS y \PAR r\GETS x\SEMI y \GETS r+1-r
+)\)
+has the execution on the right above.
+% \[\begin{tikzpicture}[node distance=1em]
+%   \event{ry1}{\DR{y}{1}}{}
+%   \event{wx1}{\DW{x}{1}}{below=of ry1}
+%   \event{rx1}{\DR{x}{1}}{right=2.5em of ry1}
+%   \event{wy1}{\DW{y}{1}}{below=of rx1}
+%   \po{ry1}{wx1}
+%   \rf{wx1}{rx1}
+%   \rf{wy1}{ry1}
+% \end{tikzpicture}\]
+Note that $(\DR x1) \not\le (\DW y1)$, so this does not introduce a cycle.
+
+Although it is not the primary focus of this paper, our model may be an
+attractive model of relaxed memory.  Many prior models either permit
+thin-air executions that our model forbids or forbid desirable executions
+that our model permits.
+%% In \S\ref{sec:logic}, we develop a logic which allows us to prove that our
+%% semantics forbids thin air examples that are permitted by prior speculative
+%% models
+%% \cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17}.
+% Our model passes all of the causality test cases
+% \cite{PughWebsite}.
+%% Significantly, this
+%% includes test case 9, which is forbidden by \cite{DBLP:conf/lics/JeffreyR16},
+%% one of the few models that disallows the thin air example from
+%% \S\ref{sec:logic}.  We present this test case in the appendix, where we also
+%% discuss the thread inlining examples from
+%% \cite{Manson:2005:JMM:1047659.1040336}.
+
+% In \refapp{logic}, we present a variant of the TAR-pit
+% example %from \S\ref{sec:relaxed-memory}
+% that is allowed under prior speculative semantics
+% \cite{Manson:2005:JMM:1047659.1040336,DBLP:conf/esop/JagadeesanPR10,DBLP:conf/popl/KangHLVD17}.
+% We develop a logic that allows us to prove that the problematic execution is
+% forbidden in our model.  \citet{DBLP:conf/esop/BattyMNPS15} showed that the
+% thin-air problem has no per-candidate-execution solution for C++.  This
+% result does not apply to our model, which has a different notion of
+% dependency.
+
+% as the semantics of a conditional can depend on the semantics
+% of both branches.
 
 \citet{PughWebsite} developed a set of twenty {causality test cases} in the
 process of revising the Java Memory Model (JMM)
@@ -607,8 +721,29 @@ sensible non-coherent semantics.  Our model agrees with the JMM on the
 ``surprising and controversial behaviors'' of \citet[\textsection
 8]{Manson:2005:JMM:1047659.1040336}, and thus fails to validate thread
 inlining.
+% In \refapp{tc}, we discuss three of the causality test cases and the thread
+% inlining example from \cite{Manson:2005:JMM:1047659.1040336}.%  In presenting the
+% examples, we unroll loops, correct typos and simplify the code.  
 
-In this section, we discuss three of the causality test cases and the thread
+% \subsection{Causality test cases}
+% \label{app:tc}
+
+% \citet{PughWebsite} developed a set of twenty {causality test cases} in the
+% process of revising the Java Memory Model (JMM)
+% \cite{Manson:2005:JMM:1047659.1040336}.  Using hand calculation, we have
+% confirmed that our model gives the desired result for all twenty cases,
+% unrolling loops as necessary.  Our model also gives the desired results for
+% all of the examples in \citet[\textsection 4]{DBLP:conf/esop/BattyMNPS15} and
+% all but one in \citet[\textsection 5.3]{SevcikThesis}:
+% redundant-write-after-read-elimination fails for any
+% sensible non-coherent semantics.  Our model agrees with the JMM on the
+% ``surprising and controversial behaviors'' of \citet[\textsection
+% 8]{Manson:2005:JMM:1047659.1040336}, and thus fails to validate thread
+% inlining.
+
+\endinput
+%In this section,
+We now discuss three of the causality test cases, as well as the thread
 inlining from \cite{Manson:2005:JMM:1047659.1040336}.  In presenting the
 examples, we unroll loops, correct typos and simplify the code.  
 
