@@ -35,7 +35,7 @@ semantics for relaxed memory. Our model appears to be the first in the
 literature that both validates all of the JMM causality test cases and
 also forbids thin air behavior; the most prominent existing models are
 either too permissive~\cite{Manson:2005:JMM:1047659.1040336,
-  Jagadeesan:2010:GOS:2175486.2175503,DBLP:conf/popl/KangHLVD17} or
+  Jagadeesan:2010:GOS:2175486.2175503,Kang-promising-2017} or
 too conservative~\cite{DBLP:conf/lics/JeffreyR16}.  In separate work,
 we are exploring the usual properties of weak memory, such as
 comparisons with sequentially consistent models,
@@ -72,7 +72,7 @@ of~\cite{Pichon-Pharabod:2016:CSR:2837614.2837616}) it is a
 \emph{per-candidate execution model}, in that the correctness of an
 execution only requires looking at that one execution, not at
 others. This is explicit in memory models such
-as~\cite{Jagadeesan:2010:GOS:2175486.2175503,Kang:2017:PSR:3009837.3009850} in which
+as~\cite{Jagadeesan:2010:GOS:2175486.2175503,Kang-promising-2017} in which
 ``alternative futures'' are explored, in a style reminiscent of
 Abramsky's bisimulation as a testing equivalence~\cite{ABRAMSKY1987225}. Models of
 information flow are similar, in that they require comparing different

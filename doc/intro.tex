@@ -50,7 +50,7 @@ can result in a sequentially inconsistent execution
 \end{tikzpicture}\]
 
 This leaky abstraction has resulted in a literature
-of \emph{relaxed memory models}~\cite{Manson:2005:JMM:1047659.1040336,SevcikThesis,DBLP:conf/esop/JagadeesanPR10,DBLP:journals/toplas/Lochbihler13,DBLP:conf/esop/BattyMNPS15,DBLP:conf/lics/JeffreyR16,DBLP:conf/popl/KangHLVD17},
+of \emph{relaxed memory models}~\cite{Manson:2005:JMM:1047659.1040336,SevcikThesis,DBLP:conf/esop/JagadeesanPR10,DBLP:journals/toplas/Lochbihler13,DBLP:conf/esop/BattyMNPS15,DBLP:conf/lics/JeffreyR16,Kang-promising-2017},
 which try to state precisely the memory guarantees
 a compiler is expected to provide, without requiring the use of
 expensive memory barriers to ensure sequential consistency.
@@ -181,7 +181,7 @@ details such as caches or timing.
 
 Relaxed memory models
 \cite{SparcV9,Manson:2005:JMM:1047659.1040336,Boehm:2008:FCC:1375581.1375591,DBLP:conf/popl/ZhaoNMZ12,
-  Jagadeesan:2010:GOS:2175486.2175503, DBLP:conf/popl/KangHLVD17} allow
+  Jagadeesan:2010:GOS:2175486.2175503,Kang-promising-2017} allow
 speculative execution to varying degrees. Relaxed execution is known to
 affect the validity of information flow analyses
 \cite{6957104,Vaughan:2012:SIF}.
@@ -390,7 +390,7 @@ this refined treatment of dependencies in conditionals identifies a novel distin
 There do exist models of programs which include speculation, notably
 the Java Memory Model~\cite{Manson:2005:JMM:1047659.1040336}, and the
 generative~\cite{Jagadeesan:2010:GOS:2175486.2175503} and
-promising~\cite{DBLP:conf/popl/KangHLVD17} operational semantics for
+promising~\cite{Kang-promising-2017} operational semantics for
 relaxed memory.  In all of these models a valid execution is defined
 with reference to other possible executions of the program. These
 models are not, however, designed for modeling Spectre-style attacks
