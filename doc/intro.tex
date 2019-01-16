@@ -116,9 +116,11 @@ This opens some possible areas of investigation:
 
 \item \emph{Mounting attacks against speculation on relaxed memory}.
   Spectre shows how a leaky abstraction allows for the construction of
-  side-channels which bypass dynamic security checks. Since defences
-  against buffer overflows are often dynamic checks, these attacks
-  allow all memory in a process to be read.  Inspired by these
+  side-channels which bypass dynamic security checks.
+  %% Since defences
+  %% against buffer overflows are often dynamic checks, these attacks
+  %% allow all memory in a process to be read.
+  Inspired by these
   attacks, we show how to mount information flow attacks against
   compiler optimizations, both against the model (\S\ref{sec:compiler})
   and against existing compilers (\S\ref{sec:experiments}).
@@ -128,13 +130,20 @@ This opens some possible areas of investigation:
   (which can optimize based on run-time secrets).
   With the addition of shared-memory concurrency
   to JavaScript~\cite[\S24.2]{ecma-262}, the attacks described in this paper might
-  become feasible. We hope that compiler designers become as
-  aware of information flow attacks against optimizations as their
-  hardware designing colleagues.
+  become feasible.
+  %% We hope that compiler designers become as
+  %% aware of information flow attacks against optimizations as their
+  %% hardware designing colleagues.
 
 \end{itemize}
 Readers who wish to focus on the impact of the model can skip to \S\ref{sec:examples}
 on first reading, referring to prior sections as needed.
+
+\paragraph*{Acknowledgments}
+
+We would like to thank the anonymous referees,
+and the paper shepherd Frank Piessens, whose
+comments helped greatly improve this paper.
 
 \section{Related work}
 
@@ -243,8 +252,6 @@ system~\cite{Smith:1998:SIF:268946.268975} will reject the conditional
 program, due to $a[s]\GETS 1$, in which a low-security assignment depends on
 a high-security variable.  We show how to circumvent such analyses in
 \S\ref{sec:spectre}.
-
-
 
 \endinput
 
