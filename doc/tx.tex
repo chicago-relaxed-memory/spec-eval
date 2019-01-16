@@ -214,7 +214,7 @@ only happens when the \texttt{SECRET} is $1$.
 This style of attack can be thwarted by requiring that the honest agent and
 attack code access disjoint cache sets.  This approach is pursued in \cite{dawg}.
 
-Another defense is require a speculation barrier at the beginning of each
+Another defense is to require a speculation barrier at the beginning of each
 transaction.  This would have the effect, however, of undermining any
 optimistic execution strategy for transactions: the transaction would only be
 able to begin when it is known that its commit will succeed.
