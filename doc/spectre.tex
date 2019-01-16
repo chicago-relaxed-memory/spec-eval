@@ -88,8 +88,8 @@ without giving a treatment of microarchitecture.
 \label{sec:spec-barriers}
 
 The ability to model Spectre is useful, but really we would
-like to model defences against such attacks, and provide some
-confidence in the correctness of the defence. One such defence
+like to model defenses against such attacks, and provide some
+confidence in the correctness of the defense. One such defense
 which fits naturally in our model is \emph{speculation barriers},
 which prevent code from being speculatively executed. For example,
 we could introduce such a $\BARRIER$, and require that
@@ -122,7 +122,7 @@ the execution of Spectre:
   \wk{wa}{ta}
   \po{ta}{wx}
 \end{tikzpicture}\]
-One might expect that this is a successful (albeit expensive) defence
+One might expect that this is a successful (albeit expensive) defense
 against Spectre, but it is not, unless the compiler is aware that
 $\BARRIER$ cannot be lifted out of a conditional. An unaware compiler
 might perform common subexpression elimination on barriers, allowing
@@ -141,7 +141,7 @@ To model the requirement that barriers are not moved past
 conditionals, we make them \emph{unmergeable}: $\DSB$ events
 on different arms of a conditional cannot be merged.
 With this requirement, we can show that barriers act as a
-defence against Spectre by first showing that $\sem\bCmd$ has
+defense against Spectre by first showing that $\sem\bCmd$ has
 the same successful executions as:
 \[
   \sem{\IF(\CANREAD(\SEC)) \THEN \BARRIER\SEMI\aCmd \ELSE \bCmd \FI}

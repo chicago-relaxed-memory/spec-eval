@@ -1145,7 +1145,7 @@ agrees with the JMM in not supporting thread inlining.
 
 % a:RRLX x=42 sb,dd,cd
 % c:RRLX y=42 sb,cd
-%   This is forbidden on hardware if compiled naively, as the architectures respect read-to-write control dependencies, but in practice compilers will collapse con- ditionals like that of the second thread, removing the control dependencies from the read of y to the writes of x and making the code identical to the previous example. As that example is allowed and observable on hardware (and we pre- sume that it would be impractical to outlaw such optimisation for C or C++), the language must also allow this execution. But this execution has a cycle in the union of reads-from and dependency, so we cannot simply exclude all those.
+%   This is forbidden on hardware if compiled naively, as the architectures respect read-to-write control dependencies, but in practice compilers will collapse conditionals like that of the second thread, removing the control dependencies from the read of y to the writes of x and making the code identical to the previous example. As that example is allowed and observable on hardware (and we pre- sume that it would be impractical to outlaw such optimization for C or C++), the language must also allow this execution. But this execution has a cycle in the union of reads-from and dependency, so we cannot simply exclude all those.
 % Then one might hope for some other adaptation of the C/C++11 model, but the following example shows at least that there is no per-candidate-execution solution.
 % Example LB+ctrldata+ctrl-single (language can and should forbid)
 % r1=loadrlx(x) //reads 42 if (r1 == 42)
