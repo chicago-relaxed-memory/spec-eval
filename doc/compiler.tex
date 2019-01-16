@@ -116,7 +116,7 @@ and lift the assignment to $x$ out of the $\IF$ statement:
     \brELIF(\CANREAD(\SEC))\THEN
     \brELSE z\GETS1 \FI
 \end{array}\]
-After these optimizations, a sequentially consistent execution
+After this optimization, a sequentially consistent execution
 exhibits $(\DW{z}{1})$. We discuss the practicality of this attack
 further in \S\ref{sec:experiments}.
 
@@ -135,7 +135,7 @@ one execution of $(x \GETS 1\SEMI x \GETS 2) \PAR (r \GETS x)$ is:
   \wk{wx1}{wx2}
   \rf{wx2}{rx2}
 \end{tikzpicture}\]
-Recall that for any satisfiable $\aEv$, if $\aEv$ reads $\aLoc$ from $\bLoc$
+Recall that for any satisfiable $\aEv$, if $\aEv$ reads $\aLoc$ from $\bEv$
 then $\bEv$ is satisfiable. This means that, although we can eliminate
 $(\DW{x}{1})$ we cannot eliminate $(\DW{x}{2})$.
 

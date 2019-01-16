@@ -144,7 +144,7 @@ With this requirement, we can show that barriers act as a
 defence against Spectre by first showing that $\sem\bCmd$ has
 the same successful executions as:
 \[
-  \sem{\IF(\CANREAD(\SEC)) \BARRIER\SEMI\aCmd \ELSE \bCmd \FI}
+  \sem{\IF(\CANREAD(\SEC)) \THEN \BARRIER\SEMI\aCmd \ELSE \bCmd \FI}
 \]
 and then showing that the semantics which only looks at successful
 executions is \emph{compositional}: if $\sem\bCmd$ has the same
@@ -157,6 +157,6 @@ elimination.
 
 To realize a speculation barrier in microarchitecture, it is likely
 sufficient for the barrier to stop any further speculation until the barrier
-is known to succeed.  There is experimental evidence that Intel’s
+is known to succeed.  There is experimental evidence that Intel's
 \texttt{mfence} instruction has the effect of a speculation barrier in some contexts
 \cite[\S{VII-\textit{D}}]{DBLP:conf/micro/TrippelLM18}.
