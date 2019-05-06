@@ -296,13 +296,13 @@ Reads $y$ then writes $x$}}}
 \begin{frame}
   \frametitle{Implementing an attack on load/store reordering}
 
-  To make this attack more likely, introduce
+  To improve accuracy, introduce
   a small delay between\\
   write of $x$ and read of $y$,
   increases probability of round trip.
 
   \bigskip
-  Experimentally gcc will reorder load/store
+  Experimentally, gcc will reorder load/store
   across 30 straight-line instructions.
 
   \bigskip
@@ -310,7 +310,7 @@ Reads $y$ then writes $x$}}}
   and increase probability of success.
   
   \bigskip
-  Attack is 99.9\% accurate at 100Kbps.
+  Attack is 99.99\% accurate at 300Kbps.
 
 \end{frame}
 
@@ -321,7 +321,7 @@ Reads $y$ then writes $x$}}}
 
   \bigskip
   Attack works on clang as well as gcc,
-  99.9\% accurate at 400Kbps.
+  99.99\% accurate at 1.2Mbps.
 \end{frame}
 
 \section{Conclusions}
