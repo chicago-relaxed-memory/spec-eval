@@ -249,17 +249,20 @@ If $\SEC$ is $2$, there is no execution (due to cyclic dependency):
   Spectre and Prime+Abort are implemented.
 
   \bigskip
-  What about the attacks on compiler optimizations?
+  Can we implement the attacks on compiler optimizations?
 
   \pause\bigskip
   \emph{Yes}\pause, under unrealistic assumptions:
   \begin{itemize}
-  \item $\SEC$ is a constant known at compile-time,
-  \item $\CANREAD(\SEC)$ is a run-time check.
+  \item $\SEC$ is a constant known at compile-time
+  \item $\CANREAD(\SEC)$ is a run-time check
   \end{itemize}
 
 \end{frame}
 
+\newcommand<>\highlightbox[2]{
+  \alt#3{\makebox[\dimexpr\width-2\fboxsep]{\colorbox{#1}{#2}}}{#2}
+}
 \begin{frame}
   \frametitle{Implementing an attack on load/store reordering}
 
@@ -270,58 +273,60 @@ If $\SEC$ is $2$, there is no execution (due to cyclic dependency):
     r\GETS y\SEMI
   \)
 
-  \medskip
-  
-{\footnotesize\fbox{\parbox[t]{.45\textwidth}{\raggedright If $\SEC$ is not $1$, gcc generates:\\[\medskipamount]
-~~mov canReadSecret(\%rip), \%eax\\
-~~mov \$1, x(\%rip)\\
-~~test \%eax, \%eax\\
-~~je label1\\
-~~mov \$0, x(\%rip)\\
-~label1:\\
-~~mov y(\%rip), \%eax\\[\medskipamount]
-Writes $x$ then reads $y$}}
-\fbox{\parbox[t]{.45\textwidth}{\raggedright If $\SEC$ is $1$, gcc generates:\\[\medskipamount]
-~~mov canReadSecret(\%rip), \%eax\\
-~~mov y(\%rip), \%eax\\
-~~mov \$1, x(\%rip)\\~\\~\\~\\[\medskipamount]
-Conditional has been eliminated!\\    
-Reads $y$ then writes $x$}}}
+  \pause\medskip
 
-\bigskip
-  A forwarding thread copies $x$ to $y$, so the attacker can spot the reordering.
+{\footnotesize\fbox{\parbox[t]{.45\textwidth}{\raggedright When $\SEC \neq 1$, gcc generates:\\[\medskipamount]
+{\color{bottle}\ttfamily
+~~~~~~mov canReadSecret(\%rip), \%eax\\
+~~~~~{\highlightbox<3->{bottle!80!black}{\color<3->{white}mov \$1, x(\%rip)}}\\
+~~~~~~test \%eax, \%eax\\
+~~~~~~je label1\\
+~~~~~~mov \$0, x(\%rip)\\
+~~~~label1:\\
+~~~~~{\highlightbox<3->{orange!80!black}{\color<3->{white}mov y(\%rip), \%eax}}}\\[\medskipamount]
+\onslide<3->{Writes $x$ then reads $y$}}}
+\fbox{\parbox[t]{.45\textwidth}{\raggedright When $\SEC = 1$, gcc generates:\\[\medskipamount]
+{\color{bottle}\ttfamily
+~~~~~~mov canReadSecret(\%rip), \%eax\\
+~~~~~{\highlightbox<4->{orange!80!black}{\color<4->{white}mov y(\%rip), \%eax}}\\
+~~~~~{\highlightbox<4->{bottle!80!black}{\color<4->{white}mov \$1, x(\%rip)}}}\\~\\~\\~\\[\medskipamount]
+\onslide<4->{Conditional has been eliminated!\\
+Reads $y$ then writes $x$}}}}
+
+\pause\pause\pause\bigskip
+  Forwarding thread $x \GETS y$ allows attacker to spot the reordering
 
 \end{frame}
 
 \begin{frame}
   \frametitle{Implementing an attack on load/store reordering}
 
-  To improve accuracy, introduce
-  a small delay between\\
-  write of $x$ and read of $y$,
-  increases probability of round trip.
+  Small delay between
+  write $x$ and read $y$:
+  increases probability of round trip
 
   \bigskip
-  Experimentally, gcc will reorder load/store
-  across 30 straight-line instructions.
+  gcc will reorder across 30 straight-line instructions
 
   \bigskip
-  Repeat attack to leak multiple bits,
-  and increase probability of success.
-  
+  Repeat to leak multiple bits, error correction
+
   \bigskip
-  Attack is 99.99\% accurate at 300Kbps.
+  Bitwise accuracy 99.99\% at 300Kbps
 
 \end{frame}
 
 \begin{frame}
   \frametitle{Implementing an attack on dead store elimination}
 
-  A similar attack on works on dead store elimination.
+  A similar attack targets dead store elimination
 
   \bigskip
-  Attack works on clang as well as gcc,
-  99.99\% accurate at 1.2Mbps.
+  Works on clang + gcc
+
+  \bigskip
+  Bitwise accuracy 99.99\% at 1.2Mbps
+
 \end{frame}
 
 \section{Conclusions}
@@ -332,8 +337,8 @@ Reads $y$ then writes $x$}}}
 
   \bigskip
   Examples
-  including existing information flow attacks on
-  branch prediction and transactional memory, and new attacks on optimizing compilers.
+  including existing information flow attacks on branch prediction\\
+  and transactional memory, and new attacks on optimizing compilers.
 
   \bigskip
   Experimental evidence that the new attacks can be carried out,\\
@@ -341,16 +346,19 @@ Reads $y$ then writes $x$}}}
 
   \bigskip
   (Phew, we failed to mount attacks on JIT compilers.)
-\end{frame}
 
-
-
-
-
-\begin{frame}
-  \frametitle{Thank you!}
+  \bigskip
+  \bigskip
+  \bigskip
+  \bigskip
   \url{https://github.com/chicago-relaxed-memory/spec-eval}
 \end{frame}
+
+
+% \begin{frame}
+%   \frametitle{Thank you!}
+%   \url{https://github.com/chicago-relaxed-memory/spec-eval}
+% \end{frame}
 
 \end{document}
 
