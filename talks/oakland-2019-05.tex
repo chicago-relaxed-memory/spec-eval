@@ -17,7 +17,7 @@
 
 \begin{frame}[plain]
   \includegraphics[height=.9\textheight]{green-penguin.jpg}
-  \begin{minipage}[b][.9\textheight]{.8\textwidth}\raggedleft
+  \begin{minipage}[b][.9\textheight]{0.55\textwidth}\raggedleft
     A classic locked-room mystery.\\
     Eve was in the false branch\\
     of a conditional the whole time,\\
@@ -96,11 +96,18 @@
   \only<1>{\po{wx2}{wy1}}
 \end{tikzpicture}\]
 
+  \pause
+
+  \pause Shared-memory concurrency leaks the abstraction
+
+  \medskip
+  \pause Resulted in entire research area: weak memory models (e.g.~Pugh \emph{et al.}; C11)
+
 \end{frame}
 
 \begin{frame}
   \frametitle{Optimizations in hardware\onslide<4->{ and compilers}}
-  
+
   Another lie we tell programmers:\\
   ``only one branch of an $\IF$ is executed.''
 
@@ -124,12 +131,18 @@
   \onslide<3>{\po{rx1}{nwz1}}
 \end{tikzpicture}\]
 
+  \pause\pause\pause\pause
+  No language-level model for this!
+
+  \medskip
+  As weak memory models are to OOO, so \emph{what} is to speculation?
+
 \end{frame}
 
 \section{Simplified Spectre}
 \begin{frame}
   \frametitle{Simplified Spectre}
-  
+
   Imagine a $\SEC$, protected by a run-time security check:
   \[
      \IF \CANREAD(\SEC) \THEN \dots\mbox{use } \SEC\dots \ELSE \dots \FI
